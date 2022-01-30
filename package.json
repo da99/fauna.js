@@ -1,0 +1,28 @@
+{
+  "name": "evan",
+  "version": "0.0.0",
+  "description": "This is useless for you.",
+  "main": "src/main.ts",
+  "scripts": {
+    "test": "sh/spec"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.13",
+    "cli-color": "^2.0.1",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/da99/Evan.git"
+  },
+  "keywords": [
+    "fluffy_fantasy"
+  ],
+  "author": "The little kitten that followed you on your way home.",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/da99/Evan/issues"
+  },
+  "homepage": "https://github.com/da99/Evan#readme"
+}

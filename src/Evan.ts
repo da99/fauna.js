@@ -1,5 +1,6 @@
 
 import assert from "assert";
+import * as FS from "fs";
 const CLC: any = require('cli-color');
 
 type Describe = {
@@ -22,23 +23,38 @@ type Assert_Result = {
   error?: unknown
 } // type
 
+type State = Array<Describe | It>
+type StateKV = {
+  [key: string]: It
+};
+
+function is_describe(x: Describe | It) {
+  return x.hasOwnProperty("describe");
+} // function
+
+function is_it(x: Describe | It) {
+  return x.hasOwnProperty("it");
+} // function
 
 class Evan {
-  state: Array<Describe | It>
+  state: State;
+  current_describe: string;
 
-  constructor() {
-    this.state = [];
+  constructor(old_state?: State) {
+    this.state = old_state || [];
+    this.current_describe = "";
   } // constructor
 
   print() {
     for (const result of this.state) {
       if (result.hasOwnProperty("describe")) {
         const x = result as Describe;
-        console.log(`${CLC.bold.yellow("Describe")}: ${x.describe}`);
+        console.log("");
+        console.log(`${CLC.bold.blue("Describe")}: ${x.describe}`);
       } else if (result.hasOwnProperty("it")) {
         const x = result as It;
         if (x.pass) {
-          console.log(`${CLC.yellow("- it")}: ${x.it}`);
+          console.log(`${CLC.green("- it")}: ${x.it}`);
         } else {
           console.log(`${CLC.red("- it")}: ${x.it}`);
           console.log(x.assert.results);
@@ -49,9 +65,34 @@ class Evan {
     } // for
   } // method
 
+  get state_kv(): StateKV {
+    const kv: StateKV = {};
+    this.forEachIt(function (x: It) {
+      kv[x.version] = x;
+    });
+    return kv;
+  } // get
+
   push(x: Describe | It) {
-    return this.state.push(x);
+    this.state.push(x);
+    return this;
   }
+
+  describe(title: string) {
+    this.current_describe = title;
+    return this.state.push({describe: title});
+  } // method
+
+  it(title: string, f:(a: Assert)=>void) {
+    return this.push({
+      it: title,
+      pass: false,
+      version: `${this.current_describe} ${title}`.trim(),
+      body: f,
+      body_string: f.toString(),
+      assert: new Assert()
+    });
+  } // method
 
   forEachDescribe(f: (x: Describe) => void) {
     for (const x of this.state) {
@@ -70,6 +111,45 @@ class Evan {
       }
     } // for
   } // method
+
+  reject_passes(old: State) {
+    const old_e = new Evan(old)
+    const old_kv: StateKV = old_e.state_kv;
+
+    return this.filter((x: Describe | It) => {
+      if (x.hasOwnProperty("it")) {
+        const it = x as It;
+        return old_kv[it.version].pass === false;
+      }
+      return true;
+    });
+  } // methodd
+
+  static load_from_file(fname: string) {
+    const raw = FS.readFileSync(fname, {encoding:'utf8', flag:'r'});
+    return new Evan(JSON.parse(raw));
+  } // method
+
+  save_to_file(fname: string) {
+    return FS.writeFileSync(fname, JSON.stringify(this.state));
+  } // method
+
+  filter(f: (x: Describe | It) => boolean) {
+    this.state = this.state.filter(f);
+    return this;
+  } // methodd
+
+  filterIt(f: (x: It) => boolean) {
+    return this.filter((x: Describe | It) => {
+      if (is_describe(x))
+        return true;
+      if (is_it(x)) {
+        return f(x as It);
+      }
+      return false;
+    });
+  } // methodd
+
 
   async run() {
     const promises: Array<Promise<any>> = [];
@@ -145,26 +225,15 @@ class Assert {
 } // class
 
 const evan = new Evan();
-let current_describe = "";
 
 function describe(title: string) {
-  current_describe = title;
-  evan.push({describe: title});
-  return evan;
+  return evan.describe(title);
 } // function
 
 function it(title: string, f:(a: Assert)=>void) {
-  evan.push({
-    it: title,
-    pass: false,
-    version: `${current_describe} ${title}`,
-    body: f,
-    body_string: f.toString(),
-    assert: new Assert()
-  });
-  return evan;
+  return evan.it(title, f);
 } // function
 
 export { Evan, evan, describe, it, Assert};
-export type { Describe, It};
+export type { Describe, It, State, StateKV, Assert_Result};
 

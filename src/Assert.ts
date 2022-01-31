@@ -1,9 +1,10 @@
 
-import { Text_File } from "../src/Text_File.ts";
+
+import { equal as EQUAL } from "https://deno.land/std/testing/asserts.ts";
 import { bold as BOLD, blue as BLUE, green as GREEN, red as RED  } from "https://deno.land/std/fmt/colors.ts";
 
-type It_Asyn_Function = () => Promise<void>;
-type It_Function = () => void;
+type It_Asyn_Function = (a: Assert) => Promise<void>;
+type It_Function = (a: Assert) => void;
 
 type Describe = {
   describe: string
@@ -15,10 +16,10 @@ type It = {
   body: It_Asyn_Function,
   body_string: string,
   version: string,
-  error?: Error
+  results: Array<Assert_Result>
 } // type
 
-type Run_Result = {
+type Assert_Result = {
   name: string,
   pass: boolean,
   values: Array<any>,
@@ -29,6 +30,9 @@ type State = Array<Describe | It>
 type StateKV = {
   [key: string]: It
 };
+
+type Run_Filter = (x: It) => boolean;
+
 
 function is_describe(x: Describe | It) {
   return x.hasOwnProperty("describe");
@@ -63,7 +67,7 @@ class Evan {
           console.log(`${GREEN("- it")}: ${x.it}`);
         } else {
           console.log(`${RED("- it")}: ${x.it}`);
-          console.log(x.error);
+          console.log(x.results);
         }
       } else {
         throw new Error(`Unknown test type: ${JSON.stringify(result)}`);
@@ -92,7 +96,7 @@ class Evan {
   it(title: string, raw_f: It_Function | It_Asyn_Function) {
     let f = raw_f;
     if (!is_async_function(raw_f)) {
-      f = async () => { return raw_f(); }
+      f = async (a: Assert) => { return raw_f(a); }
     }
     return this.push({
       it:          title,
@@ -100,6 +104,7 @@ class Evan {
       version:     `${this.current_describe} ${title}`.trim(),
       body:        f as It_Asyn_Function,
       body_string: f.toString(),
+      results:     []
     });
   } // method
 
@@ -135,11 +140,11 @@ class Evan {
   } // methodd
 
   get is_empty() {
-    return this.its.length === 0;
+    return this.state.length === 0;
   }
 
   get pass() {
-    return !this.has_fails;
+    return !this.state.find((x: It | Describe) => !(x as It).pass);
   } // method
 
   get has_fails() {
@@ -147,9 +152,7 @@ class Evan {
   }
 
   get fails() : Array<It> {
-    return this.its.filter((it: It) => {
-      return !it.pass;
-    });
+    return this.state.filter((x: It | Describe) => !(x as It).pass) as Array<It>;
   } // method
 
   static it_with_version(x: string) {
@@ -158,17 +161,8 @@ class Evan {
     };
   } // static
 
-  get its() : Array<It> {
-    return this.state.filter((x: any) => is_it(x)) as Array<It>;
-  } // get
-
-  filter(f: (x: It) => boolean) {
-    this.state = this.state.filter((x: It | Describe) => {
-      if (!is_it(x))
-        return true;
-      const it = x as It;
-      return f(it);
-    });
+  filter(f: (x: Describe | It) => boolean) {
+    this.state = this.state.filter(f);
     return this;
   } // methodd
 
@@ -182,15 +176,24 @@ class Evan {
     return this;
   } // method
 
-  async run() {
+  async run(f?: Run_Filter) {
     const promises: Array<Promise<any>> = [];
     for (const x of this.state) {
-      if (is_it(x)) {
+      if (x.hasOwnProperty("it")) {
         let it = x as It;
-        const new_p = it.body().then(() => {it.pass = true;}).catch((e) => {
+        if (f && !f(it)) {
+          continue;
+        }
+        const a = new Assert(it);
+        const new_p = it.body(a).then(() => a.end()).catch((e) => {
           it.pass = false;
           if (e.message !== "recorded") {
-            it.error = e;
+            it.results.push({
+              name: "unknown",
+              pass: false,
+              values: [],
+              error: e
+            });
           }
         });
         promises.push(new_p);
@@ -199,34 +202,81 @@ class Evan {
     await Promise.allSettled(promises);
     return this.state;
   } // method
+} // class
 
-  async run_last_fail(fn: string, before_save?: (e: Evan) => void) {
-    const file = new Text_File(fn);
+class Assert {
+  results: Array<Assert_Result>;
+  it: It;
 
-    if (file.text) {
-      this.filter(Evan.it_with_version(file.text));
-      if (this.is_empty)
-        throw new Error(`No tests found for: ${file.filename}`);
-    }
-    await this.run();
+  get pass() {
+    const results = this.results;
+    return !results.find(x => !x.pass);
+  } // getter
 
-    if (before_save) {
-      before_save(this);
-    }
+  constructor(it: It) {
+    this.it = it;
+    this.results = [];
+  } // constructor
 
-    if (file.text) {
-      if (evan.pass) {
-        file.delete();
+  equal(x: any, y: any) {
+    try {
+      EQUAL(x, y);
+      const result = {
+        name: "deepEqual",
+        pass: true,
+        values: [x, y]
       }
-    } else {
-      if (evan.has_fails) {
-        file.write(evan.fails[0].version);
+      this.results.push(result);
+      return result;
+    } catch(e) {
+      const result = {
+        name: "deepEqual",
+        pass: false,
+        values: [x, y],
+        error: e
       }
+      this.results.push(result);
+      throw new Error("recorded");
+      return result;
+    }
+  } // method
+
+  end() {
+    if (this.results.length === 0) {
+      this.results.push({
+        name: "at_least_one_assertion",
+        pass: false,
+        values: []
+      });
+      throw new Error("recorded");
     }
     return this;
   } // method
-} // class
 
+  deepEqual(x: any, y: any) {
+    try {
+      EQUAL(x, y);
+      const result = {
+        name: "deepEqual",
+        pass: true,
+        values: [x, y]
+      }
+      this.results.push(result);
+      return result;
+    } catch(e) {
+      const result = {
+        name: "deepEqual",
+        pass: false,
+        values: [x, y],
+        error: e
+      }
+      this.results.push(result);
+      throw new Error("recorded");
+      return result;
+    }
+  } // method
+
+} // class
 
 const evan = new Evan();
 
@@ -238,6 +288,6 @@ function it(title: string, f: It_Function | It_Asyn_Function) {
   return evan.it(title, f);
 } // function
 
-export { Evan, evan, describe, it};
-export type { Describe, It, State, StateKV, Run_Result};
+export { Evan, evan, describe, it, Assert};
+export type { Describe, It, State, StateKV, Assert_Result};
 

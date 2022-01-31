@@ -6,6 +6,9 @@
   "scripts": {
     "test": "sh/spec"
   },
+  "dependencies": {
+    "da.ts": "da99/DA.ts"
+  },
   "devDependencies": {
     "@types/node": "^17.0.13",
     "cli-color": "^2.0.1",

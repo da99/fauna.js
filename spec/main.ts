@@ -95,7 +95,7 @@ it("includes 'describe' in the key", () => {
 
 // =============================================================================
 describe("evan.filter");
-it("removes values that fail the filter function", function () {
+it("removes values if the filter function returns true", function () {
   const e = new Evan();
   e.describe("something")
   e.it("1", () => { });
@@ -107,7 +107,7 @@ it("removes values that fail the filter function", function () {
 
 // // =============================================================================
 describe("evan.filterIt");
-it("removes tests that fail the filter function", function () {
+it("removes tests that return true for the filter function", function () {
   const e = new Evan();
   e.describe("Main");
   e.it("1", () => { });

@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+#
+#
+set -u -e -o pipefail
+cd "$( dirname "$(realpath "$0")" )/.."
+THIS_DIR="$PWD"
+
+set -x
+deno run --allow-read=tmp --allow-write=tmp spec/main.ts

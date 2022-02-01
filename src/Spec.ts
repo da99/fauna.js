@@ -1,4 +1,14 @@
 
+
+// Colors from: https://stackoverflow.com/questions/9781218/how-to-change-node-jss-console-font-color
+const DA_Spec = {
+  "BOLD" : "\x1b[1m",
+  "RED": "\x1b[31m",
+  "GREEN": "\x1b[32m",
+  "YELLOW": "\x1b[33m"
+}; // const
+const RESET = "\x1b[0m";
+
 import { Text_File } from "../src/Text_File.ts";
 import { bold as BOLD, blue as BLUE, green as GREEN, red as RED  } from "https://deno.land/std/fmt/colors.ts";
 
@@ -42,7 +52,7 @@ function is_async_function(x: any) {
   return x && x.constructor.name === "AsyncFunction";
 } // function
 
-class Evan {
+class Spec {
   state: State;
   current_describe: string;
 
@@ -51,11 +61,17 @@ class Evan {
     this.current_describe = "";
   } // constructor
 
+  exit_on_fail() {
+    if (!this.pass) {
+      Deno.exit(1);
+    }
+    return false;
+  } // method
+
   print() {
     for (const result of this.state) {
       if (result.hasOwnProperty("describe")) {
         const x = result as Describe;
-        console.log("");
         console.log(`${BOLD(BLUE("Describe"))}: ${x.describe}`);
       } else if (result.hasOwnProperty("it")) {
         const x = result as It;
@@ -122,7 +138,7 @@ class Evan {
   } // method
 
   reject_passes(old: State) {
-    const old_e = new Evan(old)
+    const old_e = new Spec(old)
     const old_kv: StateKV = old_e.state_kv;
 
     return this.filter((x: Describe | It) => {
@@ -200,11 +216,11 @@ class Evan {
     return this.state;
   } // method
 
-  async run_last_fail(fn: string, before_save?: (e: Evan) => void) {
+  async run_last_fail(fn: string, before_save?: (e: Spec) => void) {
     const file = new Text_File(fn);
 
     if (file.text) {
-      this.filter(Evan.it_with_version(file.text));
+      this.filter(Spec.it_with_version(file.text));
       if (this.is_empty)
         throw new Error(`No tests found for: ${file.filename}`);
     }
@@ -215,12 +231,12 @@ class Evan {
     }
 
     if (file.text) {
-      if (evan.pass) {
+      if (spec.pass) {
         file.delete();
       }
     } else {
-      if (evan.has_fails) {
-        file.write(evan.fails[0].version);
+      if (spec.has_fails) {
+        file.write(spec.fails[0].version);
       }
     }
     return this;
@@ -228,16 +244,16 @@ class Evan {
 } // class
 
 
-const evan = new Evan();
+const spec = new Spec();
 
 function describe(title: string) {
-  return evan.describe(title);
+  return spec.describe(title);
 } // function
 
 function it(title: string, f: It_Function | It_Asyn_Function) {
-  return evan.it(title, f);
+  return spec.it(title, f);
 } // function
 
-export { Evan, evan, describe, it};
+export { Spec, spec, describe, it};
 export type { Describe, It, State, StateKV, Run_Result};
 

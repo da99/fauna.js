@@ -1,4 +1,5 @@
 
+import util from "util";
 import {default as F} from "faunadb";
 const {
   Paginate,
@@ -19,10 +20,11 @@ const {
   Indexes,
   Role,
   CreateRole,
-  Roles
+  Roles,
+  Equals
 } = F.query;
 import http from "http";
-const PORT = 3000;
+const PORT = parseInt(process.env.PORT || 3000);
 
 function text(response, code, text) {
   response.statusCode = code;
@@ -61,7 +63,8 @@ const requestHandler = (request, response) => {
           console.log(v);
           json(response, 200, JSON.stringify({
             "you wrote": v,
-            "as_string": v.toString()
+            "as_string": v.toString(),
+            "inspection": util.inspect(v, {depth: Infinity})
           }));
         } catch(e) {
           json(response, 500, JSON.stringify({

@@ -1,29 +1,33 @@
 
 import {F} from "./FaunaDB.ts";
+import { split } from "./String.ts";
+
 // import {Migrator} from "./Migrator.ts";
 const {
-  Paginate,
-  // Collections, Get,
-  // Function: FN,
-  // Database,
-  // Query,
-  // Create,
-  // CreateFunction,
-  // Collection,
-  // Var,
-  // LowerCase,
-  // Ref,
-  // Lambda,
-  // Select,
-  // Map,
-  // Functions,
-  // Indexes,
-  // Role,
-  // CreateRole,
-  // Roles
+  Var,
+  Query,
+  Equals
 } = F.query;
 
-console.log(Paginate);
+async function main() {
+  try {
+    const resp = await fetch("http://localhost:3000/log", {
+      method: "POST",
+      headers: {
+        content_type: "application/fauna; charset=UTF-8",
+        accept: "application/json",
+      },
+      body: Deno.inspect(Query(Var("hello")))
+    });
+    const j = await resp.json();
+    console.log(j);
+  } catch(e) {
+    console.log(e);
+  }
+} // async function
+
+
+main();
 
 // const fauna_sync = new Migrator({
 //   secret: process.env.FAUNA_SECRET,
@@ -48,9 +52,6 @@ console.log(Paginate);
 //   ]
 // }) ;
 
-// function split(x: string) {
-//   return x.split(/\s+/).map(x => x.trim()).filter(x => x && (x.length > 0));
-// } // function
 
 // for (const name of split("\
 //   labeling screen_name console page mail permission_list\

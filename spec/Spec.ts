@@ -1,19 +1,19 @@
 
 
 import { Text_File } from "../src/Text_File.ts";
-import { Evan, evan, describe, it, State } from "../src/Evan.ts";
+import { Spec, spec, describe, it, State } from "../src/Spec.ts";
 import { assertEquals as EQUALS } from "https://deno.land/std/testing/asserts.ts";
-import type { It } from "../src/Evan.ts";
+import type { It } from "../src/Spec.ts";
 
 function flatten_titles(x : State) {
   return x.map((it: any) => (it.describe || it.it)).join(" ");
 }
 
 // // =============================================================================
-describe("Evan");
+describe("Spec");
 
 it("allows you to retrieve the state.", ()=>{
-  const v = typeof evan.state;
+  const v = typeof spec.state;
   EQUALS("object", v);
 });
 
@@ -31,9 +31,9 @@ it("accepts async functions.", async () => {
 });
 
 // =============================================================================
-describe("evan.its");
+describe("spec.its");
 it("returns tests.", () => {
-  const e = new Evan();
+  const e = new Spec();
   const f = () => { EQUALS(1,2)};
   e.it("a2", () => {});
   e.it("a1", f);
@@ -42,9 +42,9 @@ it("returns tests.", () => {
 });
 
 // =============================================================================
-describe("evan.fails");
+describe("spec.fails");
 it("returns the tests that failed.", async () => {
-  const e = new Evan();
+  const e = new Spec();
   const f = () => { EQUALS(1,2)};
   e.it("a2", () => {});
   e.it("a1", f);
@@ -55,9 +55,9 @@ it("returns the tests that failed.", async () => {
 });
 
 // =============================================================================
-describe("evan.has_fails");
+describe("spec.has_fails");
 it("returns true if there are failures.", async () => {
-  const e = new Evan();
+  const e = new Spec();
   e.it("a2", () => {});
   e.it("a1", () => { EQUALS(1,2)});
   e.it("a3", () => {});
@@ -66,7 +66,7 @@ it("returns true if there are failures.", async () => {
 });
 
 it("returns false if all tests pass.", async () => {
-  const e = new Evan();
+  const e = new Spec();
   e.it("a2", () => { 1; });
   e.it("a1", () => { EQUALS(2,2)});
   e.it("a3", () => {});
@@ -75,9 +75,9 @@ it("returns false if all tests pass.", async () => {
 });
 
 // =============================================================================
-describe("evan.state_kv");
+describe("spec.state_kv");
 it("returns the tests in KV format", () => {
-  const e = new Evan();
+  const e = new Spec();
   e.it("a1", () => { 1; });
   e.it("a2", () => {});
   e.it("a3", () => {});
@@ -85,7 +85,7 @@ it("returns the tests in KV format", () => {
 });
 
 it("includes 'describe' in the key", () => {
-  const e = new Evan();
+  const e = new Spec();
   e.describe("Something");
   e.it("a1", () => {});
   e.it("a3", () => {});
@@ -94,9 +94,9 @@ it("includes 'describe' in the key", () => {
 
 
 // =============================================================================
-describe("evan.filter");
+describe("spec.filter");
 it("removes values if the filter function returns true", function () {
-  const e = new Evan();
+  const e = new Spec();
   e.describe("something")
   e.it("1", () => { });
   e.it("2", () => { });
@@ -106,9 +106,9 @@ it("removes values if the filter function returns true", function () {
 }); // it
 
 // // =============================================================================
-describe("evan.filterIt");
+describe("spec.filterIt");
 it("removes tests that return true for the filter function", function () {
-  const e = new Evan();
+  const e = new Spec();
   e.describe("Main");
   e.it("1", () => { });
   e.it("2", () => { });
@@ -118,16 +118,15 @@ it("removes tests that return true for the filter function", function () {
 }); // it
 
 
-(async function main() {
-  await evan.run_last_fail("tmp/spec.fail.txt", (e: Evan) => {
-    e.forEachIt((it: It) => {
-      if (it.it.indexOf("fails ") === 0) {
-        it.pass = !it.pass;
-      }
-    }) // for
-  });
-  evan.print();
-})();
+await spec.run_last_fail("tmp/spec.fail.txt", (e: Spec) => {
+  e.forEachIt((it: It) => {
+    if (it.it.indexOf("fails ") === 0) {
+      it.pass = !it.pass;
+    }
+  }) // for
+});
+spec.print();
+spec.exit_on_fail();
 
 
 // export { };

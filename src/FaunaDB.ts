@@ -129,29 +129,120 @@ function CreateExpr(name: string) {
 } // function
 
 
-const Paginate       = CreateExpr("Paginate");
-const Collections    = CreateExpr("Collections");
-const Get            = CreateExpr("Get");
-const Fn             = CreateExpr("Function");
-const Database       = CreateExpr("Database");
-const Query          = CreateExpr("Query");
-const Create         = CreateExpr("Create");
-const CreateRole     = CreateExpr("CreateRole");
+// macro CreateExpr
+const Add = CreateExpr("Add");
+const Call = CreateExpr("Call");
+const Ceil = CreateExpr("Ceil");
+const Collection = CreateExpr("Collection");
+const Collections = CreateExpr("Collections");
+const Concat = CreateExpr("Concat");
+const ContainsField = CreateExpr("ContainsField");
+const ContainsPath = CreateExpr("ContainsPath");
+const ContainsStr = CreateExpr("ContainsStr");
+const ContainsStrRegex = CreateExpr("ContainsStrRegex");
+const ContainsValue = CreateExpr("ContainsValue");
+const Count = CreateExpr("Count");
+const Create = CreateExpr("Create");
+const CreateCollection = CreateExpr("CreateCollection");
 const CreateFunction = CreateExpr("CreateFunction");
-const CreateIndex    = CreateExpr("CreateIndex");
-const CreateCollection=CreateExpr("CreateCollection");
-const Collection     = CreateExpr("Collection");
-const Var            = CreateExpr("Var");
-const LowerCase      = CreateExpr("LowerCase");
-const Ref            = CreateExpr("Ref");
-const Lambda         = CreateExpr("Lambda");
-const Select         = CreateExpr("Select");
-const Map            = CreateExpr("Map");
-const Functions      = CreateExpr("Functions");
-const Indexes        = CreateExpr("Indexes");
-const Role           = CreateExpr("Role");
-const Roles          = CreateExpr("Roles");
-const Equals         = CreateExpr("Equals");
+const CreateIndex = CreateExpr("CreateIndex");
+const CreateRole = CreateExpr("CreateRole");
+const CurrentIdentity = CreateExpr("CurrentIdentity");
+const Delete = CreateExpr("Delete");
+const Difference = CreateExpr("Difference");
+const Distinct = CreateExpr("Distinct");
+const Divide = CreateExpr("Divide");
+const Do = CreateExpr("Do");
+const Documents = CreateExpr("Documents");
+const Drop = CreateExpr("Drop");
+const EndsWith = CreateExpr("EndsWith");
+const Epoch = CreateExpr("Epoch");
+const Functions = CreateExpr("Functions");
+const Fn = CreateExpr("Function");
+const Database = CreateExpr("Database");
+const Get = CreateExpr("Get");
+const GT = CreateExpr("GT");
+const GTE = CreateExpr("GTE");
+const Identify = CreateExpr("Identify");
+const If = CreateExpr("If");
+const Index = CreateExpr("Index");
+const Indexes = CreateExpr("Indexes");
+const Insert = CreateExpr("Insert");
+const Intersection = CreateExpr("Intersection");
+const IsArray = CreateExpr("IsArray");
+const IsBoolean = CreateExpr("IsBoolean");
+const IsEmpty = CreateExpr("IsEmpty");
+const IsNonEmpty = CreateExpr("IsNonEmpty");
+const IsNull = CreateExpr("IsNull");
+const IsNumber = CreateExpr("IsNumber");
+const IsSet = CreateExpr("IsSet");
+const IsString = CreateExpr("IsString");
+const IsTimestamp = CreateExpr("IsTimestamp");
+const IsToken = CreateExpr("IsToken");
+const Join = CreateExpr("Join");
+const LT = CreateExpr("LT");
+const LTE = CreateExpr("LTE");
+const LTrim = CreateExpr("LTrim");
+const Lambda = CreateExpr("Lambda");
+const Length = CreateExpr("Length");
+const Let = CreateExpr("Let");
+const Ln = CreateExpr("Ln");
+const LowerCase = CreateExpr("LowerCase");
+const Map = CreateExpr("Map");
+const Match = CreateExpr("Match");
+const Max = CreateExpr("Max");
+const Mean = CreateExpr("Mean");
+const Merge = CreateExpr("Merge");
+const Min = CreateExpr("Min");
+const Minute = CreateExpr("Minute");
+const Modulo = CreateExpr("Modulo");
+const Month = CreateExpr("Month");
+const Multiply = CreateExpr("Multiply");
+const Not = CreateExpr("Not");
+const Now = CreateExpr("Now");
+const Or = CreateExpr("Or");
+const Paginate = CreateExpr("Paginate");
+const Prepend = CreateExpr("Prepend");
+const Query = CreateExpr("Query");
+const RTrim = CreateExpr("RTrim");
+const Range = CreateExpr("Range");
+const Reduce = CreateExpr("Reduce");
+const RegexEscape = CreateExpr("RegexEscape");
+const Role = CreateExpr("Role");
+const Ref = CreateExpr("Ref");
+const Roles = CreateExpr("Roles");
+const Remove = CreateExpr("Remove");
+const Repeat = CreateExpr("Repeat");
+const Replace = CreateExpr("Replace");
+const ReplaceStr = CreateExpr("ReplaceStr");
+const ReplaceStrRegex = CreateExpr("ReplaceStrRegex");
+const Reverse = CreateExpr("Reverse");
+const Round = CreateExpr("Round");
+const Select = CreateExpr("Select");
+const Space = CreateExpr("Space");
+const StartsWith = CreateExpr("StartsWith");
+const SubString = CreateExpr("SubString");
+const Subtract = CreateExpr("Subtract");
+const Sum = CreateExpr("Sum");
+const Take = CreateExpr("Take");
+const Time = CreateExpr("Time");
+const TimeAdd = CreateExpr("TimeAdd");
+const TimeDiff = CreateExpr("TimeDiff");
+const TimeSubstract = CreateExpr("TimeSubstract");
+const TitleCase = CreateExpr("TitleCase");
+const ToArray = CreateExpr("ToArray");
+const ToDate = CreateExpr("ToDate");
+const ToDouble = CreateExpr("ToDouble");
+const ToInteger = CreateExpr("ToInteger");
+const ToString = CreateExpr("ToString");
+const ToTime = CreateExpr("ToTime");
+const Trim = CreateExpr("Trim");
+const Trunc = CreateExpr("Trunc");
+const Union = CreateExpr("Union");
+const Update = CreateExpr("Update");
+const UpperCase = CreateExpr("UpperCase");
+const Var = CreateExpr("Var");
+
 
 function CreateResource(r_type: keyof New_Schema, r: Param_Object) {
   switch (r_type) {
@@ -229,4 +320,6 @@ export {
   F,
   CreateExpr,
   Select_Map_Paginate,
+  Add, Call, Ceil, Collection, Collections, Concat, ContainsField, ContainsPath, ContainsStr, ContainsStrRegex, ContainsValue, Count, Create, CreateCollection, CreateFunction, CreateIndex, CreateRole, CurrentIdentity, Delete, Difference, Distinct, Divide, Do, Documents, Drop, EndsWith, Epoch, Functions, Fn, Database, Get, GT, GTE, Identify, If, Index, Indexes, Insert, Intersection, IsArray, IsBoolean, IsEmpty, IsNonEmpty, IsNull, IsNumber, IsSet, IsString, IsTimestamp, IsToken, Join, LT, LTE, LTrim, Lambda, Length, Let, Ln, LowerCase, Map, Match, Max, Mean, Merge, Min, Minute, Modulo, Month, Multiply, Not, Now, Or, Paginate, Prepend, Query, RTrim, Range, Reduce, RegexEscape, Role, Ref, Roles, Remove, Repeat, Replace, ReplaceStr, ReplaceStrRegex, Reverse, Round, Select, Space, StartsWith, SubString, Subtract, Sum, Take, Time, TimeAdd, TimeDiff, TimeSubstract, TitleCase, ToArray, ToDate, ToDouble, ToInteger, ToString, ToTime, Trim, Trunc, Union, Update, UpperCase, Var
+
 };

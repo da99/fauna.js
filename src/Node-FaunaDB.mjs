@@ -3,34 +3,9 @@ import util from "util";
 import {default as F} from "faunadb";
 
 const {
-  Add,
-  Call, Ceil, Collection, Collections,
-  Concat, ContainsField, ContainsPath, ContainsStr,
-  ContainsStrRegex, ContainsValue,
-  Count, Create, CreateCollection,
-  CreateFunction, CreateIndex, CreateRole,
-  CurrentIdentity, Delete, Difference, Distinct, Divide,
-  Do, Documents, Drop, EndsWith, Epoch,
-  Functions,
-  Function: FN, Database,
-  Get, GT, GTE,
-  Identify, If, Index, Indexes, Insert, Intersection,
-  IsArray, IsBoolean, IsEmpty, IsNonEmpty, IsNull, IsNumber, IsSet,
-  IsString, IsTimestamp, IsToken, Join,
-  LT, LTE, LTrim, Lambda, Length, Let, Ln, LowerCase,
-  Map, Match, Max, Mean, Merge, Min, Minute, Modulo, Month, Multiply,
-  Not, Now, Or,
-  Paginate, Prepend,
-  Query,
-  RTrim, Range, Reduce, RegexEscape, Role, Ref, Roles,
-  Remove, Repeat, Replace, ReplaceStr, ReplaceStrRegex,
-  Reverse, Round,
-  Select, Space, StartsWith, SubString, Subtract, Sum,
-  Take, Time, TimeAdd, TimeDiff, TimeSubstract, TitleCase, ToArray,
-  ToDate, ToDouble, ToInteger, ToString, ToTime, Trim, Trunc,
-  Union, Update, UpperCase,
-  Var,
+Add, Call, Ceil, Collection, Collections, Concat, ContainsField, ContainsPath, ContainsStr, ContainsStrRegex, ContainsValue, Count, Create, CreateCollection, CreateFunction, CreateIndex, CreateRole, CurrentIdentity, Delete, Difference, Distinct, Divide, Do, Documents, Drop, EndsWith, Epoch, Functions, Function: Fn, Database, Get, GT, GTE, Identify, If, Index, Indexes, Insert, Intersection, IsArray, IsBoolean, IsEmpty, IsNonEmpty, IsNull, IsNumber, IsSet, IsString, IsTimestamp, IsToken, Join, LT, LTE, LTrim, Lambda, Length, Let, Ln, LowerCase, Map, Match, Max, Mean, Merge, Min, Minute, Modulo, Month, Multiply, Not, Now, Or, Paginate, Prepend, Query, RTrim, Range, Reduce, RegexEscape, Role, Ref, Roles, Remove, Repeat, Replace, ReplaceStr, ReplaceStrRegex, Reverse, Round, Select, Space, StartsWith, SubString, Subtract, Sum, Take, Time, TimeAdd, TimeDiff, TimeSubstract, TitleCase, ToArray, ToDate, ToDouble, ToInteger, ToString, ToTime, Trim, Trunc, Union, Update, UpperCase, Var
 } = F.query;
+
 
 function inspect(x) {
   return util.inspect(x, {depth: Infinity});

@@ -116,7 +116,7 @@ type ENV = {
   [key: string]: string,
 };
 
-function new_expr(name: string) {
+function CreateExpr(name: string) {
   return (...args: any[]) : Expr => {
     return {
       name: name,
@@ -129,29 +129,29 @@ function new_expr(name: string) {
 } // function
 
 
-const Paginate       = new_expr("Paginate");
-const Collections    = new_expr("Collections");
-const Get            = new_expr("Get");
-const Fn             = new_expr("Function");
-const Database       = new_expr("Database");
-const Query          = new_expr("Query");
-const Create         = new_expr("Create");
-const CreateRole     = new_expr("CreateRole");
-const CreateFunction = new_expr("CreateFunction");
-const CreateIndex    = new_expr("CreateIndex");
-const CreateCollection=new_expr("CreateCollection");
-const Collection     = new_expr("Collection");
-const Var            = new_expr("Var");
-const LowerCase      = new_expr("LowerCase");
-const Ref            = new_expr("Ref");
-const Lambda         = new_expr("Lambda");
-const Select         = new_expr("Select");
-const Map            = new_expr("Map");
-const Functions      = new_expr("Functions");
-const Indexes        = new_expr("Indexes");
-const Role           = new_expr("Role");
-const Roles          = new_expr("Roles");
-const Equals         = new_expr("Equals");
+const Paginate       = CreateExpr("Paginate");
+const Collections    = CreateExpr("Collections");
+const Get            = CreateExpr("Get");
+const Fn             = CreateExpr("Function");
+const Database       = CreateExpr("Database");
+const Query          = CreateExpr("Query");
+const Create         = CreateExpr("Create");
+const CreateRole     = CreateExpr("CreateRole");
+const CreateFunction = CreateExpr("CreateFunction");
+const CreateIndex    = CreateExpr("CreateIndex");
+const CreateCollection=CreateExpr("CreateCollection");
+const Collection     = CreateExpr("Collection");
+const Var            = CreateExpr("Var");
+const LowerCase      = CreateExpr("LowerCase");
+const Ref            = CreateExpr("Ref");
+const Lambda         = CreateExpr("Lambda");
+const Select         = CreateExpr("Select");
+const Map            = CreateExpr("Map");
+const Functions      = CreateExpr("Functions");
+const Indexes        = CreateExpr("Indexes");
+const Role           = CreateExpr("Role");
+const Roles          = CreateExpr("Roles");
+const Equals         = CreateExpr("Equals");
 
 function CreateResource(r_type: keyof New_Schema, r: Param_Object) {
   switch (r_type) {
@@ -177,24 +177,20 @@ function find_name(arr: Array<Param_Object>, name_value: string) {
   return arr.find(x => x.name === name_value);
 } // function
 
-
-async function run_in_node(env: ENV, raw_body: Expr) {
+async function run_in_node(env: ENV, raw_body: any) {
   const body = Deno.inspect(raw_body);
   const proc = Deno.run({
     cmd: ["node", "src/Node-FaunaDB.mjs", body ],
     env: env,
-    stdout: 'piped',
-    stderr: 'piped'
+    stdout: 'piped'
   });
 
   const result = await proc.status();
   const so = new TextDecoder().decode(await proc.output());
-  const se = new TextDecoder().decode(await proc.stderrOutput());
 
   if (result.success) {
     return JSON.parse(so);
   } else {
-    console.log(se);
     Deno.exit(result.code);
   }
 } // function
@@ -231,26 +227,6 @@ function Select_Map_Paginate(x: Expr) {
 export {
   run_in_node,
   F,
+  CreateExpr,
   Select_Map_Paginate,
-  Paginate,
-  Collections,
-  Get,
-  Fn as Function,
-  Database,
-  Query,
-  Create,
-  CreateFunction,
-  Collection,
-  Var,
-  LowerCase,
-  Ref,
-  Lambda,
-  Select,
-  Map,
-  Functions,
-  Indexes,
-  Role,
-  CreateRole,
-  Roles,
-  Equals
 };

@@ -1,15 +1,26 @@
 
-import {F, run_in_node, Var, Query, Equals} from "./FaunaDB.ts";
+import {F, run_in_node, CreateExpr, Select_Map_Paginate} from "./FaunaDB.ts";
 import { split_whitespace } from "./String.ts";
 
 // import {Migrator} from "./Migrator.ts";
 
+const Equals = CreateExpr("Equals");
+const Add    = CreateExpr("Add");
+const Min    = CreateExpr("Min");
+const Collections = CreateExpr("Collections");
+const Indexes = CreateExpr("Indexes");
+
+
 const results = await run_in_node({
       "FAUNA_SECRET_A": Deno.env.get("FAUNA_SECRET_TEST_A") || "",
       "FAUNA_SECRET_B": Deno.env.get("FAUNA_SECRET_TEST_B") || "",
-      "FAUNA_SECRET": Deno.env.get("FAUNA_SECRET") || "",
+      "FAUNA_SECRET":   Deno.env.get("FAUNA_SECRET_TEST_A") || "",
     },
-    Query(Equals(1,1))
+    {
+      collections: Select_Map_Paginate(Collections()),
+      indexes: Select_Map_Paginate(Indexes()),
+
+    }
 );
 
 console.log(results);

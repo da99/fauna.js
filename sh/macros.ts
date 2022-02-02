@@ -1,6 +1,8 @@
 #!/usr/bin/env -S deno run --allow-write="src/FaunaDB.ts,src/Node-FaunaDB.mjs" --allow-read="src/FaunaDB.ts,src/Node-FaunaDB.mjs"
 
 import { Text_File } from "../src/Text_File.ts";
+import { each_block } from "../src/String.ts";
+
 const COMMANDS = {
  Add: null,
   Call: null, Ceil: null, Collection: null,
@@ -40,44 +42,36 @@ const __dirname = __filename.split("/").slice(0, -1).join("/");
 
 const cmd = Deno.args[0];
 
-function get_macro(name: string, txt: string) {
-  const reg = new RegExp(`// start macro:\\s+${name}\n(.+)//\\s+end\\s+macro`, "mis");
-  return txt.match(reg);
+function replace_macro(filename: string, name: string, new_block: string) {
+  let f = new Text_File(filename);
+  const old_body = f.text || "";
+  const matches = each_block(old_body, `// start macro: ${name}`, `// end macro`, (old_block) => {
+    if (old_block === new_block) {
+      console.log(`=== Already updated: ${name} ${f.filename}`);
+      return;
+    }
+    f.write(old_body.replace(old_block, new_block));
+    console.log(`=== Wrote: ${name} ${f.filename}`);
+  });
+
+  if (matches.length === 0) {
+    console.error(`!!! No macro found for: ${name} in ${f.filename}`);
+    Deno.exit(1);
+  }
 } // function
 
 function update_CreateExpr() {
-  let f = new Text_File("src/FaunaDB.ts");
-  const macro_name = "CreateExpr";
-  console.error(`=== for ${f.filename}`);
   let values = [];
   for (const [fname, jsname] of Object.entries(COMMANDS)) {
     values.push(`export const ${jsname || fname} = CreateExpr("${fname}");`);
   } // for
   values.push(""); // for newline right before closing macro (ie // end macro);
 
-  let txt = f.text || "";
-  const match = get_macro(macro_name, txt);
-  const m = match && match[1];
-  if (m) {
-    const new_string = values.join("\n");
-    if (m === new_string) {
-      console.log(`=== Already updated: ${macro_name} ${f.filename}`);
-    } else {
-      f.write(txt.replace(m, new_string));
-      console.log(`=== Wrote: ${macro_name} ${f.filename}`);
-    }
-  } else {
-    console.error(`!!! No macro found for: ${macro_name} in ${f.filename}`);
-    Deno.exit(1);
-  }
+  replace_macro("src/FaunaDB.ts", "CreateExpr", values.join("\n"));
 } // function
 
 function update_import_node() {
-    const f          = new Text_File("src/Node-FaunaDB.mjs");
-    const old_body   = f.text;
     const values     = [];
-    const macro_name = "import-node";
-    console.error(`=== for ${f.filename}`);
     values.push("const {");
     for (const [fname, jsname] of Object.entries(COMMANDS)) {
       if (jsname) {
@@ -88,20 +82,7 @@ function update_import_node() {
     }
     values.push("} = F.query;\n");
 
-    const new_txt = values.join("\n");
-    const match = get_macro(macro_name, f.text || "");
-    const m = match && match[1];
-    if (m) {
-      if (m === new_txt) {
-        console.log(`=== Already updated: ${macro_name} ${f.filename}`);
-      } else if (old_body) {
-        f.write(old_body.replace(m, new_txt));
-        console.log(`=== Wrote: ${macro_name} ${f.filename}`);
-      }
-    } else {
-      console.error(`!!! No macro found for: ${macro_name} in ${f.filename}`);
-      Deno.exit(1);
-    }
+    replace_macro("src/Node-FaunaDB.mjs", "import-node", values.join("\n"));
 } // function
 
 switch (cmd) {
@@ -111,6 +92,7 @@ switch (cmd) {
     update_import_node();
   } // case
   break;
+
   default:
     console.error(`!!! Invalid commands: ${Deno.inspect(Deno.args)}`);
     Deno.exit(1);

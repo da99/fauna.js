@@ -210,9 +210,12 @@ class Spec {
     const file = new Text_File(fn);
 
     if (file.text) {
+      const old_state = [...this.state];
       this.filter(Spec.it_with_version(file.text));
-      if (this.is_empty)
-        throw new Error(`No tests found for: ${file.filename}`);
+      if (this.is_empty) {
+        console.error(`>>> No tests found for: ${file.filename}. Running all tests.`);
+        this.state = old_state;
+      }
     }
     await this.run();
 

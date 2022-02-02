@@ -1,33 +1,18 @@
 
-import {F} from "./FaunaDB.ts";
-import { split } from "./String.ts";
+import {F, run_in_node, Var, Query, Equals} from "./FaunaDB.ts";
+import { split_whitespace } from "./String.ts";
 
 // import {Migrator} from "./Migrator.ts";
-const {
-  Var,
-  Query,
-  Equals
-} = F.query;
 
-async function main() {
-  try {
-    const resp = await fetch("http://localhost:3000/log", {
-      method: "POST",
-      headers: {
-        content_type: "application/fauna; charset=UTF-8",
-        accept: "application/json",
-      },
-      body: Deno.inspect(Query(Var("hello")))
-    });
-    const j = await resp.json();
-    console.log(j);
-  } catch(e) {
-    console.log(e);
-  }
-} // async function
+const results = await run_in_node({
+      "FAUNA_SECRET_A": Deno.env.get("FAUNA_SECRET_TEST_A") || "",
+      "FAUNA_SECRET_B": Deno.env.get("FAUNA_SECRET_TEST_B") || "",
+      "FAUNA_SECRET": Deno.env.get("FAUNA_SECRET") || "",
+    },
+    Query(Equals(1,1))
+);
 
-
-main();
+console.log(results);
 
 // const fauna_sync = new Migrator({
 //   secret: process.env.FAUNA_SECRET,
@@ -53,7 +38,7 @@ main();
 // }) ;
 
 
-// for (const name of split("\
+// for (const name of split_whitespace("\
 //   labeling screen_name console page mail permission_list\
 //   upgrade club account keep_me_updated profile purchase configuration contact\
 //   social_activity")) {

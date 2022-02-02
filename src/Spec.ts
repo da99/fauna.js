@@ -1,14 +1,4 @@
 
-
-// Colors from: https://stackoverflow.com/questions/9781218/how-to-change-node-jss-console-font-color
-const DA_Spec = {
-  "BOLD" : "\x1b[1m",
-  "RED": "\x1b[31m",
-  "GREEN": "\x1b[32m",
-  "YELLOW": "\x1b[33m"
-}; // const
-const RESET = "\x1b[0m";
-
 import { Text_File } from "../src/Text_File.ts";
 import { bold as BOLD, blue as BLUE, green as GREEN, red as RED  } from "https://deno.land/std/fmt/colors.ts";
 

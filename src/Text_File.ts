@@ -13,6 +13,10 @@ class Text_File {
     this.__contents = null;
   } // constructor
 
+  get not_empty() {
+    return (this.text || "").trim().length > 0;
+  } // get
+
   get filename() {
     return this.__filename;
   } // get

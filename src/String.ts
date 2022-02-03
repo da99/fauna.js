@@ -27,14 +27,16 @@ export function each_block(body: string, raw_begin: string, raw_end: string, f?:
   const begin = split_whitespace(raw_begin);
   const end = split_whitespace(raw_end);
   const join = "\\s+";
-  const reg = new RegExp(`${begin.join(join)}(.+?)${end.join(join)}`, "gms");
+  const reg = new RegExp(`${begin.join(join)}\\s+(.+?)\\s+${end.join(join)}`, "gms");
   const results = body.matchAll(reg);
   const match_pairs = [...results];
+
   const matches: string[] = [];
   for (const [block, inner] of match_pairs) {
     matches.push(inner);
     f && f(inner);
   }
+
   return matches;
 } // function
 

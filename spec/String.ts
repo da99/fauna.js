@@ -40,6 +40,12 @@ it("calls the callback for each block", () => {
   EQUALS("1 2 3 4 5 6", split_join(actual.join(" ")));
 });
 
+it("doesn't grab the surrounding whitespace of the inner block", () => {
+  const actual: Array<string> = [];
+  each_block(`>> start \n 1 2 3 \n << end`, ">> start", "<< end", (block: string) => actual.push(block));
+  EQUALS("1 2 3", actual.join(" "));
+});
+
 await spec.run_last_fail("tmp/spec.fail.txt");
 spec.print();
 spec.exit_on_fail();

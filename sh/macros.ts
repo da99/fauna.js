@@ -65,7 +65,6 @@ function update_CreateExpr() {
   for (const [fname, jsname] of Object.entries(COMMANDS)) {
     values.push(`export const ${jsname || fname} = CreateExpr("${fname}");`);
   } // for
-  values.push(""); // for newline right before closing macro (ie // end macro);
 
   replace_macro("src/FaunaDB.ts", "CreateExpr", values.join("\n"));
 } // function
@@ -80,7 +79,7 @@ function update_import_node() {
         values.push(`${fname},`);
       }
     }
-    values.push("} = F.query;\n");
+    values.push("} = F.query;");
 
     replace_macro("src/Node-FaunaDB.mjs", "import-node", values.join("\n"));
 } // function

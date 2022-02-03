@@ -1,16 +1,18 @@
 
 
 
+import * as path from "https://deno.land/std/path/mod.ts";
 import {split_whitespace} from "./String.ts";
 
 // // Colors from: https://stackoverflow.com/questions/9781218/how-to-change-node-jss-console-font-color
-// const DA_Spec = {
-//   "BOLD" : "\x1b[1m",
-//   "RED": "\x1b[31m",
-//   "GREEN": "\x1b[32m",
-//   "YELLOW": "\x1b[33m"
-// }; // const
-// const RESET = "\x1b[0m";
+const COLORS = {
+  "BOLD" : "\x1b[1m",
+  "RED": "\x1b[31m",
+  "GREEN": "\x1b[32m",
+  "YELLOW": "\x1b[33m",
+  "BLUE": "\x1b[34m",
+  "RESET": "\x1b[0m"
+}; // const
 
 // const WHITESPACE = /(\s+)/; 
 
@@ -43,18 +45,14 @@ import {split_whitespace} from "./String.ts";
 // red.bold    = function (...args) { return color("RED BOLD", args); };
 // yellow.bold = function (...args) { return color("YELLOW BOLD", args); };
 
-// export function it(name, f) {
+//
 
-//   try {
-//     f();
-//     console.error(bold("  - ") + green.bold("✓ " + name));
-//   } catch (err) {
-//     console.error(bold("  - ") + red.bold("✗ " + name));
-//     throw err;
-//   }
-// } // function
+const CHECK_MARK = "✓";
+const X_MARK = "✗";
+
 type Action = (...args: string[]) => void;
-type Pattern_Element = string | 0;
+type Pattern_Element = string | 0 | string[];
+type Pattern = Array<Pattern_Element>;
 
 interface Command {
   raw_cmd: string;
@@ -73,50 +71,94 @@ function arg_match(pattern: Array<Pattern_Element>, user_input: string[]) {
       vars.push(u);
       return true;
     }
-    return false;
+    if (Array.isArray(x) && x.includes(u)) {
+      vars.push(u);
+      return true
+    }
   });
   if (is_a_match)
     return vars;
   return false;
 } // function
 
-export class CLI {
-  cmds: Command[];
+let _user_input: string[] = [];
+let _vars: string[] = [];
+let is_found = false;
+let is_help = false;
+let filename = path.basename(import.meta.url);
+let main_mod = path.basename(Deno.mainModule);
 
-  constructor() {
-    this.cmds = [];
-  } // constructor
+command(Deno.args);
 
-  on(raw_cmd: string, action: Action) {
-    this.cmds.push({
-      raw_cmd,
-      action,
-      pattern: split_whitespace(raw_cmd).map((x: string) => {
-        if (x.indexOf('<') === 0 && x.indexOf('>') === (x.length - 1))
-          return 0;
-        return x;
-      })
-    });
-    return this;
-  } // method
+export function values() {
+  return _vars;
+} // export
 
-  run(user_input?: string[]) {
-    const input = user_input || Deno.args;
-
-    const cmd_found = this.cmds.find((cmd) => {
-      const vars = arg_match(cmd.pattern, input);
-      if (!vars)
-        return false;
-      cmd.action(...vars);
-      return true;
-    });
-
-    if (!cmd_found) {
-      console.error(`Command not reconized: ${input.map(x => Deno.inspect(x)).join(" ")}`);
-      Deno.exit(1);
+export function command(i: string[]) {
+  _user_input = i;
+  switch(_user_input[0]) {
+    case "-h":
+      case "help":
+      case "--help": {
+      is_help = true;
+      break;
     }
-  } // method
-} // export class
+    default:
+      is_help = false;
+  } // switch
+} // export
 
-export const cli = new CLI();
+export function print_help(raw_cmd: string) {
+  const search = _user_input[1];
+  if (search && raw_cmd.indexOf(search) === -1) {
+    return false;
+  }
+
+  const pieces = split_whitespace(raw_cmd).map((x, i) => {
+    if (i === 0)
+      return`${COLORS.BLUE}${COLORS.BOLD}${x}${COLORS.RESET}`;
+    if (x.indexOf('|') > 0)
+      return`${COLORS.YELLOW}${x}${COLORS.RESET}`;
+    if (x.indexOf('<') > -1)
+      return`${COLORS.GREEN}${x}${COLORS.RESET}`;
+    return x;
+  });
+  console.log(`  ${main_mod} ${pieces.join(" ")}`);
+  return true;
+} // export
+
+export function match(raw_cmd: string) {
+  if (is_help) {
+    print_help(raw_cmd);
+  } // if is_help
+
+  if (is_found)
+    return false;
+
+  const pattern = split_whitespace(raw_cmd).map((x: string) => {
+    if (x.indexOf('<') === 0 && x.indexOf('>') === (x.length - 1)) {
+      if (x.indexOf('|') > 1) {
+        return x.substring(1, x.length - 1).split('|').map(x => x.trim());
+      }
+      return 0;
+    }
+    return x;
+  }); // pattern
+
+  const new_vars = arg_match(pattern, _user_input);
+  if (new_vars) {
+    _vars = new_vars;
+    is_found = true;
+  }
+  return !!new_vars;
+} // function
+
+export function not_found() {
+  match("help|--help|-h");
+  match("help|--help|-h <search>");
+  if (is_found || is_help)
+    return false;
+  console.error(`Command not reconized: ${_user_input.map(x => Deno.inspect(x)).join(" ")}`);
+  Deno.exit(1);
+}
 

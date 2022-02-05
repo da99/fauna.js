@@ -21,19 +21,43 @@ class Text_File {
     return this.__filename;
   } // get
 
+  get lines() : string[] {
+    const body = this.text;
+    if (body) {
+      return body.split(/\n/);
+    }
+    return [];
+  } // get
+
   get text() {
     if (!this.__contents) {
       try {
         this.__contents = Deno.readTextFileSync(this.filename);
       } catch(e) {
-        // ignored
-      }
-    }
+        switch (e.name) {
+          case "NotFound":
+            // ignored
+            break;
+          default: { throw e; }
+        } // switch
+      } // try/catch
+    } // if
 
     if ((this.__contents || "").trim().length === 0) {
       return null;
     }
     return this.__contents;
+  } // get
+
+  get exists() : boolean{
+    try {
+      if (Deno.lstatSync(this.filename)) {
+        return true;
+      }
+    } catch (e) {
+      if (e.name !== "NotFound") throw e;
+    }
+    return false;
   } // get
 
   write(s: string) {

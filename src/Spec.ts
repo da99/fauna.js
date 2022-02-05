@@ -2,6 +2,9 @@
 import { Text_File } from "../src/Text_File.ts";
 import { bold as BOLD, blue as BLUE, green as GREEN, red as RED  } from "https://deno.land/std/fmt/colors.ts";
 
+const CHECK_MARK = "✓";
+const X_MARK = "✗";
+
 type It_Asyn_Function = () => Promise<void>;
 type It_Function = () => void;
 

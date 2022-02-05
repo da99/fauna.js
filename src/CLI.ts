@@ -2,7 +2,7 @@
 
 
 import * as path from "https://deno.land/std/path/mod.ts";
-import {split_whitespace} from "./String.ts";
+import {split_cli_command} from "./String.ts";
 
 // // Colors from: https://stackoverflow.com/questions/9781218/how-to-change-node-jss-console-font-color
 const COLORS = {
@@ -14,7 +14,7 @@ const COLORS = {
   "RESET": "\x1b[0m"
 }; // const
 
-// const WHITESPACE = /(\s+)/; 
+// const WHITESPACE = /(\s+)/;
 
 // function standard_keys(raw : string) {
 //   return raw.split(WHITESPACE).filter((e) => e !== "" );
@@ -46,9 +46,6 @@ const COLORS = {
 // yellow.bold = function (...args) { return color("YELLOW BOLD", args); };
 
 //
-
-const CHECK_MARK = "✓";
-const X_MARK = "✗";
 
 type Action = (...args: string[]) => void;
 type Pattern_Element = string | 0 | string[];
@@ -86,9 +83,16 @@ let _vars: string[] = [];
 let is_found = false;
 let is_help = false;
 let filename = path.basename(import.meta.url);
-let main_mod = path.basename(Deno.mainModule);
+let _cmd_name: string = path.basename(Deno.mainModule);
 
 command(Deno.args);
+
+export function cmd_name(s?: string) {
+  if (s) {
+    _cmd_name = s;
+  }
+  return _cmd_name;
+} // export
 
 export function values() {
   return _vars;
@@ -114,7 +118,7 @@ export function print_help(raw_cmd: string) {
     return false;
   }
 
-  const pieces = split_whitespace(raw_cmd).map((x, i) => {
+  const pieces = split_cli_command(raw_cmd).map((x, i) => {
     if (i === 0)
       return`${COLORS.BLUE}${COLORS.BOLD}${x}${COLORS.RESET}`;
     if (x.indexOf('|') > 0)
@@ -123,7 +127,7 @@ export function print_help(raw_cmd: string) {
       return`${COLORS.GREEN}${x}${COLORS.RESET}`;
     return x;
   });
-  console.log(`  ${main_mod} ${pieces.join(" ")}`);
+  console.log(`  ${cmd_name()} ${pieces.join(" ")}`);
   return true;
 } // export
 
@@ -135,7 +139,7 @@ export function match(raw_cmd: string) {
   if (is_found)
     return false;
 
-  const pattern = split_whitespace(raw_cmd).map((x: string) => {
+  const pattern = split_cli_command(raw_cmd).map((x: string) => {
     if (x.indexOf('<') === 0 && x.indexOf('>') === (x.length - 1)) {
       if (x.indexOf('|') > 1) {
         return x.substring(1, x.length - 1).split('|').map(x => x.trim());
@@ -154,8 +158,7 @@ export function match(raw_cmd: string) {
 } // function
 
 export function not_found() {
-  match("help|--help|-h");
-  match("help|--help|-h <search>");
+  match("help|--help|-h [search]");
   if (is_found || is_help)
     return false;
   console.error(`Command not reconized: ${_user_input.map(x => Deno.inspect(x)).join(" ")}`);

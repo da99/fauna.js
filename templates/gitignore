@@ -1,9 +1,11 @@
 
-/tmp/
-/package-lock.json
-
 /.shards/
 /shard.lock
 /.crystal/
+
 /node_modules/
+/tmp/
+/package-lock.json
+
 /hello
+

@@ -28,6 +28,8 @@ await (async function main() {
     ensureDirSync("dev");
     ensureDirSync("spec");
     create_from_template("dev_spec.ts", "dev/spec");
+    await Deno.chmod("dev/spec", 0o700);
+
     create_from_template("spec_main.ts", "spec/main.ts");
   } // if
 

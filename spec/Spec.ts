@@ -12,7 +12,14 @@ it("passes on deep equality.", ()=>{
 });
 
 it("fails on deep in-equality.", ()=>{
+  const expect_name = "AssertionError";
+  let actual_name = "";
+  try {
   EQUALS({a: "a"},{b: "a"});
+  } catch (e) {
+    actual_name = e.name;
+  }
+  EQUALS(expect_name, actual_name);
 });
 
 it("accepts async functions.", async () => {

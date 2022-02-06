@@ -1,4 +1,4 @@
-import { Spec, spec, describe, it, State } from "../src/Spec.ts";
+import { describe, it } from "../src/Spec.ts";
 import { split_whitespace, split_cli_command, each_block, split_join } from "../src/String.ts";
 import { assertEquals as EQUALS } from "https://deno.land/std/testing/asserts.ts";
 
@@ -59,7 +59,3 @@ it("splits words surrounded by brackets: < > [ ]", () => {
   EQUALS(["create", "<git>", "[ignore]"], split_cli_command("create <git> [ignore]"));
 });
 
-
-await spec.run_last_fail("tmp/spec.fail.txt");
-spec.print();
-spec.exit_on_fail();

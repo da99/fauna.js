@@ -13,101 +13,99 @@ const THIS_DIR = path.dirname(path.dirname((new URL(import.meta.url)).pathname))
 
 cmd_name("da.ts");
 
-if (match("create .gitignore")) {
-  const f = new Text_File(".gitignore");
-  const t = new Text_File(`${THIS_DIR}/templates/gitignore`);
-  f.write(add_unique_text(f.text || "", t.text || ""));
-  // f.write(unique_text(lines).join("\n"));
-  console.log(`=== Wrote: ${f.filename}`);
-  console.log((new Text_File(".gitignore")).text);
-} // if
+await (async function main() {
 
-if (match("create dev/spec")) {
-  let t_type = "dev_spec.ts";
-  const fpath = "dev/spec";
+  if (match("create .gitignore")) {
+    const f = new Text_File(".gitignore");
+    const t = new Text_File(`${THIS_DIR}/templates/gitignore`);
+    f.write(add_unique_text(f.text || "", t.text || ""));
+    // f.write(unique_text(lines).join("\n"));
+    console.log(`=== Wrote: ${f.filename}`);
+    console.log((new Text_File(".gitignore")).text);
+  } // if
 
-  ensureDirSync("dev");
+  if (match("create spec")) {
+    ensureDirSync("dev");
+    ensureDirSync("spec");
+    create_from_template("dev_spec.ts", "dev/spec");
+    create_from_template("spec_main.ts", "spec/main.ts");
+  } // if
 
-  if ((new Text_File("shard.yml")).exists) {
-    t_type = "dev_spec.cr";
-  }
-  create_from_template(t_type, fpath);
+  if (match("create <relative/path/required.ext>")) {
+    const [fpath] = values();
+    const info = path.parse(fpath);
+    const top = info.dir.split('/')[0] || "";
+    let   tmpl_name = `${top}${info.ext}`;
 
-} // if
-
-if (match("create <relative/path/required.ext>")) {
-  const [fpath] = values();
-  const info = path.parse(fpath);
-  const top = info.dir.split('/')[0] || "";
-  let   tmpl_name = `${top}${info.ext}`;
-
-  try {
-    create_from_template(tmpl_name, fpath);
-  } catch (e) {
-    if (e.name === "NotFound") {
-      console.error(`!!! Template type not found: ${tmpl_name} => ${fpath}`);
-      Deno.exit(1);
+    try {
+      create_from_template(tmpl_name, fpath);
+    } catch (e) {
+      if (e.name === "NotFound") {
+        console.error(`!!! Template type not found: ${tmpl_name} => ${fpath}`);
+        Deno.exit(1);
+      }
+      throw e;
     }
-    throw e;
-  }
-} // if
+  } // if
 
-if (match("create <template name> </absolute/or/relative/path/optional.ext>")) {
-  let [tmpl_name, fpath] = values();
-  const info             = path.parse(fpath);
-  let tmpl_name_ext      = `${tmpl_name}${info.ext}`;
+  if (match("create <template name> </absolute/or/relative/path/optional.ext>")) {
+    let [tmpl_name, fpath] = values();
+    const info             = path.parse(fpath);
+    let tmpl_name_ext      = `${tmpl_name}${info.ext}`;
 
-  try {
-    create_from_template(tmpl_name, fpath);
-  } catch (e) {
-    if (e.name === "NotFound") {
-      create_from_template(tmpl_name_ext, fpath);
-    } else {
-      throw e
+    try {
+      create_from_template(tmpl_name, fpath);
+    } catch (e) {
+      if (e.name === "NotFound") {
+        create_from_template(tmpl_name_ext, fpath);
+      } else {
+        throw e
+      }
+    } // try/catch
+    await Deno.chmod(fpath, 0o700);
+  } // if
+
+  not_found();
+
+  function create_from_template(tmpl_name: string, fpath: string) {
+    const info = path.parse(fpath);
+    const dir  = info.dir;
+    const name = info.name;
+    const ext  = info.ext;
+    const vals: Record<string, string> = {Name: name, name};
+    ensureDirSync(dir);
+
+    const file = new Text_File(fpath);
+    if (file.not_empty) {
+      console.error(`=== File already exists: ${file.filename}`);
+      return;
     }
-  } // try/catch
-  await Deno.chmod(fpath, 0o700);
-} // if
+    file.write(compile_template(tmpl_name, vals));
+    console.log(`=== Wrote: ${file.filename}`);
+  } // function
 
-not_found();
+  function compile_template(fname: string, vars: Record<string, string>) {
+    let text = Deno.readTextFileSync(`${THIS_DIR}/templates/${fname}`);
+    for (const [k,v] of Object.entries(vars)) {
+      text = text.replaceAll(k, v);
+    } // for
+    return text;
+  } // function
 
-function create_from_template(tmpl_name: string, fpath: string) {
-  const info = path.parse(fpath);
-  const dir  = info.dir;
-  const name = info.name;
-  const ext  = info.ext;
-  const vals: Record<string, string> = {Name: name, name};
-  ensureDirSync(dir);
+  function add_unique_text(a: string, b: string) : string {
+    let i = 0;
+    const a_arr = a.split("\n")
+    const a_unique = a_arr.map((s: string) => split_whitespace(s).join(' ')).reduce((prev, curr) => {
+      prev[curr] = true;
+      return prev;
+    }, {} as Record<string, boolean>);
+    const b_unique = b.split("\n").map(x => split_whitespace(x).join(' '));
+    b_unique.forEach(x => {
+      if (x.length > 0 && !a_unique[x]) {
+        a_arr.push(x);
+      }
+    });
+    return a_arr.join("\n");
+  } // function
 
-  const file = new Text_File(fpath);
-  if (file.not_empty) {
-    console.error(`=== File already exists: ${file.filename}`);
-    Deno.exit(0);
-  }
-  file.write(compile_template(tmpl_name, vals));
-  console.log(`=== Wrote: ${file.filename}`);
-} // function
-
-function compile_template(fname: string, vars: Record<string, string>) {
-  let text = Deno.readTextFileSync(`${THIS_DIR}/templates/${fname}`);
-  for (const [k,v] of Object.entries(vars)) {
-    text = text.replaceAll(k, v);
-  } // for
-  return text;
-} // function
-
-function add_unique_text(a: string, b: string) : string {
-  let i = 0;
-  const a_arr = a.split("\n")
-  const a_unique = a_arr.map((s: string) => split_whitespace(s).join(' ')).reduce((prev, curr) => {
-    prev[curr] = true;
-    return prev;
-  }, {} as Record<string, boolean>);
-  const b_unique = b.split("\n").map(x => split_whitespace(x).join(' '));
-  b_unique.forEach(x => {
-    if (x.length > 0 && !a_unique[x]) {
-      a_arr.push(x);
-    }
-  });
-  return a_arr.join("\n");
-} // function
+})(); // main

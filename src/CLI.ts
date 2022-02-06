@@ -20,32 +20,17 @@ const COLORS = {
 //   return raw.split(WHITESPACE).filter((e) => e !== "" );
 // }
 
-// function color(color, ...args) {
-//   const new_color = standard_keys(color).map((x) => DA_Spec[x]).join(" ");
-//   return `${new_color}${args.join(" ")}${RESET}`;
-// }
+export function colorize(s: string, ...arr: Array<keyof typeof COLORS>) {
+  const content = [] as string[];
+  for (const k of arr) {
+    let color = COLORS[k];
+    content.push(color);
+  } // for
 
-// function bold(txt) {
-//   return color("BOLD", txt);
-// }
-
-// function green(txt) {
-//   return color("GREEN", txt);
-// }
-
-// function red(txt) {
-//   return color("RED", txt);
-// }
-
-// function yellow(txt) {
-//   return color("YELLOW", txt);
-// }
-
-// green.bold  = function (...args) { return color("GREEN BOLD", args); };
-// red.bold    = function (...args) { return color("RED BOLD", args); };
-// yellow.bold = function (...args) { return color("YELLOW BOLD", args); };
-
-//
+  content.push(s)
+  content.push(COLORS.RESET);
+  return content.join("");
+} // function
 
 type Action = (...args: string[]) => void;
 type Pattern_Element = string | 0 | string[];

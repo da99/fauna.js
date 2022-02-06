@@ -1,255 +1,123 @@
 
 import { Text_File } from "../src/Text_File.ts";
+import { colorize } from "../src/CLI.ts";
 import { bold as BOLD, blue as BLUE, green as GREEN, red as RED  } from "https://deno.land/std/fmt/colors.ts";
 
+// # =============================================================================
+type Asyn_Function = () => Promise<void>;
+type Void_Function = () => void;
+
+
+// # =============================================================================
 const CHECK_MARK = "✓";
 const X_MARK = "✗";
 
-type It_Asyn_Function = () => Promise<void>;
-type It_Function = () => void;
-
-type Describe = {
-  describe: string
-} // type
-
-type It = {
-  it: string,
-  pass: boolean,
-  body: It_Asyn_Function,
-  body_string: string,
-  version: string,
-  error?: Error
-} // type
-
-type Run_Result = {
-  name: string,
-  pass: boolean,
-  values: Array<any>,
-  error?: unknown
-} // type
-
-type State = Array<Describe | It>
-type StateKV = {
-  [key: string]: It
-};
-
-function is_describe(x: Describe | It) {
-  return x.hasOwnProperty("describe");
-} // function
-
-function is_it(x: Describe | It) {
-  return x.hasOwnProperty("it");
-} // function
-
+// # =============================================================================
 function is_async_function(x: any) {
-  return x && x.constructor.name === "AsyncFunction";
+  return typeof(x) === "object" && x.constructor.name === "AsyncFunction";
 } // function
 
-class Spec {
-  state: State;
-  current_describe: string;
+// # =============================================================================
+let current_desc                   = "Unknown";
+let current_it                     = false;
+let has_printed_filename           = false;
+let last_fail_title: null | string = null;
+let the_file_name: null | string = null;
 
-  constructor(old_state?: State) {
-    this.state = old_state || [];
-    this.current_describe = "";
-  } // constructor
+const LAST_FAIL_FILE                             = "tmp/spec/last.fail";
+const PRINT_STACK: Array<Record<string, string>> = [];
 
-  exit_on_fail() {
-    if (!this.pass) {
-      Deno.exit(1);
-    }
+try{
+  last_fail_title = Deno.readTextFileSync(LAST_FAIL_FILE);
+} catch(e) {
+  // ignore
+}
+
+export function filename(f: string) {
+  if (f.indexOf(":")) {
+    the_file_name = (new URL(f)).pathname;
+  } else {
+    the_file_name = f;
+  }
+} // function
+
+function it_last_fail(raw_title: string) {
+  PRINT_STACK[0]
+  return `${current_desc} ${raw_title}`;
+} // function
+
+function print_filename() {
+  if (has_printed_filename) {
     return false;
-  } // method
-
-  print() {
-    for (const result of this.state) {
-      if (result.hasOwnProperty("describe")) {
-        const x = result as Describe;
-        console.log(`${BOLD(BLUE("Describe"))}: ${x.describe}`);
-      } else if (result.hasOwnProperty("it")) {
-        const x = result as It;
-        if (x.pass) {
-          console.log(`${GREEN("- it")}: ${x.it}`);
-        } else {
-          console.log(`${RED("- it")}: ${x.it}`);
-          console.log(x.error);
-        }
-      } else {
-        throw new Error(`Unknown test type: ${JSON.stringify(result)}`);
-      }
-    } // for
-  } // method
-
-  get state_kv(): StateKV {
-    const kv: StateKV = {};
-    this.forEachIt(function (x: It) {
-      kv[x.version] = x;
-    });
-    return kv;
-  } // get
-
-  push(x: Describe | It) {
-    this.state.push(x);
-    return this;
   }
 
-  describe(title: string) {
-    this.current_describe = title;
-    return this.state.push({describe: title});
-  } // method
-
-  it(title: string, raw_f: It_Function | It_Asyn_Function) {
-    let f = raw_f;
-    if (!is_async_function(raw_f)) {
-      f = async () => { return raw_f(); }
-    }
-    return this.push({
-      it:          title,
-      pass:        false,
-      version:     `${this.current_describe} ${title}`.trim(),
-      body:        f as It_Asyn_Function,
-      body_string: f.toString(),
-    });
-  } // method
-
-  forEachDescribe(f: (x: Describe) => void) {
-    for (const x of this.state) {
-      if (x.hasOwnProperty("describe")) {
-        const d = x as Describe;
-        f(d);
-      }
-    } // for
-  } // method
-
-  forEachIt(f: (x: It) => void) {
-    for (const x of this.state) {
-      if (x.hasOwnProperty("it")) {
-        const it = x as It;
-        f(it);
-      }
-    } // for
-  } // method
-
-  reject_passes(old: State) {
-    const old_e = new Spec(old)
-    const old_kv: StateKV = old_e.state_kv;
-
-    return this.filter((x: Describe | It) => {
-      if (x.hasOwnProperty("it")) {
-        const it = x as It;
-        return old_kv[it.version].pass === false;
-      }
-      return true;
-    });
-  } // methodd
-
-  get is_empty() {
-    return this.its.length === 0;
-  }
-
-  get pass() {
-    return !this.has_fails;
-  } // method
-
-  get has_fails() {
-    return this.fails.length > 0;
-  }
-
-  get fails() : Array<It> {
-    return this.its.filter((it: It) => {
-      return !it.pass;
-    });
-  } // method
-
-  static it_with_version(x: string) {
-    return function(it: It) {
-      return it.version === x;
-    };
-  } // static
-
-  get its() : Array<It> {
-    return this.state.filter((x: any) => is_it(x)) as Array<It>;
-  } // get
-
-  filter(f: (x: It) => boolean) {
-    this.state = this.state.filter((x: It | Describe) => {
-      if (!is_it(x))
-        return true;
-      const it = x as It;
-      return f(it);
-    });
-    return this;
-  } // methodd
-
-  filterIt(f: (x: It) => boolean) {
-    this.state = this.state.filter((x) => {
-      if (!is_it(x))
-        return true;
-      const y = x as It;
-      return f(y);
-    });
-    return this;
-  } // method
-
-  async run() {
-    const promises: Array<Promise<any>> = [];
-    for (const x of this.state) {
-      if (is_it(x)) {
-        let it = x as It;
-        const new_p = it.body().then(() => {it.pass = true;}).catch((e) => {
-          it.pass = false;
-          if (e.message !== "recorded") {
-            it.error = e;
-          }
-        });
-        promises.push(new_p);
-      }
-    } // for
-    await Promise.allSettled(promises);
-    return this.state;
-  } // method
-
-  async run_last_fail(fn: string, before_save?: (e: Spec) => void) {
-    const file = new Text_File(fn);
-
-    if (file.text) {
-      const old_state = [...this.state];
-      this.filter(Spec.it_with_version(file.text));
-      if (this.is_empty) {
-        console.error(`>>> No tests found for: ${file.filename}. Running all tests.`);
-        this.state = old_state;
-      }
-    }
-    await this.run();
-
-    if (before_save) {
-      before_save(this);
-    }
-
-    if (file.text) {
-      if (spec.pass) {
-        file.delete();
-      }
-    } else {
-      if (spec.has_fails) {
-        file.write(spec.fails[0].version);
-      }
-    }
-    return this;
-  } // method
-} // class
-
-
-const spec = new Spec();
-
-function describe(title: string) {
-  return spec.describe(title);
+  const pathname = (new URL(import.meta.url)).pathname;
+  prompt(`\nFile: ${BOLD(the_file_name || "unknown")}\n`);
+  has_printed_filename = true;
+  return true;
 } // function
 
-function it(title: string, f: It_Function | It_Asyn_Function) {
-  return spec.it(title, f);
+function prompt(raw_text: string) {
+  return Deno.writeAllSync(
+    Deno.stderr,
+    new TextEncoder().encode(raw_text)
+  );
 } // function
 
-export { Spec, spec, describe, it};
-export type { Describe, It, State, StateKV, Run_Result};
+export function describe(title: string) {
+  current_desc = title;
+} // function
+
+export function it(raw_title: string, raw_f: Void_Function | Asyn_Function) {
+  const desc_title   = current_desc;
+  const full_title   = `${desc_title} ${raw_title}`;
+  const version      = `${the_file_name} ${full_title}`;
+  const is_last_fail = (last_fail_title === version)
+  const first_it     = !current_it;
+  const do_print_filename = !has_printed_filename;
+  current_it = true;
+
+  const f: null | (() => Promise<void>) = (raw_f.constructor.name === "Async Function") ?
+    (raw_f as Asyn_Function) :
+    (function () { return Promise.resolve(raw_f()); });
+
+  const wrapper_f = async function () {
+    if (do_print_filename)
+      print_filename();
+    if (first_it)
+      prompt(`${desc_title}\n`);
+    prompt(`  ${raw_title}`);
+
+    if (last_fail_title && !is_last_fail) {
+      prompt(` ???\n`);
+      return;
+    }
+
+    let has_pass = false;
+
+    try {
+      await f();
+      prompt(colorize(` ${CHECK_MARK}\n`, "GREEN"));
+      has_pass = true;
+      if (is_last_fail) {
+        await Deno.remove(LAST_FAIL_FILE);
+      }
+    } catch (e) {
+      prompt(colorize(` ${X_MARK}\n`, "RED", "BOLD"));
+      prompt(e.message);
+      has_pass = false;
+      await Deno.writeTextFile(LAST_FAIL_FILE, version);
+      throw e;
+    }
+  }; // async
+
+  if (!last_fail_title || is_last_fail) {
+    prompt(`${Deno.inspect(last_fail_title)} ${Deno.inspect(is_last_fail)}`);
+    return Deno.test({
+      name: raw_title,
+        fn: wrapper_f
+    });
+  } // if
+} // function
+
 

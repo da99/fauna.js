@@ -8,7 +8,7 @@ const files: string[] = [];
 const dir = path.basename(path.dirname(this_file));
 
 for (const f of Deno.readDirSync(dir)) {
-  if (f.isFile && f.name.indexOf('.ts') === (f.name.length - 3) && f.name !== this_file_name) {
+  if (f.isFile && f.name.indexOf('_') !== 0 && f.name.indexOf('.ts') === (f.name.length - 3) && f.name !== this_file_name) {
     files.push(`./${f.name}`);
   }
 } // for

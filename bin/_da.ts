@@ -76,21 +76,6 @@ await (async function main() {
       }
       console.log(`=== Wrote: ${file.filename}`);
     } // if
-
-    if (tmpl_name === "spec.ts") { // add import "./Spec.File.ts"; to spec/ain.ts
-      const main_ts = find_parent_file("main.ts", fpath);
-      if (main_ts) {
-        const main_file = new Text_File(main_ts);
-        const new_content = insert_after_line_contains(
-          `import "./${path.relative(path.dirname(main_ts), fpath)}";`,
-          "import",
-          main_file.text as string
-        );
-        main_file.write(new_content);
-        console.log(`=== Updated: ${main_ts}`);
-      } // if
-    } // if
-
   } // function
 
   function compile_template(fname: string, vars: Record<string, string>) {

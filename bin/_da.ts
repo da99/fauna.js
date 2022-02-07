@@ -30,15 +30,19 @@ await (async function main() {
     console.log((new Text_File(".gitignore")).text);
   } // if
 
-  if (match("create spec")) {
+  if (match("init spec.ts")) {
     await create_from_template("dev_spec.ts", "dev/spec");
     await create_from_template("spec_main.ts", "spec/main.ts");
   } // if
 
-  if (match("create <template name> <relative/path/to/file>")) {
-    let [tmpl_name, fpath] = values();
-    const info             = path.parse(fpath);
+  if (match("create <spec.ts|src.ts> <Name>")) {
+    const [tmpl_name, name] = values();
+    const fpath = `src/${name}`;
+    create_from_template(tmpl_name, fpath);
+  } // if
 
+  if (match("create <zsh|sh> <relative/path/to/file>")) {
+    const [tmpl_name, fpath] = values();
     create_from_template(tmpl_name, fpath);
   } // if
 

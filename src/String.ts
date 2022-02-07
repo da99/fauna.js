@@ -100,3 +100,17 @@ export function each_block(body: string, raw_begin: string, raw_end: string, f?:
   return matches;
 } // function
 
+export function insert_after_line_contains(new_s: string, needle: string, haystack: string) {
+  const lines = haystack.split('\n').reverse();
+  const new_lines: string[] = [];
+  let found = false;
+  for (const l of lines) {
+    if (!found && l.includes(needle)) {
+      new_lines.push(new_s);
+      found = true;
+    }
+    new_lines.push(l);
+  } // for
+  return new_lines.reverse().join('\n');
+} // export
+

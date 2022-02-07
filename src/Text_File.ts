@@ -1,10 +1,11 @@
 
 import {existsSync} from "https://deno.land/std/fs/mod.ts";
+import * as path from "https://deno.land/std/path/mod.ts";
 
 /*
  * Text_File: The file does not have to exist.
  */
-class Text_File {
+export class Text_File {
   __filename: string;
   __contents: string | null;
 
@@ -78,5 +79,19 @@ class Text_File {
 
 } // class
 
+export function find_parent_file(file_name: string, dir: string) {
+  let current_dir = dir;
+  let fin_path = null;
+  while (current_dir && current_dir !== "." && current_dir !== "/" && current_dir !== "") {
+    try {
+      Deno.statSync(path.join(current_dir, file_name));
+      fin_path = path.join(current_dir, file_name);
+      break;
+    } catch (e) {
+      current_dir = path.dirname(current_dir);
+    }
+  } // while
+  return fin_path;
+} // export
 
-export { Text_File };
+

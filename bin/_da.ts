@@ -1,9 +1,9 @@
 // #!/usr/bin/env -S deno run --allow-run="mkdir" --allow-read="/path/to/da/templates/,./" --allow-write="bin/,spec/,src/,tmp/,./" 
 // --allow-net="raw.githubusercontent.com" 
 
-import {Text_File} from "../src/Text_File.ts";
+import {Text_File, find_parent_file} from "../src/Text_File.ts";
 import {unique_text} from "../src/Array.ts";
-import {split_whitespace} from "../src/String.ts";
+import {split_whitespace, insert_after_line_contains} from "../src/String.ts";
 import {cmd_name, match, values, not_found} from "../src/CLI.ts";
 
 import {exists, ensureDirSync} from "https://deno.land/std/fs/mod.ts";
@@ -75,6 +75,16 @@ await (async function main() {
         await Deno.chmod(fpath, 0o700);
       }
       console.log(`=== Wrote: ${file.filename}`);
+    } // if
+
+    if (tmpl_name === "spec.ts") {
+      const main_ts = find_parent_file("main.ts", fpath);
+      if (main_ts) {
+        const main_file = new Text_File(main_ts);
+        const new_content = insert_after_line_contains(`import "./${fpath}";`, "import", main_file.text as string);
+        main_file.write(new_content);
+        console.log(`=== Updated: ${main_ts}`);
+      } // if
     } // if
 
   } // function

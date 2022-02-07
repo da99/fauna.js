@@ -1,6 +1,12 @@
 import { describe, it } from "../src/Spec.ts";
-import { split_whitespace, split_cli_command, each_block, split_join } from "../src/String.ts";
 import { assertEquals as EQUALS } from "https://deno.land/std/testing/asserts.ts";
+import {
+  split_whitespace,
+  split_cli_command,
+  each_block,
+  split_join,
+  insert_after_line_contains
+} from "../src/String.ts";
 
 // # =============================================================================
 describe("String split_whitespace");
@@ -57,5 +63,25 @@ it("splits whole words", () => {
 
 it("splits words surrounded by brackets: < > [ ]", () => {
   EQUALS(["create", "<git>", "[ignore]"], split_cli_command("create <git> [ignore]"));
+});
+
+// # =============================================================================
+describe("String insert_after_line");
+
+it("inserts content after last line found with substring", () => {
+  const body = `
+     import a;
+     import b
+     import c
+     await finish();
+  `;
+  const expected = `
+     import a;
+     import b
+     import c
+hello();
+     await finish();
+  `;
+  EQUALS(insert_after_line_contains("hello();", "import", body), expected);
 });
 

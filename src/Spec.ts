@@ -3,7 +3,7 @@ import caller from 'https://raw.githubusercontent.com/apiel/caller/master/caller
 import { Text_File } from "../src/Text_File.ts";
 import { colorize } from "../src/CLI.ts";
 import { assertEquals as EQUALS } from "https://deno.land/std/testing/asserts.ts";
-import { bold as BOLD, blue as BLUE, green as GREEN, red as RED  } from "https://deno.land/std/fmt/colors.ts";
+import { bold as BOLD, blue as BLUE, green as GREEN, red as RED, yellow as YELLOW  } from "https://deno.land/std/fmt/colors.ts";
 
 // # =============================================================================
 type Asyn_Function = () => Promise<void>;
@@ -52,6 +52,29 @@ function prompt(raw_text: string) {
   );
 } // function
 
+let module_caller: undefined | string = import.meta.url;
+let unknown_caller = 0;
+
+export function describe(title: string) {
+  const current_caller = filename(caller() || `[UNKNOWN FILE ${++unknown_caller}`);
+  if (current_caller !== module_caller) {
+    PRINT_STACK.push({filename: current_caller});
+    module_caller = current_caller
+  }
+  PRINT_STACK.push({describe: title});
+} // function
+
+export function it(raw_title: string, raw_f: Void_Function | Asyn_Function) {
+  const f: null | (() => Promise<void>) = (raw_f.constructor.name === "Async Function") ?
+    (raw_f as Asyn_Function) :
+    (function () { return Promise.resolve(raw_f()); });
+
+  PRINT_STACK.push({
+    "it": raw_title,
+    "async_f": f
+  });
+} // function
+
 export async function finish() {
   let last_filename       = null;
   let last_desc           = null;
@@ -60,13 +83,13 @@ export async function finish() {
   for (const x of PRINT_STACK) {
     if (x.describe) {
       last_desc = x.describe;
-      prompt(`${BOLD(x.describe as string)}\n`);
+      prompt(`${BOLD(BLUE(x.describe as string))}\n`);
       continue;
     }
 
     if (x.filename) {
       last_filename = x.filename;
-      prompt(`\nFile: ${BOLD(x.filename)}\n`);
+      prompt(`\n${BOLD(YELLOW("FILE:"))} ${(x.filename)}\n`);
       continue;
     }
 
@@ -98,28 +121,3 @@ export async function finish() {
     } // if/else
   } // for
 } // function
-
-let module_caller: undefined | string = import.meta.url;
-let unknown_caller = 0;
-
-export function describe(title: string) {
-  const current_caller = filename(caller() || `[UNKNOWN FILE ${++unknown_caller}`);
-  if (current_caller !== module_caller) {
-    PRINT_STACK.push({filename: current_caller});
-    module_caller = current_caller
-  }
-  PRINT_STACK.push({describe: title});
-} // function
-
-export function it(raw_title: string, raw_f: Void_Function | Asyn_Function) {
-  const f: null | (() => Promise<void>) = (raw_f.constructor.name === "Async Function") ?
-    (raw_f as Asyn_Function) :
-    (function () { return Promise.resolve(raw_f()); });
-
-  PRINT_STACK.push({
-    "it": raw_title,
-    "async_f": f
-  });
-} // function
-
-

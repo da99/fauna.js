@@ -35,7 +35,7 @@ await (async function main() {
     await create_from_template("spec_main.ts", "spec/main.ts");
   } // if
 
-  if (match("create <template name> </absolute/or/relative/path/optional.ext>")) {
+  if (match("create <template name> <relative/path/to/file>")) {
     let [tmpl_name, fpath] = values();
     const info             = path.parse(fpath);
 
@@ -77,11 +77,15 @@ await (async function main() {
       console.log(`=== Wrote: ${file.filename}`);
     } // if
 
-    if (tmpl_name === "spec.ts") {
+    if (tmpl_name === "spec.ts") { // add import "./Spec.File.ts"; to spec/ain.ts
       const main_ts = find_parent_file("main.ts", fpath);
       if (main_ts) {
         const main_file = new Text_File(main_ts);
-        const new_content = insert_after_line_contains(`import "./${fpath}";`, "import", main_file.text as string);
+        const new_content = insert_after_line_contains(
+          `import "./${path.relative(path.dirname(main_ts), fpath)}";`,
+          "import",
+          main_file.text as string
+        );
         main_file.write(new_content);
         console.log(`=== Updated: ${main_ts}`);
       } // if

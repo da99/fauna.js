@@ -21,7 +21,7 @@ function in_da_ts_dir() {
 
 await (async function main() {
 
-  if (match("create .gitignore")) {
+  if (match(".gitignore")) {
     const f = new Text_File(".gitignore");
     const t = new Text_File(`${THIS_DIR}/templates/gitignore`);
     f.write(add_unique_text(f.text || "", t.text || ""));
@@ -35,13 +35,14 @@ await (async function main() {
     await create_from_template("spec_main.ts", "spec/main.ts");
   } // if
 
-  if (match("create <spec.ts|src.ts> <Name>")) {
+  if (match("<spec.ts|src.ts> <Name>")) {
     const [tmpl_name, name] = values();
-    const fpath = `src/${name}`;
+    const t_name = tmpl_name.replace(".ts", "");
+    const fpath = `${t_name}/${name}.ts`;
     create_from_template(tmpl_name, fpath);
   } // if
 
-  if (match("create <zsh|sh> <relative/path/to/file>")) {
+  if (match("<zsh|sh> <relative/path/to/file>")) {
     const [tmpl_name, fpath] = values();
     create_from_template(tmpl_name, fpath);
   } // if

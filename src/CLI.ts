@@ -146,7 +146,7 @@ export function not_found() {
   match("help|--help|-h [search]");
   if (is_found || is_help)
     return false;
-  console.error(`Command not reconized: ${_user_input.map(x => Deno.inspect(x)).join(" ")}`);
+  console.error(`Command not recognized: ${_user_input.map(x => Deno.inspect(x)).join(" ")}`);
   Deno.exit(1);
 }
 

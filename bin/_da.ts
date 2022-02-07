@@ -13,6 +13,12 @@ const THIS_DIR = path.dirname(path.dirname((new URL(import.meta.url)).pathname))
 
 cmd_name("da.ts");
 
+function in_da_ts_dir() {
+  const p = Deno.cwd();
+  const info = path.parse(p);
+  return info.base === "da.ts";
+} // export
+
 await (async function main() {
 
   if (match("create .gitignore")) {
@@ -25,65 +31,52 @@ await (async function main() {
   } // if
 
   if (match("create spec")) {
-    ensureDirSync("dev");
-    ensureDirSync("spec");
-    create_from_template("dev_spec.ts", "dev/spec");
-    await Deno.chmod("dev/spec", 0o700);
-
-    create_from_template("spec_main.ts", "spec/main.ts");
-  } // if
-
-  if (match("create <relative/path/required.ext>")) {
-    const [fpath] = values();
-    const info = path.parse(fpath);
-    const top = info.dir.split('/')[0] || "";
-    let   tmpl_name = `${top}${info.ext}`;
-
-    try {
-      create_from_template(tmpl_name, fpath);
-    } catch (e) {
-      if (e.name === "NotFound") {
-        console.error(`!!! Template type not found: ${tmpl_name} => ${fpath}`);
-        Deno.exit(1);
-      }
-      throw e;
-    }
+    await create_from_template("dev_spec.ts", "dev/spec");
+    await create_from_template("spec_main.ts", "spec/main.ts");
   } // if
 
   if (match("create <template name> </absolute/or/relative/path/optional.ext>")) {
     let [tmpl_name, fpath] = values();
     const info             = path.parse(fpath);
-    let tmpl_name_ext      = `${tmpl_name}${info.ext}`;
 
-    try {
-      create_from_template(tmpl_name, fpath);
-    } catch (e) {
-      if (e.name === "NotFound") {
-        create_from_template(tmpl_name_ext, fpath);
-      } else {
-        throw e
-      }
-    } // try/catch
-    await Deno.chmod(fpath, 0o700);
+    create_from_template(tmpl_name, fpath);
   } // if
 
   not_found();
 
-  function create_from_template(tmpl_name: string, fpath: string) {
+  function relative_to_da(fpath: string) {
+    const da_dir = path.dirname(path.dirname((new URL(import.meta.url)).pathname));
+    return path.relative(path.parse(fpath).dir, da_dir);
+  } // function
+
+  async function create_from_template(tmpl_name: string, fpath: string) {
     const info = path.parse(fpath);
     const dir  = info.dir;
     const name = info.name;
     const ext  = info.ext;
-    const vals: Record<string, string> = {Name: name, name};
+
+    const full_path = path.resolve(path.join(Deno.cwd(), fpath));
+
+    const vals: Record<string, string> = {
+      Name: name,
+      name,
+      "DA_PATH": relative_to_da(fpath)
+    };
+    const file = new Text_File(fpath);
+
     ensureDirSync(dir);
 
-    const file = new Text_File(fpath);
     if (file.not_empty) {
       console.error(`=== File already exists: ${file.filename}`);
-      return;
-    }
-    file.write(compile_template(tmpl_name, vals));
-    console.log(`=== Wrote: ${file.filename}`);
+    } else {
+      file.write(compile_template(tmpl_name, vals));
+      const update_file = new Text_File(fpath);
+      if ((update_file.text || "").indexOf("#!") === 0) {
+        await Deno.chmod(fpath, 0o700);
+      }
+      console.log(`=== Wrote: ${file.filename}`);
+    } // if
+
   } // function
 
   function compile_template(fname: string, vars: Record<string, string>) {

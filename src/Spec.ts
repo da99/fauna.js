@@ -78,6 +78,7 @@ export function it(raw_title: string, raw_f: Void_Function | Asyn_Function) {
 export async function finish() {
   let last_filename       = null;
   let last_desc           = null;
+  let at_least_one_it_ran = false;
   const LAST_FAIL_VERSION = get_content(LAST_FAIL_FILE);
 
   for (const x of PRINT_STACK) {
@@ -103,6 +104,7 @@ export async function finish() {
 
       prompt(`  ${x.it as string} `);
 
+      at_least_one_it_ran = true;
       try {
         await x.async_f();
         prompt(GREEN(`${CHECK_MARK}\n`));
@@ -120,4 +122,10 @@ export async function finish() {
       }
     } // if/else
   } // for
+
+  if (!at_least_one_it_ran) {
+    // We assume the test name change. Delete last.fail
+    Deno.remove(LAST_FAIL_FILE);
+    console.error(YELLOW("=========== No tests ran. ============="));
+  }
 } // function

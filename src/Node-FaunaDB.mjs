@@ -10,17 +10,10 @@ Ceil,
 Collection,
 Collections,
 Concat,
-ContainsField,
-ContainsPath,
-ContainsStr,
-ContainsStrRegex,
-ContainsValue,
+ContainsField, ContainsPath, ContainsStr, ContainsStrRegex, ContainsValue,
 Count,
 Create,
-CreateCollection,
-CreateFunction,
-CreateIndex,
-CreateRole,
+CreateCollection, CreateFunction, CreateIndex, CreateRole,
 CurrentIdentity,
 Delete,
 Difference,
@@ -31,67 +24,34 @@ Documents,
 Drop,
 EndsWith,
 Epoch,
+Exists,
 Functions,
 Function: Fn,
 Database,
 Get,
-GT,
-GTE,
+GT, GTE,
 Identify,
 If,
 Index,
 Indexes,
 Insert,
 Intersection,
-IsArray,
-IsBoolean,
-IsEmpty,
-IsNonEmpty,
-IsNull,
-IsNumber,
-IsSet,
-IsString,
-IsTimestamp,
-IsToken,
+IsArray, IsBoolean, IsEmpty, IsNonEmpty, IsNull, IsNumber, IsSet, IsString, IsTimestamp, IsToken,
 Join,
-LT,
-LTE,
-LTrim,
+LT, LTE, LTrim,
 Lambda,
 Length,
 Let,
 Ln,
 LowerCase,
-Map,
-Match,
-Max,
-Mean,
-Merge,
-Min,
-Minute,
-Modulo,
-Month,
-Multiply,
-Not,
-Now,
+Map, Match, Max, Mean, Merge, Min, Minute, Modulo, Month, Multiply,
+Not, Now,
 Or,
-Paginate,
-Prepend,
+Paginate, Prepend,
 Query,
-RTrim,
-Range,
-Reduce,
-RegexEscape,
-Role,
-Ref,
-Roles,
-Remove,
-Repeat,
-Replace,
-ReplaceStr,
-ReplaceStrRegex,
-Reverse,
-Round,
+RTrim, Range, Reduce, RegexEscape, Role, Ref, Roles, Remove, Repeat,
+Replace, ReplaceStr, ReplaceStrRegex,
+Reverse, Round,
 Select,
 Space,
 StartsWith,
@@ -99,17 +59,9 @@ SubString,
 Subtract,
 Sum,
 Take,
-Time,
-TimeAdd,
-TimeDiff,
-TimeSubstract,
+Time, TimeAdd, TimeDiff, TimeSubstract,
 TitleCase,
-ToArray,
-ToDate,
-ToDouble,
-ToInteger,
-ToString,
-ToTime,
+ToArray, ToDate, ToDouble, ToInteger, ToString, ToTime,
 Trim,
 Trunc,
 Union,
@@ -118,7 +70,6 @@ UpperCase,
 Var,
 } = F.query;
 // end macro
-
 
 function inspect(x) {
   return util.inspect(x, {depth: Infinity});
@@ -148,31 +99,32 @@ function inspect(x) {
   //   return param_object;
   // } // method
 
+const DEFAULT_OPTIONS = {
+  secret:    "UNKNOWN",
+  port:      443,
+  scheme:    "https",
+  keepAlive: false,
+  timeout:   5,
+  domain:    "db.us.fauna.com"
+};
 
-let v = null;
-const SECRET_KEY = process.env.FAUNADB_SECRET_KEY;
-const body = process.argv[2];
-try {
+async function main() {
+  let v = null;
+  // const SECRET_KEY = process.env.FAUNADB_SECRET_KEY;
+  const options = JSON.parse(process.argv[2]);
+  const body = process.argv[3];
+
   v = eval(`(${body})`);
 
-  const CLIENT = new F.Client({
-    secret:    process.env.FAUNA_SECRET,
-    port:      443,
-    scheme:    "https",
-    keepAlive: false,
-    timeout:   5,
-    domain:    "db.us.fauna.com"
-  });
-
+  const fin_o = Object.assign({}, DEFAULT_OPTIONS, options);
+  if (fin_o.secret === "UNKNOWN") {
+    throw new Error("A secret key has not been set.");
+  }
+  const CLIENT = new F.Client(fin_o);
   const results = await CLIENT.query(v);
   console.log(JSON.stringify(results));
 
-} catch(e) {
-  console.error(JSON.stringify({
-    "you wrote": v,
-    "as_string": v.toString(),
-    "inspection": inspect(v)
-  }));
-  console.error(e);
-  process.exit(1);
-}
+  return results;
+} // function main
+
+await main();

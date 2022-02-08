@@ -5,7 +5,11 @@ set -u -e -o pipefail
 
 mkdir -p tmp/spec
 
+source $HOME/secrets/fauna.miniuni_dev_key.sh
+
 deno run \
+  --allow-run=node,uptime \
+  --allow-env="FAUNA_SECRET_TEST_A,FAUNA_SECRET_TEST_B" \
   --allow-net=deno.land,raw.githubusercontent.com \
   --allow-read="./,tmp/spec" \
   --allow-write="tmp/spec" \

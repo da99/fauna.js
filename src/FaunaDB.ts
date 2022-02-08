@@ -1,21 +1,6 @@
 
 import { split_whitespace } from "./String.ts";
-// const {
-//   Paginate,
-//   Database, Collection,  Role,
-//   Get, Query,
-//   Function: FN,
-//   Functions, Roles, Collections, Indexes,
-//   Create, CreateFunction, CreateRole, CreateCollection, CreateIndex,
-//   Var,
-//   Ref,
-//   Lambda,
-//   LowerCase,
-//   Select,
-//   Map,
-//   Delete,
-//   Update
-// } = F.query;
+import { run } from "./Process.ts";
 
 const DEFAULT_CLIENT_VALUES = {
   secret:    "",
@@ -116,6 +101,29 @@ type ENV = {
   [key: string]: string,
 };
 
+class CustomError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = this.constructor.name;
+  }
+} // export
+
+interface ProcessResults {
+  stdout: string | null,
+  stderr: string | null,
+  code: number,
+  success: boolean
+} // interface
+
+export class ProcessError extends Error {
+  results: ProcessResults;
+  constructor(message: string, results: ProcessResults) {
+    super(message);
+    this.name = this.constructor.name;
+    this.results = results;
+  }
+} // export
+
 export function CreateExpr(name: string) {
   return (...args: any[]) : Expr => {
     return {
@@ -156,6 +164,7 @@ export const Do = CreateExpr("Do");
 export const Documents = CreateExpr("Documents");
 export const Drop = CreateExpr("Drop");
 export const EndsWith = CreateExpr("EndsWith");
+export const Exists   = CreateExpr("Exists");
 export const Epoch = CreateExpr("Epoch");
 export const Functions = CreateExpr("Functions");
 export const Fn = CreateExpr("Function");
@@ -269,22 +278,22 @@ function find_name(arr: Array<Param_Object>, name_value: string) {
   return arr.find(x => x.name === name_value);
 } // function
 
-export async function run_in_node(env: ENV, raw_body: any) {
+export async function run_in_node(raw_o: Client_Options, raw_body: any) {
   const body = Deno.inspect(raw_body);
-  const proc = Deno.run({
-    cmd: ["node", "src/Node-FaunaDB.mjs", body ],
-    env: env,
-    stdout: 'piped'
-  });
-
-  const result = await proc.status();
-  const so = new TextDecoder().decode(await proc.output());
+  const options = JSON.stringify(raw_o);
+  const cmd = ["node", "src/Node-FaunaDB.mjs", options, body ];
+  const result = await run({cmd});
 
   if (result.success) {
-    return JSON.parse(so);
-  } else {
-    Deno.exit(result.code);
+    return JSON.parse(result.stdout as string);
   }
+
+  throw new ProcessError(`failed: ${cmd[0]} ${cmd[1]}`, {
+    stdout: result.stdout,
+    stderr: result.stderr,
+    code: result.code,
+    success: result.success
+  });
 } // function
 
 export function Select_Map_Paginate(x: Expr) {
@@ -297,6 +306,57 @@ export function Select_Map_Paginate(x: Expr) {
   );
 } // func
 
+export async function migrate(a_secret: string, b_secret: string) {
+  return false;
+} // export
+
+export async function schema(o: Client_Options) {
+  const results = await run_in_node(o, {
+    role: Select_Map_Paginate(Roles()),
+    collection: Select_Map_Paginate(Collections()),
+    function: Select_Map_Paginate(Functions()),
+    index: Select_Map_Paginate(Indexes())
+  });
+  return results;
+} // export
+
+export async function query(o: Client_Options, x: any) {
+  try {
+    return await run_in_node(o, x);
+  } catch (e) {
+    console.error("=== FQL: === ");
+    console.error(Deno.inspect(x));
+    console.error("============ ");
+    throw e;
+  }
+} // export
+
+export function drop(x: Expr) {
+  return Map(
+    Paginate(x),
+    Lambda("x", Delete(Var("x")))
+  );
+} // export function
+
+export async function clear(o: Client_Options) {
+  return await query(o, Do(
+    drop(Collections()),
+    drop(Roles()),
+    drop(Indexes()),
+    drop(Functions())
+  ));
+} // export
+
+export function delete_if_exists(x: any): Expr {
+  return If(Exists(x), Delete(x), false);
+} // export function
+
+export function collection_names(): Expr {
+  return Select("data", Map(
+    Paginate(Collections()),
+    Lambda("x", Select("name", Get(Var("x"))))
+  ));
+} // export function
 
 // CreateRole({
 //   name: "cloudflare_worker_function",

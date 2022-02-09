@@ -1,7 +1,7 @@
 import { describe, it } from "../src/Spec.ts";
 import { assertEquals as EQUALS } from "https://deno.land/std/testing/asserts.ts";
 import {
-  clear, migrate, schema, query,
+  clear, diff, migrate, schema, query,
   Select, CreateCollection, Collection,
   If, Exists,
   delete_if_exists, collection_names,
@@ -33,14 +33,36 @@ it("executes the query", async function () {
   });
 }); // it async
 
-describe("schema({secret...})");
+describe("schema(...)");
 
 it("retrieves schema from database", async () => {
   await show_error(async () => {
-    const expected = {collection: [], function: [], index: [], role: []};
-    const actual   = await schema(options);
+    const expected = {collections: [], functions: [], indexes: [], roles: []};
+    const actual   = await query(options, schema());
 
-    EQUALS(actual, expected);
+    EQUALS(Object.keys(actual).sort(), Object.keys(expected).sort());
   });
 });
+
+describe("diff(...)");
+
+it("retrieves schema diff from database", async function () {
+  const coll1 = {name: "coll1", history_days: 0};
+  const q = {
+    collections: [coll1],
+    roles: [],
+    indexes: [],
+    functions: []
+  };
+
+  const e = [
+    ["create", "collections", [coll1]]
+  ];
+
+  await show_error(async () => {
+    const actual = await query(options, diff(q));
+    // console.error(Deno.inspect(diff(q), {depth: Infinity}));
+    EQUALS(actual, e);
+  }); // await
+}); // it async
 

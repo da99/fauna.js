@@ -26,6 +26,7 @@ const RESOURCE_TYPES = {
 type Expr = {
   readonly name: string;
   readonly args: any[];
+  readonly is_expr: true;
   // [Deno.customInspect](): string;
 } // class
 
@@ -129,8 +130,9 @@ export function CreateExpr(name: string) {
     return {
       name: name,
       args: args,
+      is_expr: true,
       [Symbol.for("Deno.customInspect")](): string {
-        return `${name}(${args.map((x: any) => Deno.inspect(x)).join(', ')})`;
+        return `${name}(${args.map((x: any) => Deno.inspect(x, {depth: Infinity})).join(', ')})`;
       }
     };
   };
@@ -139,6 +141,7 @@ export function CreateExpr(name: string) {
 
 // start macro: CreateExpr
 export const Add = CreateExpr("Add");
+export const Append = CreateExpr("Append");
 export const Call = CreateExpr("Call");
 export const Ceil = CreateExpr("Ceil");
 export const Collection = CreateExpr("Collection");
@@ -166,6 +169,7 @@ export const Drop = CreateExpr("Drop");
 export const EndsWith = CreateExpr("EndsWith");
 export const Exists   = CreateExpr("Exists");
 export const Epoch = CreateExpr("Epoch");
+export const Filter = CreateExpr("Filter");
 export const Functions = CreateExpr("Functions");
 export const Fn = CreateExpr("Function");
 export const Database = CreateExpr("Database");
@@ -279,7 +283,7 @@ function find_name(arr: Array<Param_Object>, name_value: string) {
 } // function
 
 export async function run_in_node(raw_o: Client_Options, raw_body: any) {
-  const body = Deno.inspect(raw_body);
+  const body = Deno.inspect(raw_body, {depth: Infinity});
   const options = JSON.stringify(raw_o);
   const cmd = ["node", "src/Node-FaunaDB.mjs", options, body ];
   const result = await run({cmd});
@@ -308,16 +312,6 @@ export function Select_Map_Paginate(x: Expr) {
 
 export async function migrate(a_secret: string, b_secret: string) {
   return false;
-} // export
-
-export async function schema(o: Client_Options) {
-  const results = await run_in_node(o, {
-    role: Select_Map_Paginate(Roles()),
-    collection: Select_Map_Paginate(Collections()),
-    function: Select_Map_Paginate(Functions()),
-    index: Select_Map_Paginate(Indexes())
-  });
-  return results;
 } // export
 
 export async function query(o: Client_Options, x: any) {
@@ -356,6 +350,97 @@ export function collection_names(): Expr {
     Paginate(Collections()),
     Lambda("x", Select("name", Get(Var("x"))))
   ));
+} // export function
+
+export function select_keys(keys: string[], x: Expr) {
+  const o: Record<string, Expr> = {};
+  for (let k of keys) {
+    if (k.indexOf('?') === k.length - 1) {
+      const new_k = k.substring(0, k.length - 1);
+      o[new_k] = Select(new_k, x, null);
+    } else {
+      o[k] = Select(k, x);
+    }
+  } // for
+  return o;
+} // export function
+
+export function map_get(x: Expr, keys?: string[]) {
+  let to_doc = Get(Var("x"));
+  if (keys) {
+    to_doc = Let(
+      { doc: Get(Var("x")) },
+      select_keys(keys, Var("doc"))
+    ); // Let
+  }
+  return Map(
+    Paginate(x),
+    Lambda( "x", to_doc)
+  ); // Map
+} // export function
+
+export function schema() {
+  return({
+    roles: Select("data", map_get(
+      Roles(),
+      ["ref", "name", "privileges", "data?"]
+    )),
+    collections: Select("data", map_get(
+      Collections(),
+      ["ref", "history_days", "name", "data?"]
+    )),
+    functions: Select("data", map_get(
+      Indexes(),
+      ["ref", "serialized", "name", "unique", "source", "terms", "values?", "data?"]
+    )),
+    indexes: Select("data", map_get(
+      Functions(),
+      ["ref", "name", "body", "role?", "data?"]
+    ))
+  });
+} // export
+
+export function diff_create(name: string, old: Expr, new_: Expr) {
+  return Let({
+    old: Select(name, old),
+    new: Select(name, new_),
+    fin: []
+  },
+  Filter(Var("new"), Lambda("r", Not(ContainsValue(Var("r"), Var("old"))))),
+  );
+} // export function
+
+export function filter_a_not_in_b(a: Expr, b: Expr) {
+  return Filter(a, Lambda("r", Not(ContainsValue(Var("r"), b))));
+} // export function
+
+export function diff_filter_a_not_in_b(args: string[], a: Expr, b: Expr) {
+  return Append([filter_a_not_in_b(a, b)], args);
+} // export function
+
+export function concat_array(...args: Expr[]) {
+  return args.reduce((old, curr) => {
+    if (!old) { return curr; }
+    return Append(curr, old);
+  });
+} // export function
+
+export function diff(new_values: Record<string, any>) {
+  return Let({
+    new: new_values,
+    old: schema()
+  },
+  [
+    diff_filter_a_not_in_b(
+      ["create", "collections"],
+      Select("collections", Var("new")),
+      Select("collections", Var("old"))
+    ),
+    // roles: [],
+    // indexes: [],
+    // functions: []
+  ]
+ );
 } // export function
 
 // CreateRole({

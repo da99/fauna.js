@@ -5,6 +5,7 @@ import {default as F} from "faunadb";
 // start macro: import-node
 const {
 Add,
+Append,
 Call,
 Ceil,
 Collection,
@@ -25,6 +26,7 @@ Drop,
 EndsWith,
 Epoch,
 Exists,
+Filter,
 Functions,
 Function: Fn,
 Database,

@@ -169,9 +169,11 @@ export const Drop = CreateExpr("Drop");
 export const EndsWith = CreateExpr("EndsWith");
 export const Exists   = CreateExpr("Exists");
 export const Epoch = CreateExpr("Epoch");
+export const Equals = CreateExpr("Equals");
 export const Filter = CreateExpr("Filter");
 export const Functions = CreateExpr("Functions");
 export const Fn = CreateExpr("Function");
+export const Foreach = CreateExpr("Foreach");
 export const Database = CreateExpr("Database");
 export const Get = CreateExpr("Get");
 export const GT = CreateExpr("GT");
@@ -245,6 +247,7 @@ export const TimeSubstract = CreateExpr("TimeSubstract");
 export const TitleCase = CreateExpr("TitleCase");
 export const ToArray = CreateExpr("ToArray");
 export const ToDate = CreateExpr("ToDate");
+export const ToObject = CreateExpr("ToObject");
 export const ToDouble = CreateExpr("ToDouble");
 export const ToInteger = CreateExpr("ToInteger");
 export const ToString = CreateExpr("ToString");
@@ -414,12 +417,70 @@ export function filter_a_not_in_b(a: Expr, b: Expr) {
   return Filter(a, Lambda("r", Not(ContainsValue(Var("r"), b))));
 } // export function
 
-export function diff_filter_a_not_in_b(args: string[], a: Expr, b: Expr) {
-  return Append([filter_a_not_in_b(a, b)], args);
+export function map_select(x: Expr, k: string) {
+  return Map(
+    x,
+    Lambda(
+      "doc",
+      Select(k, Var("doc"))
+    ) // Lambda
+  );
+} // export function
+
+export function array_to_object(k: string, x: Expr) {
+  return ToObject(
+    Map(
+      x,
+      Lambda(
+        "doc",
+        [Select("name", Var("doc")), Var("doc")]
+      )
+    )
+  );
+} // export function
+
+export function diff_filter_a_not_in_b(key: string, raw_a: Expr, raw_b: Expr) {
+  return Let(
+    {
+      a: Select(key, raw_a),
+      b: Select(key, raw_b),
+      a_names: map_select(Var("a"), "name"),
+      b_names: map_select(Var("b"), "name"),
+      a_o: array_to_object("name", Var("a")),
+      b_o: array_to_object("name", Var("b")),
+      create_or_update: Map(
+        Var("a"),
+        Lambda(
+          "doc",
+          If(
+            ContainsValue(Select("name", Var("doc")), Var("b_names")),
+            If(
+              ContainsValue(Var("doc"), Var("b")),
+              ["update", key, Var("doc")],
+              null
+            ), // If/update
+          ["create", key, Var("doc")]
+          )
+        )
+      ), // Map
+      delete: Map(
+        Var("b"),
+        Lambda(
+          "doc",
+          If(
+            Not(ContainsValue(Select("name", Var("doc")), Var("a_names"))),
+            ["delete", key, Select("ref", Var("doc"))],
+            null
+          )
+        )
+      ), // Map
+    },
+    Append(Var("delete"), Var("create_or_update"))
+  );
 } // export function
 
 export function concat_array(...args: Expr[]) {
-  return args.reduce((old, curr) => {
+  return args.reverse().reduce((old, curr) => {
     if (!old) { return curr; }
     return Append(curr, old);
   });
@@ -430,16 +491,12 @@ export function diff(new_values: Record<string, any>) {
     new: new_values,
     old: schema()
   },
-  [
-    diff_filter_a_not_in_b(
-      ["create", "collections"],
-      Select("collections", Var("new")),
-      Select("collections", Var("old"))
-    ),
-    // roles: [],
-    // indexes: [],
-    // functions: []
-  ]
+  concat_array(
+    diff_filter_a_not_in_b("collections", Var("new"), Var("old")),
+    diff_filter_a_not_in_b("indexes", Var("new"), Var("old")),
+    diff_filter_a_not_in_b("functions", Var("new"), Var("old")),
+    diff_filter_a_not_in_b("roles", Var("new"), Var("old")),
+  )
  );
 } // export function
 

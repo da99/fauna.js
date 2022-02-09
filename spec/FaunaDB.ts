@@ -56,12 +56,13 @@ it("retrieves schema diff from database", async function () {
   };
 
   const e = [
-    ["create", "collections", [coll1]]
+    ["create", "collections", coll1]
   ];
 
   await show_error(async () => {
     const actual = await query(options, diff(q));
     // console.error(Deno.inspect(diff(q), {depth: Infinity}));
+    // console.error(actual)
     EQUALS(actual, e);
   }); // await
 }); // it async

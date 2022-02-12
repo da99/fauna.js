@@ -1,6 +1,10 @@
 
 import { split_whitespace } from "./String.ts";
 import { run } from "./Process.ts";
+import { inspect, raw_inspect } from "./CLI.ts";
+import {deepEqual} from "https://deno.land/x/cotton@v0.7.3/src/utils/deepequal.ts";
+
+type schema_category = "role" | "collection" | "index" | "function";
 
 const DEFAULT_CLIENT_VALUES = {
   secret:    "",
@@ -16,6 +20,11 @@ export const F: Fauna = {
   }
 }; // const
 
+type New_Doc = {
+  coll: Expr,
+  doc: Record<string, any>
+};
+
 const RESOURCE_TYPES = {
   role:       "roles",
   collection: "collections",
@@ -23,7 +32,7 @@ const RESOURCE_TYPES = {
   index:      "indexes"
 };
 
-type Expr = {
+export type Expr = {
   readonly name: string;
   readonly args: any[];
   readonly is_expr: true;
@@ -116,6 +125,8 @@ interface ProcessResults {
   success: boolean
 } // interface
 
+type FQL = Expr | any[] | Record<string, any>;
+
 export class ProcessError extends Error {
   results: ProcessResults;
   constructor(message: string, results: ProcessResults) {
@@ -124,6 +135,38 @@ export class ProcessError extends Error {
     this.results = results;
   }
 } // export
+
+export function remove_key(key: string, x: any[] | Record<string, any>) : any[] | Record<string, any> {
+  if (Array.isArray(x)) {
+    return (x as any[]).map(a => remove_key(key, a)) ;
+  } // if
+
+  if (typeof x === "object" && x.constructor.name === "Object" && x.ref) {
+    const new_x = Object.assign({}, x) as Record<string, any>;
+    delete new_x[key];
+    return new_x;
+  } // if
+
+  return x;
+} // export function
+
+export function standardize(raw_x: FQL) {
+  const x = JSON.parse(JSON.stringify(raw_x));
+
+  return(
+    remove_key(
+      "gql",
+      remove_key("ts", x)
+    )
+  );
+} // export function
+
+export function equals(raw_x: FQL, raw_y: FQL) {
+  const x = standardize(raw_x);
+  const y = standardize(raw_y);
+
+  return deepEqual(x, y);
+} // export function
 
 export function CreateExpr(name: string) {
   return (...args: any[]) : Expr => {
@@ -172,7 +215,7 @@ export const Epoch = CreateExpr("Epoch");
 export const Equals = CreateExpr("Equals");
 export const Filter = CreateExpr("Filter");
 export const Functions = CreateExpr("Functions");
-export const Fn = CreateExpr("Function");
+export const Fn = CreateExpr("Fn");
 export const Foreach = CreateExpr("Foreach");
 export const Database = CreateExpr("Database");
 export const Get = CreateExpr("Get");
@@ -186,12 +229,17 @@ export const Insert = CreateExpr("Insert");
 export const Intersection = CreateExpr("Intersection");
 export const IsArray = CreateExpr("IsArray");
 export const IsBoolean = CreateExpr("IsBoolean");
+export const IsCollection = CreateExpr("IsCollection");
 export const IsEmpty = CreateExpr("IsEmpty");
+export const IsFunction = CreateExpr("IsFunction");
+export const IsIndex = CreateExpr("IsIndex");
 export const IsNonEmpty = CreateExpr("IsNonEmpty");
 export const IsNull = CreateExpr("IsNull");
 export const IsNumber = CreateExpr("IsNumber");
 export const IsSet = CreateExpr("IsSet");
 export const IsString = CreateExpr("IsString");
+export const IsRef = CreateExpr("IsRef");
+export const IsRole = CreateExpr("IsRole");
 export const IsTimestamp = CreateExpr("IsTimestamp");
 export const IsToken = CreateExpr("IsToken");
 export const Join = CreateExpr("Join");
@@ -260,7 +308,6 @@ export const UpperCase = CreateExpr("UpperCase");
 export const Var = CreateExpr("Var");
 // end macro
 
-
 function CreateResource(r_type: keyof New_Schema, r: Param_Object) {
   switch (r_type) {
     case "functions":
@@ -285,24 +332,6 @@ function find_name(arr: Array<Param_Object>, name_value: string) {
   return arr.find(x => x.name === name_value);
 } // function
 
-export async function run_in_node(raw_o: Client_Options, raw_body: any) {
-  const body = Deno.inspect(raw_body, {depth: Infinity});
-  const options = JSON.stringify(raw_o);
-  const cmd = ["node", "src/Node-FaunaDB.mjs", options, body ];
-  const result = await run({cmd});
-
-  if (result.success) {
-    return JSON.parse(result.stdout as string);
-  }
-
-  throw new ProcessError(`failed: ${cmd[0]} ${cmd[1]}`, {
-    stdout: result.stdout,
-    stderr: result.stderr,
-    code: result.code,
-    success: result.success
-  });
-} // function
-
 export function Select_Map_Paginate(x: Expr) {
   return Select(
     "data",
@@ -313,19 +342,56 @@ export function Select_Map_Paginate(x: Expr) {
   );
 } // func
 
-export async function migrate(a_secret: string, b_secret: string) {
-  return false;
+export async function node(...args: string[]) {
+  return await run({
+    cmd: [
+      "node",
+      "src/Node-FaunaDB.mjs",
+      ...args
+    ]
+  });
 } // export
 
-export async function query(o: Client_Options, x: any) {
-  try {
-    return await run_in_node(o, x);
-  } catch (e) {
-    console.error("=== FQL: === ");
-    console.error(Deno.inspect(x));
-    console.error("============ ");
-    throw e;
+export async function inherit_node(...args: string[]) {
+  const result = await run({
+    cmd: [
+      "node",
+      "src/Node-FaunaDB.mjs",
+      ...args
+    ],
+    stderr: "inherit",
+    stdout: "inherit"
+  });
+
+  if (!result.success) {
+    throw Error("Failed.");
   }
+  return true;
+} // export
+
+export async function query(o: Client_Options, raw_body: Expr | Record<string, any>) {
+  const options = JSON.stringify(o);
+  const body    = raw_inspect(raw_body);
+  const cmd     = ["node", "src/Node-FaunaDB.mjs", "query", options, body ];
+  const result  = await run({cmd});
+
+  if (result.success) {
+    const o = eval(`(${(result.stdout as string).replaceAll("Function(", "Fn(")})`);
+    return o;
+  }
+
+  console.error("============ ");
+  console.error(`Command: query`);
+  console.error("=== FQL query failed:: === ");
+  console.error(`Exit code: ${result.code}`);
+  console.error("============ ");
+  console.error(inspect(raw_body));
+  console.error("============ ");
+  console.error("STDOUT: ", result.stdout);
+  console.error("STDERR: ", result.stderr);
+  console.error("============ ");
+
+  throw new Error("failed.");
 } // export
 
 export function drop(x: Expr) {
@@ -335,13 +401,13 @@ export function drop(x: Expr) {
   );
 } // export function
 
-export async function clear(o: Client_Options) {
-  return await query(o, Do(
+export function drop_schema() {
+  return Do(
     drop(Collections()),
     drop(Roles()),
     drop(Indexes()),
     drop(Functions())
-  ));
+  );
 } // export
 
 export function delete_if_exists(x: any): Expr {
@@ -382,40 +448,44 @@ export function map_get(x: Expr, keys?: string[]) {
   ); // Map
 } // export function
 
-export function schema() {
-  return({
-    roles: Select("data", map_get(
-      Roles(),
-      ["ref", "name", "privileges", "data?"]
-    )),
-    collections: Select("data", map_get(
-      Collections(),
-      ["ref", "history_days", "name", "data?"]
-    )),
-    functions: Select("data", map_get(
-      Indexes(),
-      ["ref", "serialized", "name", "unique", "source", "terms", "values?", "data?"]
-    )),
-    indexes: Select("data", map_get(
-      Functions(),
-      ["ref", "name", "body", "role?", "data?"]
-    ))
-  });
-} // export
-
-export function diff_create(name: string, old: Expr, new_: Expr) {
-  return Let({
-    old: Select(name, old),
-    new: Select(name, new_),
-    fin: []
-  },
-  Filter(Var("new"), Lambda("r", Not(ContainsValue(Var("r"), Var("old"))))),
+export function export_collection(coll: Expr, keys: string[]) {
+  return Map(
+    Paginate(coll),
+    Lambda(
+      "r",
+      {
+        coll,
+        doc: select_keys(keys, Get(Var("r")))
+      }
+    ) // Lambda
   );
 } // export function
 
-export function filter_a_not_in_b(a: Expr, b: Expr) {
-  return Filter(a, Lambda("r", Not(ContainsValue(Var("r"), b))));
-} // export function
+export function schema() {
+  return Reduce(
+    Lambda(
+      ["acc", "coll"],
+      Append(
+        Select(
+          "data",
+          Map(
+            Paginate(Var("coll")),
+            Lambda("x", Get(Var("x")))
+          )
+        ), // Map
+        Var("acc")
+      ) // Prepend
+    ), // Lambda
+    [],
+    [Roles(), Collections(), Functions(), Indexes()]
+  ); // Reduce
+  // return concat_data(
+  //   export_collection(Roles(), ["ref", "name", "privileges", "data?"]),
+  //   export_collection(Collections(), ["ref", "history_days", "name", "data?"]),
+  //   export_collection(Indexes(), ["ref", "serialized", "name", "unique", "source", "terms", "values?", "data?"]),
+  //   export_collection(Functions(), ["ref", "name", "body", "role?", "data?"])
+  // );
+} // export
 
 export function map_select(x: Expr, k: string) {
   return Map(
@@ -482,22 +552,35 @@ export function diff_filter_a_not_in_b(key: string, raw_a: Expr, raw_b: Expr) {
 export function concat_array(...args: Expr[]) {
   return args.reverse().reduce((old, curr) => {
     if (!old) { return curr; }
-    return Append(curr, old);
+    return Prepend(old, curr);
   });
 } // export function
 
-export function diff(new_values: Record<string, any>) {
+export function concat_data(...args: Expr[]) {
+  const new_args = args.map((x) => {
+    return Select("data", x);
+  });
+  return concat_array(...new_args);
+} // export function
+
+export function diff(new_values: New_Doc[]) {
   return Let({
     new: new_values,
-    old: schema()
+    old: schema(),
+    fin: []
   },
-  concat_array(
-    diff_filter_a_not_in_b("collections", Var("new"), Var("old")),
-    diff_filter_a_not_in_b("indexes", Var("new"), Var("old")),
-    diff_filter_a_not_in_b("functions", Var("new"), Var("old")),
-    diff_filter_a_not_in_b("roles", Var("new"), Var("old")),
-  )
- );
+  Map(
+    Var("new"),
+    Lambda(
+      "sdoc",
+      If(
+        Not(ContainsValue(Var("sdoc"), Var("old"))),
+        Append(["create", Var("sdoc")], Var("fin")),
+        null
+      ) // If
+    ) // Lambda
+  ), // Map
+ ); // Let
 } // export function
 
 // CreateRole({

@@ -20,6 +20,20 @@ const COLORS = {
 //   return raw.split(WHITESPACE).filter((e) => e !== "" );
 // }
 
+export function inspect(x: any) {
+  return Deno.inspect(
+    x,
+    {compact: true, showHidden: false, depth: Infinity, colors: true}
+  );
+} // export
+
+export function raw_inspect(x: any) {
+  return Deno.inspect(
+    x,
+    {compact: true, showHidden: false, depth: Infinity, colors: false}
+  );
+} // export
+
 export function colorize(s: string, ...arr: Array<keyof typeof COLORS>) {
   const content = [] as string[];
   for (const k of arr) {

@@ -125,7 +125,11 @@ export async function finish() {
 
   if (!at_least_one_it_ran) {
     // We assume the test name change. Delete last.fail
-    Deno.remove(LAST_FAIL_FILE);
+    try {
+      await Deno.remove(LAST_FAIL_FILE);
+    } catch (e) {
+      console.error(e.message);
+    }
     console.error(YELLOW("=========== No tests ran. ============="));
   }
 } // function

@@ -14,23 +14,6 @@ const DEFAULT_CLIENT_VALUES = {
   timeout:   5
 }; // const
 
-export const F: Fauna = {
-  query: {
-    // Paginate: {name: "Paginate", args: []}
-  }
-}; // const
-
-type New_Doc = {
-  coll: Expr,
-  doc: Record<string, any>
-};
-
-const RESOURCE_TYPES = {
-  role:       "roles",
-  collection: "collections",
-  function:   "functions",
-  index:      "indexes"
-};
 
 export type Expr = {
   readonly name: string;
@@ -39,13 +22,12 @@ export type Expr = {
   // [Deno.customInspect](): string;
 } // class
 
-type Methods = {
-  [key: string]: Function
-} // type
+type Common_Doc_Value = number | string | null | boolean | any[];
+export type FQL_Doc = Record<string, Expr | Common_Doc_Value>;
+export type Schema          = Array<FQL_Doc>;
+export type Standard_Doc    = Record<string, Record<string, Common_Doc_Value> | Common_Doc_Value>;
+export type Standard_Schema = Array<Standard_Doc>;
 
-type Fauna = {
-  query: Methods
-} // type
 
 type Privilege = {
   resource: Expr,
@@ -59,29 +41,6 @@ type Privilege = {
     unrestricted_read: boolean
   }
 } // type
-
-type Old_Schema = {
-  collections: [Param_Object],
-  functions:   [Param_Object],
-  indexes:     [Param_Object],
-  roles:       [Param_Object]
-} // type
-
-type New_Schema = {
-  collections: Param_Object_Group,
-  functions:   Param_Object_Group,
-  indexes:     Param_Object_Group,
-  roles:       Param_Object_Group
-} // type
-
-interface Migrate_Action {
-  action: string,
-  resource_type: keyof New_Schema,
-  resource_name: string,
-  fql: Expr,
-  param_object?: Param_Object,
-  old_fql?: any
-} // interface
 
 interface Param_Object_Group {
  [key: string]: Param_Object
@@ -125,7 +84,6 @@ interface ProcessResults {
   success: boolean
 } // interface
 
-type FQL = Expr | any[] | Record<string, any>;
 
 export class ProcessError extends Error {
   results: ProcessResults;
@@ -136,36 +94,36 @@ export class ProcessError extends Error {
   }
 } // export
 
-export function remove_key(key: string, x: any[] | Record<string, any>) : any[] | Record<string, any> {
-  if (Array.isArray(x)) {
-    return (x as any[]).map(a => remove_key(key, a)) ;
-  } // if
+export function remove_key(key: string, x: Standard_Doc) : Standard_Doc {
+    if (typeof x === "object" && x.constructor.name === "Object" && x.ref) {
+      const new_x = Object.assign({}, x) as Standard_Doc;
+      delete new_x[key];
+      return new_x;
+    } // if
 
-  if (typeof x === "object" && x.constructor.name === "Object" && x.ref) {
-    const new_x = Object.assign({}, x) as Record<string, any>;
-    delete new_x[key];
-    return new_x;
-  } // if
-
-  return x;
+    return x;
 } // export function
 
-export function standardize(raw_x: FQL) {
-  const x = JSON.parse(JSON.stringify(raw_x));
-
-  return(
-    remove_key(
-      "gql",
-      remove_key("ts", x)
-    )
-  );
+export function find_doc_in_schema(doc: FQL_Doc, schema: Schema) {
+  return schema.find((d) => {
+    return d.ref && doc.ref && deepEqual(d.ref, doc.ref);
+  });
+} // export function
+export function docs_equal(old_doc: FQL_Doc, new_doc: FQL_Doc) {
+  const fql_compare = Object.assign({}, old_doc, new_doc);
+  return deepEqual(standardize(fql_compare), standardize(old_doc));
 } // export function
 
-export function equals(raw_x: FQL, raw_y: FQL) {
-  const x = standardize(raw_x);
-  const y = standardize(raw_y);
-
-  return deepEqual(x, y);
+export function standardize(raw_x: any) {
+  return JSON.parse(JSON.stringify(raw_x));
+  // return(
+  //   x.map((o: Standard_Doc) => {
+  //     return remove_key(
+  //       "gql",
+  //       remove_key("ts", o)
+  //     )
+  //   })
+  // );
 } // export function
 
 export function CreateExpr(name: string) {
@@ -308,20 +266,6 @@ export const UpperCase = CreateExpr("UpperCase");
 export const Var = CreateExpr("Var");
 // end macro
 
-function CreateResource(r_type: keyof New_Schema, r: Param_Object) {
-  switch (r_type) {
-    case "functions":
-      return CreateFunction(r);
-    case "indexes":
-      return CreateIndex(r);
-    case "collections":
-      return CreateCollection(r);
-    case "roles":
-      return CreateRole(r);
-    default:
-      throw new Error(`Invalid resource type: ${r_type}`);
-  } // switch
-} // function
 
 function same_version(old_o: Param_Object, new_o: Param_Object) {
   const old_hash_version = (old_o.data || {}).hash_version;
@@ -563,24 +507,39 @@ export function concat_data(...args: Expr[]) {
   return concat_array(...new_args);
 } // export function
 
-export function diff(new_values: New_Doc[]) {
-  return Let({
-    new: new_values,
-    old: schema(),
-    fin: []
-  },
-  Map(
-    Var("new"),
-    Lambda(
-      "sdoc",
-      If(
-        Not(ContainsValue(Var("sdoc"), Var("old"))),
-        Append(["create", Var("sdoc")], Var("fin")),
-        null
-      ) // If
-    ) // Lambda
-  ), // Map
- ); // Let
+// export function create_new_doc(doc: FQL_Doc) {
+//   const ref = doc.ref as Expr;
+//   const coll_name = ref.name;
+//   switch (coll_name) {
+//     case "Index": {
+//       const new_values = {}
+//       CreateIndex(
+//       );
+//       break;
+//     }
+//     default: {
+//     }
+//   } // swotcj
+// } // export function
+
+export function diff(f_old: Schema, f_new: Schema) {
+  const fin: Expr[] = [];
+  const s_old = standardize(f_old);
+  const s_new = standardize(f_new);
+  for (let i = 0; i < s_new.length; i++) {
+    const new_s = s_new[i];
+    const new_f = f_new[i];
+    const old_s = s_old.find(o => deepEqual(o.ref, new_s.ref));
+
+    if (!old_s) {
+      fin.push(create_new_doc(new_f));
+    }
+    if (old_s && !deepEqual(old_s, new_s)) {
+      fin.push(update_new_doc(new_f));
+    }
+  } // for
+
+  return fin;
 } // export function
 
 // CreateRole({

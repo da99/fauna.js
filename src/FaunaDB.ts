@@ -18,7 +18,6 @@ const DEFAULT_CLIENT_VALUES = {
 export type Expr = {
   readonly name: string;
   readonly args: any[];
-  readonly is_expr: true;
   // [Deno.customInspect](): string;
 } // class
 
@@ -131,7 +130,6 @@ export function CreateExpr(name: string) {
     return {
       name: name,
       args: args,
-      is_expr: true,
       [Symbol.for("Deno.customInspect")](): string {
         return `${name}(${args.map((x: any) => Deno.inspect(x, {depth: Infinity})).join(', ')})`;
       }
@@ -507,36 +505,77 @@ export function concat_data(...args: Expr[]) {
   return concat_array(...new_args);
 } // export function
 
-// export function create_new_doc(doc: FQL_Doc) {
-//   const ref = doc.ref as Expr;
-//   const coll_name = ref.name;
-//   switch (coll_name) {
-//     case "Index": {
-//       const new_values = {}
-//       CreateIndex(
-//       );
-//       break;
-//     }
-//     default: {
-//     }
-//   } // swotcj
-// } // export function
+export function create_doc(doc: FQL_Doc): Expr {
+  const ref        = doc.ref as Expr;
+  const coll_name  = ref.name;
+  const new_values = Object.assign({}, doc);
+  delete new_values.ref;
+
+  switch (coll_name) {
+    case "Index": {
+      return CreateIndex(new_values);
+    }
+    case "Role": {
+      return CreateRole(new_values);
+    }
+    case "Collection": {
+      delete new_values.ts
+      return CreateCollection(new_values);
+    }
+    case "Function": {
+      return CreateFunction(new_values);
+    }
+    default: {
+      throw new Error(`Unknown resource: ${ref.name}`);
+    }
+  } // swotcj
+} // export function
+
+export function ref_compare(x: FQL_Doc, y: FQL_Doc) {
+  return deepEqual(x.ref, y.ref);
+} // export function
+
+export function doc_compare(old_doc: FQL_Doc, new_doc: FQL_Doc): boolean | Expr {
+  if (!ref_compare(old_doc, new_doc))
+    return false;
+  const merged = Object.assign({}, old_doc, new_doc);
+  if (deepEqual(merged, old_doc))
+    return true;
+
+  const ref = new_doc.ref;
+  const new_new = Object.assign({}, new_doc);
+  delete new_new.ref
+  return Update(ref, new_new);
+} // export function
 
 export function diff(f_old: Schema, f_new: Schema) {
   const fin: Expr[] = [];
-  const s_old = standardize(f_old);
-  const s_new = standardize(f_new);
-  for (let i = 0; i < s_new.length; i++) {
-    const new_s = s_new[i];
-    const new_f = f_new[i];
-    const old_s = s_old.find(o => deepEqual(o.ref, new_s.ref));
 
-    if (!old_s) {
-      fin.push(create_new_doc(new_f));
-    }
-    if (old_s && !deepEqual(old_s, new_s)) {
-      fin.push(update_new_doc(new_f));
-    }
+  for (let i = 0; i < f_new.length; i++) {
+    const new_doc = f_new[i];
+    let do_create = true;
+
+    for (let j = 0; j < f_old.length; j++) inner: {
+      const old_doc = f_old[j];
+      const c = doc_compare(old_doc, new_doc);
+      switch (c) {
+        case true: { // Docs match.
+          do_create = false;
+          break inner;
+        }
+        case false: { // No match.
+          break;
+        }
+        default: {
+          fin.push(c as Expr);
+          do_create = false;
+          break inner;
+        }
+      } // switch
+    } // for
+
+    if (do_create)
+      fin.push(create_doc(new_doc));
   } // for
 
   return fin;

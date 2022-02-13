@@ -83,207 +83,134 @@ interface ProcessResults {
   success: boolean
 } // interface
 
+// start macro: create_expr
+export const Add = create_expr("Add");
+export const Append = create_expr("Append");
+export const Call = create_expr("Call");
+export const Ceil = create_expr("Ceil");
+export const Collection = create_expr("Collection");
+export const Collections = create_expr("Collections");
+export const Concat = create_expr("Concat");
+export const ContainsField = create_expr("ContainsField");
+export const ContainsPath = create_expr("ContainsPath");
+export const ContainsStr = create_expr("ContainsStr");
+export const ContainsStrRegex = create_expr("ContainsStrRegex");
+export const ContainsValue = create_expr("ContainsValue");
+export const Count = create_expr("Count");
+export const Create = create_expr("Create");
+export const CreateCollection = create_expr("CreateCollection");
+export const CreateFunction = create_expr("CreateFunction");
+export const CreateIndex = create_expr("CreateIndex");
+export const CreateRole = create_expr("CreateRole");
+export const CurrentIdentity = create_expr("CurrentIdentity");
+export const Delete = create_expr("Delete");
+export const Difference = create_expr("Difference");
+export const Distinct = create_expr("Distinct");
+export const Divide = create_expr("Divide");
+export const Do = create_expr("Do");
+export const Documents = create_expr("Documents");
+export const Drop = create_expr("Drop");
+export const EndsWith = create_expr("EndsWith");
+export const Exists   = create_expr("Exists");
+export const Epoch = create_expr("Epoch");
+export const Equals = create_expr("Equals");
+export const Filter = create_expr("Filter");
+export const Functions = create_expr("Functions");
+export const Fn = create_expr("Fn");
+export const Foreach = create_expr("Foreach");
+export const Database = create_expr("Database");
+export const Get = create_expr("Get");
+export const GT = create_expr("GT");
+export const GTE = create_expr("GTE");
+export const Identify = create_expr("Identify");
+export const If = create_expr("If");
+export const Index = create_expr("Index");
+export const Indexes = create_expr("Indexes");
+export const Insert = create_expr("Insert");
+export const Intersection = create_expr("Intersection");
+export const IsArray = create_expr("IsArray");
+export const IsBoolean = create_expr("IsBoolean");
+export const IsCollection = create_expr("IsCollection");
+export const IsEmpty = create_expr("IsEmpty");
+export const IsFunction = create_expr("IsFunction");
+export const IsIndex = create_expr("IsIndex");
+export const IsNonEmpty = create_expr("IsNonEmpty");
+export const IsNull = create_expr("IsNull");
+export const IsNumber = create_expr("IsNumber");
+export const IsSet = create_expr("IsSet");
+export const IsString = create_expr("IsString");
+export const IsRef = create_expr("IsRef");
+export const IsRole = create_expr("IsRole");
+export const IsTimestamp = create_expr("IsTimestamp");
+export const IsToken = create_expr("IsToken");
+export const Join = create_expr("Join");
+export const LT = create_expr("LT");
+export const LTE = create_expr("LTE");
+export const LTrim = create_expr("LTrim");
+export const Lambda = create_expr("Lambda");
+export const Length = create_expr("Length");
+export const Let = create_expr("Let");
+export const Ln = create_expr("Ln");
+export const LowerCase = create_expr("LowerCase");
+export const Map = create_expr("Map");
+export const Match = create_expr("Match");
+export const Max = create_expr("Max");
+export const Mean = create_expr("Mean");
+export const Merge = create_expr("Merge");
+export const Min = create_expr("Min");
+export const Minute = create_expr("Minute");
+export const Modulo = create_expr("Modulo");
+export const Month = create_expr("Month");
+export const Multiply = create_expr("Multiply");
+export const Not = create_expr("Not");
+export const Now = create_expr("Now");
+export const Or = create_expr("Or");
+export const Paginate = create_expr("Paginate");
+export const Prepend = create_expr("Prepend");
+export const Query = create_expr("Query");
+export const RTrim = create_expr("RTrim");
+export const Range = create_expr("Range");
+export const Reduce = create_expr("Reduce");
+export const RegexEscape = create_expr("RegexEscape");
+export const Role = create_expr("Role");
+export const Ref = create_expr("Ref");
+export const Roles = create_expr("Roles");
+export const Remove = create_expr("Remove");
+export const Repeat = create_expr("Repeat");
+export const Replace = create_expr("Replace");
+export const ReplaceStr = create_expr("ReplaceStr");
+export const ReplaceStrRegex = create_expr("ReplaceStrRegex");
+export const Reverse = create_expr("Reverse");
+export const Round = create_expr("Round");
+export const Select = create_expr("Select");
+export const Space = create_expr("Space");
+export const StartsWith = create_expr("StartsWith");
+export const SubString = create_expr("SubString");
+export const Subtract = create_expr("Subtract");
+export const Sum = create_expr("Sum");
+export const Take = create_expr("Take");
+export const Time = create_expr("Time");
+export const TimeAdd = create_expr("TimeAdd");
+export const TimeDiff = create_expr("TimeDiff");
+export const TimeSubstract = create_expr("TimeSubstract");
+export const TitleCase = create_expr("TitleCase");
+export const ToArray = create_expr("ToArray");
+export const ToDate = create_expr("ToDate");
+export const ToObject = create_expr("ToObject");
+export const ToDouble = create_expr("ToDouble");
+export const ToInteger = create_expr("ToInteger");
+export const ToString = create_expr("ToString");
+export const ToTime = create_expr("ToTime");
+export const Trim = create_expr("Trim");
+export const Trunc = create_expr("Trunc");
+export const Union = create_expr("Union");
+export const Update = create_expr("Update");
+export const UpperCase = create_expr("UpperCase");
+export const Var = create_expr("Var");
 
-export class ProcessError extends Error {
-  results: ProcessResults;
-  constructor(message: string, results: ProcessResults) {
-    super(message);
-    this.name = this.constructor.name;
-    this.results = results;
-  }
-} // export
-
-export function remove_key(key: string, x: Standard_Doc) : Standard_Doc {
-    if (typeof x === "object" && x.constructor.name === "Object" && x.ref) {
-      const new_x = Object.assign({}, x) as Standard_Doc;
-      delete new_x[key];
-      return new_x;
-    } // if
-
-    return x;
-} // export function
-
-export function find_doc_in_schema(doc: FQL_Doc, schema: Schema) {
-  return schema.find((d) => {
-    return d.ref && doc.ref && deepEqual(d.ref, doc.ref);
-  });
-} // export function
-export function docs_equal(old_doc: FQL_Doc, new_doc: FQL_Doc) {
-  const fql_compare = Object.assign({}, old_doc, new_doc);
-  return deepEqual(standardize(fql_compare), standardize(old_doc));
-} // export function
-
-export function standardize(raw_x: any) {
-  return JSON.parse(JSON.stringify(raw_x));
-  // return(
-  //   x.map((o: Standard_Doc) => {
-  //     return remove_key(
-  //       "gql",
-  //       remove_key("ts", o)
-  //     )
-  //   })
-  // );
-} // export function
-
-export function CreateExpr(name: string) {
-  return (...args: any[]) : Expr => {
-    return {
-      name: name,
-      args: args,
-      [Symbol.for("Deno.customInspect")](): string {
-        return `${name}(${args.map((x: any) => Deno.inspect(x, {depth: Infinity})).join(', ')})`;
-      }
-    };
-  };
-} // function
-
-
-// start macro: CreateExpr
-export const Add = CreateExpr("Add");
-export const Append = CreateExpr("Append");
-export const Call = CreateExpr("Call");
-export const Ceil = CreateExpr("Ceil");
-export const Collection = CreateExpr("Collection");
-export const Collections = CreateExpr("Collections");
-export const Concat = CreateExpr("Concat");
-export const ContainsField = CreateExpr("ContainsField");
-export const ContainsPath = CreateExpr("ContainsPath");
-export const ContainsStr = CreateExpr("ContainsStr");
-export const ContainsStrRegex = CreateExpr("ContainsStrRegex");
-export const ContainsValue = CreateExpr("ContainsValue");
-export const Count = CreateExpr("Count");
-export const Create = CreateExpr("Create");
-export const CreateCollection = CreateExpr("CreateCollection");
-export const CreateFunction = CreateExpr("CreateFunction");
-export const CreateIndex = CreateExpr("CreateIndex");
-export const CreateRole = CreateExpr("CreateRole");
-export const CurrentIdentity = CreateExpr("CurrentIdentity");
-export const Delete = CreateExpr("Delete");
-export const Difference = CreateExpr("Difference");
-export const Distinct = CreateExpr("Distinct");
-export const Divide = CreateExpr("Divide");
-export const Do = CreateExpr("Do");
-export const Documents = CreateExpr("Documents");
-export const Drop = CreateExpr("Drop");
-export const EndsWith = CreateExpr("EndsWith");
-export const Exists   = CreateExpr("Exists");
-export const Epoch = CreateExpr("Epoch");
-export const Equals = CreateExpr("Equals");
-export const Filter = CreateExpr("Filter");
-export const Functions = CreateExpr("Functions");
-export const Fn = CreateExpr("Fn");
-export const Foreach = CreateExpr("Foreach");
-export const Database = CreateExpr("Database");
-export const Get = CreateExpr("Get");
-export const GT = CreateExpr("GT");
-export const GTE = CreateExpr("GTE");
-export const Identify = CreateExpr("Identify");
-export const If = CreateExpr("If");
-export const Index = CreateExpr("Index");
-export const Indexes = CreateExpr("Indexes");
-export const Insert = CreateExpr("Insert");
-export const Intersection = CreateExpr("Intersection");
-export const IsArray = CreateExpr("IsArray");
-export const IsBoolean = CreateExpr("IsBoolean");
-export const IsCollection = CreateExpr("IsCollection");
-export const IsEmpty = CreateExpr("IsEmpty");
-export const IsFunction = CreateExpr("IsFunction");
-export const IsIndex = CreateExpr("IsIndex");
-export const IsNonEmpty = CreateExpr("IsNonEmpty");
-export const IsNull = CreateExpr("IsNull");
-export const IsNumber = CreateExpr("IsNumber");
-export const IsSet = CreateExpr("IsSet");
-export const IsString = CreateExpr("IsString");
-export const IsRef = CreateExpr("IsRef");
-export const IsRole = CreateExpr("IsRole");
-export const IsTimestamp = CreateExpr("IsTimestamp");
-export const IsToken = CreateExpr("IsToken");
-export const Join = CreateExpr("Join");
-export const LT = CreateExpr("LT");
-export const LTE = CreateExpr("LTE");
-export const LTrim = CreateExpr("LTrim");
-export const Lambda = CreateExpr("Lambda");
-export const Length = CreateExpr("Length");
-export const Let = CreateExpr("Let");
-export const Ln = CreateExpr("Ln");
-export const LowerCase = CreateExpr("LowerCase");
-export const Map = CreateExpr("Map");
-export const Match = CreateExpr("Match");
-export const Max = CreateExpr("Max");
-export const Mean = CreateExpr("Mean");
-export const Merge = CreateExpr("Merge");
-export const Min = CreateExpr("Min");
-export const Minute = CreateExpr("Minute");
-export const Modulo = CreateExpr("Modulo");
-export const Month = CreateExpr("Month");
-export const Multiply = CreateExpr("Multiply");
-export const Not = CreateExpr("Not");
-export const Now = CreateExpr("Now");
-export const Or = CreateExpr("Or");
-export const Paginate = CreateExpr("Paginate");
-export const Prepend = CreateExpr("Prepend");
-export const Query = CreateExpr("Query");
-export const RTrim = CreateExpr("RTrim");
-export const Range = CreateExpr("Range");
-export const Reduce = CreateExpr("Reduce");
-export const RegexEscape = CreateExpr("RegexEscape");
-export const Role = CreateExpr("Role");
-export const Ref = CreateExpr("Ref");
-export const Roles = CreateExpr("Roles");
-export const Remove = CreateExpr("Remove");
-export const Repeat = CreateExpr("Repeat");
-export const Replace = CreateExpr("Replace");
-export const ReplaceStr = CreateExpr("ReplaceStr");
-export const ReplaceStrRegex = CreateExpr("ReplaceStrRegex");
-export const Reverse = CreateExpr("Reverse");
-export const Round = CreateExpr("Round");
-export const Select = CreateExpr("Select");
-export const Space = CreateExpr("Space");
-export const StartsWith = CreateExpr("StartsWith");
-export const SubString = CreateExpr("SubString");
-export const Subtract = CreateExpr("Subtract");
-export const Sum = CreateExpr("Sum");
-export const Take = CreateExpr("Take");
-export const Time = CreateExpr("Time");
-export const TimeAdd = CreateExpr("TimeAdd");
-export const TimeDiff = CreateExpr("TimeDiff");
-export const TimeSubstract = CreateExpr("TimeSubstract");
-export const TitleCase = CreateExpr("TitleCase");
-export const ToArray = CreateExpr("ToArray");
-export const ToDate = CreateExpr("ToDate");
-export const ToObject = CreateExpr("ToObject");
-export const ToDouble = CreateExpr("ToDouble");
-export const ToInteger = CreateExpr("ToInteger");
-export const ToString = CreateExpr("ToString");
-export const ToTime = CreateExpr("ToTime");
-export const Trim = CreateExpr("Trim");
-export const Trunc = CreateExpr("Trunc");
-export const Union = CreateExpr("Union");
-export const Update = CreateExpr("Update");
-export const UpperCase = CreateExpr("UpperCase");
-export const Var = CreateExpr("Var");
-// end macro
-
-
-function same_version(old_o: Param_Object, new_o: Param_Object) {
-  const old_hash_version = (old_o.data || {}).hash_version;
-  return old_hash_version === (new_o.data as Param_Object_Data).hash_version;
-} // function
-
-function find_name(arr: Array<Param_Object>, name_value: string) {
-  return arr.find(x => x.name === name_value);
-} // function
-
-export function Select_Map_Paginate(x: Expr) {
-  return Select(
-    "data",
-    Map(
-      Paginate(x),
-      Lambda("x", Get(Var("x")))
-    )
-  );
-} // func
-
+// # =============================================================================
+// # === Node Process Functions ==================================================
+// # =============================================================================
 export async function node(...args: string[]) {
   return await run({
     cmd: [
@@ -336,12 +263,72 @@ export async function query(o: Client_Options, raw_body: Expr | Record<string, a
   throw new Error("failed.");
 } // export
 
+// # =============================================================================
+// # === FQL Composition Functions ===============================================
+// # =============================================================================
+
+export function schema() {
+  return Reduce(
+    Lambda(
+      ["acc", "coll"],
+      Append(
+        Select(
+          "data",
+          Map(
+            Paginate(Var("coll")),
+            Lambda("x", Get(Var("x")))
+          )
+        ), // Map
+        Var("acc")
+      ) // Prepend
+    ), // Lambda
+    [],
+    [Roles(), Collections(), Functions(), Indexes()]
+  ); // Reduce
+} // export
+
+export function concat_data(...args: Expr[]) {
+  const new_args = args.map((x) => {
+    return Select("data", x);
+  });
+  return concat_array(...new_args);
+} // export function
+
 export function drop(x: Expr) {
   return Map(
     Paginate(x),
     Lambda("x", Delete(Var("x")))
   );
 } // export function
+
+export function map_select(x: Expr, k: string) {
+  return Map(
+    x,
+    Lambda(
+      "doc",
+      Select(k, Var("doc"))
+    ) // Lambda
+  );
+} // export function
+
+export function concat_array(...args: Expr[]) {
+  return args.reverse().reduce((old, curr) => {
+    if (!old) { return curr; }
+    return Prepend(old, curr);
+  });
+} // export function
+
+export function create_expr(name: string) {
+  return (...args: any[]) : Expr => {
+    return {
+      name: name,
+      args: args,
+      [Symbol.for("Deno.customInspect")](): string {
+        return `${name}(${args.map((x: any) => Deno.inspect(x, {depth: Infinity})).join(', ')})`;
+      }
+    };
+  };
+} // function
 
 export function drop_schema() {
   return Do(
@@ -363,19 +350,6 @@ export function collection_names(): Expr {
   ));
 } // export function
 
-export function select_keys(keys: string[], x: Expr) {
-  const o: Record<string, Expr> = {};
-  for (let k of keys) {
-    if (k.indexOf('?') === k.length - 1) {
-      const new_k = k.substring(0, k.length - 1);
-      o[new_k] = Select(new_k, x, null);
-    } else {
-      o[k] = Select(k, x);
-    }
-  } // for
-  return o;
-} // export function
-
 export function map_get(x: Expr, keys?: string[]) {
   let to_doc = Get(Var("x"));
   if (keys) {
@@ -390,119 +364,35 @@ export function map_get(x: Expr, keys?: string[]) {
   ); // Map
 } // export function
 
-export function export_collection(coll: Expr, keys: string[]) {
-  return Map(
-    Paginate(coll),
-    Lambda(
-      "r",
-      {
-        coll,
-        doc: select_keys(keys, Get(Var("r")))
-      }
-    ) // Lambda
-  );
-} // export function
-
-export function schema() {
-  return Reduce(
-    Lambda(
-      ["acc", "coll"],
-      Append(
-        Select(
-          "data",
-          Map(
-            Paginate(Var("coll")),
-            Lambda("x", Get(Var("x")))
-          )
-        ), // Map
-        Var("acc")
-      ) // Prepend
-    ), // Lambda
-    [],
-    [Roles(), Collections(), Functions(), Indexes()]
-  ); // Reduce
-  // return concat_data(
-  //   export_collection(Roles(), ["ref", "name", "privileges", "data?"]),
-  //   export_collection(Collections(), ["ref", "history_days", "name", "data?"]),
-  //   export_collection(Indexes(), ["ref", "serialized", "name", "unique", "source", "terms", "values?", "data?"]),
-  //   export_collection(Functions(), ["ref", "name", "body", "role?", "data?"])
-  // );
-} // export
-
-export function map_select(x: Expr, k: string) {
-  return Map(
-    x,
-    Lambda(
-      "doc",
-      Select(k, Var("doc"))
-    ) // Lambda
-  );
-} // export function
-
-export function array_to_object(k: string, x: Expr) {
-  return ToObject(
+export function Select_Map_Paginate(x: Expr) {
+  return Select(
+    "data",
     Map(
-      x,
-      Lambda(
-        "doc",
-        [Select("name", Var("doc")), Var("doc")]
-      )
+      Paginate(x),
+      Lambda("x", Get(Var("x")))
     )
   );
+} // func
+
+// # =============================================================================
+// # === Migration Functions =====================================================
+// # =============================================================================
+
+export function standardize(raw_x: any) {
+  return JSON.parse(JSON.stringify(raw_x));
 } // export function
 
-export function diff_filter_a_not_in_b(key: string, raw_a: Expr, raw_b: Expr) {
-  return Let(
-    {
-      a: Select(key, raw_a),
-      b: Select(key, raw_b),
-      a_names: map_select(Var("a"), "name"),
-      b_names: map_select(Var("b"), "name"),
-      a_o: array_to_object("name", Var("a")),
-      b_o: array_to_object("name", Var("b")),
-      create_or_update: Map(
-        Var("a"),
-        Lambda(
-          "doc",
-          If(
-            ContainsValue(Select("name", Var("doc")), Var("b_names")),
-            If(
-              ContainsValue(Var("doc"), Var("b")),
-              ["update", key, Var("doc")],
-              null
-            ), // If/update
-          ["create", key, Var("doc")]
-          )
-        )
-      ), // Map
-      delete: Map(
-        Var("b"),
-        Lambda(
-          "doc",
-          If(
-            Not(ContainsValue(Select("name", Var("doc")), Var("a_names"))),
-            ["delete", key, Select("ref", Var("doc"))],
-            null
-          )
-        )
-      ), // Map
-    },
-    Append(Var("delete"), Var("create_or_update"))
-  );
-} // export function
-
-export function concat_array(...args: Expr[]) {
-  return args.reverse().reduce((old, curr) => {
-    if (!old) { return curr; }
-    return Prepend(old, curr);
-  });
-} // export function
-
-export function concat_data(...args: Expr[]) {
-  const new_args = args.map((x) => {
-    return Select("data", x);
-  });
-  return concat_array(...new_args);
+export function select_keys(keys: string[], x: Expr) {
+  const o: Record<string, Expr> = {};
+  for (let k of keys) {
+    if (k.indexOf('?') === k.length - 1) {
+      const new_k = k.substring(0, k.length - 1);
+      o[new_k] = Select(new_k, x, null);
+    } else {
+      o[k] = Select(k, x);
+    }
+  } // for
+  return o;
 } // export function
 
 export function create_doc(doc: FQL_Doc): Expr {
@@ -608,4 +498,3 @@ export function diff(f_old: Schema, f_new: Schema) {
 //     }
 //   ]
 // }) ;
-

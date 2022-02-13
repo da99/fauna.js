@@ -2,10 +2,8 @@ import { describe, it } from "../src/Spec.ts";
 import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 import {deepEqual} from "https://deno.land/x/cotton@v0.7.3/src/utils/deepequal.ts";
 import {
-  remove_key, standardize,
-  Index, Role, Ref, CreateCollection, Collection, Collections,
+  Role
 } from "../src/FaunaDB.ts";
-import type {Schema, FQL_Doc, Standard_Doc, Standard_Schema} from "../src/FaunaDB.ts";
 
 
 // # =============================================================================

@@ -578,6 +578,16 @@ export function diff(f_old: Schema, f_new: Schema) {
       fin.push(create_doc(new_doc));
   } // for
 
+  for (const old_doc of f_old) {
+    const new_doc = f_new.find(
+      (n: FQL_Doc) => ref_compare(n, old_doc)
+    );
+
+    if (!new_doc) {
+      fin.push(Delete(old_doc.ref));
+    } // if
+  } // for
+
   return fin;
 } // export function
 

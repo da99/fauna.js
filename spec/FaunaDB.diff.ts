@@ -4,7 +4,7 @@ import {deepEqual} from "https://deno.land/x/cotton@v0.7.3/src/utils/deepequal.t
 import {
   diff, doc_compare,
 //   drop_schema, diff,schema, query,
-  CreateCollection, Collection, Update
+  CreateCollection, Collection, Update, Delete
 //   If, Exists,
 //   delete_if_exists, collection_names
 } from "../src/FaunaDB.ts";
@@ -80,6 +80,18 @@ it("returns documents that need to be updated", function () {
   const actual = diff([kittens, puppies], [new_k, new_p]);
   const expected = [
     Update(Collection("puppies"), {name: "puppies", history_days: 1})
+  ];
+  must_equal(actual, expected);
+}); // it function
+
+it("returns documents that need to be deleted", function () {
+  const kittens = old_collection("kittens");
+  const puppies = old_collection("puppies");
+
+  const actual = diff([kittens, puppies], []);
+  const expected = [
+    Delete(Collection("kittens")),
+    Delete(Collection("puppies"))
   ];
   must_equal(actual, expected);
 }); // it function

@@ -30,7 +30,12 @@ export function inspect(x: any) {
 export function raw_inspect(x: any) {
   return Deno.inspect(
     x,
-    {compact: true, showHidden: false, depth: Infinity, colors: false}
+    {
+      compact: true,
+      showHidden: false,
+      depth: Infinity,
+      colors: false
+    }
   );
 } // export
 

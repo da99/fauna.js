@@ -49,30 +49,6 @@ function inspect_fql(x) {
   return CleanFn(util.inspect(x, {depth: Infinity}));
 } // function
 
-
-    // this.__new_schema = {
-    //   "functions":   {},
-    //   "indexes":     {},
-    //   "collections": {},
-    //   "roles":       {}
-    // };
-    // this.__old_schema = await this.client.query({
-    //   collections: Select_Map_Paginate(Collections()),
-    //   functions: Select_Map_Paginate(Functions()),
-    //   indexes: Select_Map_Paginate(Indexes()),
-    //   roles: Select_Map_Paginate(Roles())
-    // });
-
-  // __CREATE_RESOURCE(resource_type, param_object) {
-  //   const data = param_object.data || {};
-  //   if (!data.hash_version) {
-  //     data.hash_version = btoa(JSON.stringify(param_object));
-  //   }
-  //   param_object.data = data;
-  //   this.new_schema[resource_type][param_object.name] = param_object;
-  //   return param_object;
-  // } // method
-
 const DEFAULT_OPTIONS = {
   secret:    "UNKNOWN",
   port:      443,

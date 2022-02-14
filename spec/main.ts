@@ -18,7 +18,7 @@ const all_files = Array.from(Deno.readDirSync(dir)).reduce((prev, curr) => {
   return prev;
 }, [] as string[]).sort();
 
-const slow_files = ["FaunaDB.ts"];
+const slow_files = ["FaunaDB.migrate.ts"];
 const fast_files = all_files.filter((x: string) => slow_files.indexOf(x) === -1);
 let target_files: string[] = [];
 

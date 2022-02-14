@@ -4,8 +4,6 @@ import { run } from "./Process.ts";
 import { inspect, raw_inspect } from "./CLI.ts";
 import {deepEqual} from "https://deno.land/x/cotton@v0.7.3/src/utils/deepequal.ts";
 
-type schema_category = "role" | "collection" | "index" | "function";
-
 const DEFAULT_CLIENT_VALUES = {
   secret:    "",
   port:      443,
@@ -14,19 +12,31 @@ const DEFAULT_CLIENT_VALUES = {
   timeout:   5
 }; // const
 
-
 export type Expr = {
   readonly name: string;
   readonly args: any[];
   // [Deno.customInspect](): string;
 } // class
 
-type Common_Doc_Value = number | string | null | boolean | any[];
-export type FQL_Doc = Record<string, Expr | Common_Doc_Value>;
-export type Schema          = Array<FQL_Doc>;
-export type Standard_Doc    = Record<string, Record<string, Common_Doc_Value> | Common_Doc_Value>;
-export type Standard_Schema = Array<Standard_Doc>;
+export type Schema_Doc            = Fn_Record | Index_Record | Role_Record | Collection_Record;
+export type Schema                = Array<Schema_Doc>;
+export type New_Schema            = Array<New_Doc>;
+export type Schema_Ref_Collection = "Collection" | "Role" | "Index" | "Fn";
+export type New_Doc = {
+  coll: "Collection"; doc: New_Collection;
+} | {
+  coll: "Role", doc: New_Role
+} | {
+  coll: "Index", doc: New_Index
+} | {
+  coll: "Fn", doc: New_Fn
+};
 
+
+interface Client_Options {
+  secret?: string,
+  domain?: string,
+}
 
 type Privilege = {
   resource: Expr,
@@ -41,46 +51,64 @@ type Privilege = {
   }
 } // type
 
-interface Param_Object_Group {
- [key: string]: Param_Object
-}
+interface Index_Term {
+  field?: string[] | string,
+  binding?: string
+} // interface
 
-interface Param_Object_Data {
-   hash_version?: string,
-   [key: string]: any
-}
+interface Index_Value {
+  field? : string[],
+  binding: string,
+  reverse: boolean
+} // interface
 
-interface Param_Object {
- ref?: Expr,
- name: string,
- privileges?: Array<Privilege>,
- history_days?: number,
- role?: Expr,
- body?: Expr,
- data?: Param_Object_Data
-}
+interface Schema_Ref<T extends Schema_Ref_Collection> {
+  name: T;
+  id: string
+} // interface
 
-interface Client_Options {
-  secret?: string,
-  domain?: string,
-}
+interface New_Index {
+  name: string;
+  source: Expr;
+  terms: Array<Index_Term>;
+  values?: Array<Index_Value>;
+  unique: boolean;
+} // interface
 
-type ENV = {
-  [key: string]: string,
-};
+export interface Index_Record extends New_Index {
+  ref: Schema_Ref<"Index">;
+  ts: number;
+} // interface
 
-class CustomError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = this.constructor.name;
-  }
-} // export
+export interface New_Role {
+  name: string;
+  privileges: Array<Privilege>;
+} // interface
 
-interface ProcessResults {
-  stdout: string | null,
-  stderr: string | null,
-  code: number,
-  success: boolean
+export interface Role_Record extends New_Role {
+  ref: Schema_Ref<"Role">;
+  ts: number;
+} // interface
+
+export interface New_Collection {
+  name: string;
+  history_days?: number;
+} // interface
+
+export interface Collection_Record extends New_Collection {
+  ref: Schema_Ref<"Collection">;
+  ts: number;
+} // interface
+
+export interface New_Fn {
+  ref: Schema_Ref<"Fn">;
+  name: string;
+  body: Expr;
+} // interface
+
+export interface Fn_Record extends New_Fn {
+  ref: Schema_Ref<"Fn">;
+  ts: number;
 } // interface
 
 // start macro: create_expr
@@ -88,7 +116,6 @@ export const Add = create_expr("Add");
 export const Append = create_expr("Append");
 export const Call = create_expr("Call");
 export const Ceil = create_expr("Ceil");
-export const Collection = create_expr("Collection");
 export const Collections = create_expr("Collections");
 export const Concat = create_expr("Concat");
 export const ContainsField = create_expr("ContainsField");
@@ -98,10 +125,6 @@ export const ContainsStrRegex = create_expr("ContainsStrRegex");
 export const ContainsValue = create_expr("ContainsValue");
 export const Count = create_expr("Count");
 export const Create = create_expr("Create");
-export const CreateCollection = create_expr("CreateCollection");
-export const CreateFunction = create_expr("CreateFunction");
-export const CreateIndex = create_expr("CreateIndex");
-export const CreateRole = create_expr("CreateRole");
 export const CurrentIdentity = create_expr("CurrentIdentity");
 export const Delete = create_expr("Delete");
 export const Difference = create_expr("Difference");
@@ -116,7 +139,6 @@ export const Epoch = create_expr("Epoch");
 export const Equals = create_expr("Equals");
 export const Filter = create_expr("Filter");
 export const Functions = create_expr("Functions");
-export const Fn = create_expr("Fn");
 export const Foreach = create_expr("Foreach");
 export const Database = create_expr("Database");
 export const Get = create_expr("Get");
@@ -124,7 +146,6 @@ export const GT = create_expr("GT");
 export const GTE = create_expr("GTE");
 export const Identify = create_expr("Identify");
 export const If = create_expr("If");
-export const Index = create_expr("Index");
 export const Indexes = create_expr("Indexes");
 export const Insert = create_expr("Insert");
 export const Intersection = create_expr("Intersection");
@@ -172,7 +193,6 @@ export const RTrim = create_expr("RTrim");
 export const Range = create_expr("Range");
 export const Reduce = create_expr("Reduce");
 export const RegexEscape = create_expr("RegexEscape");
-export const Role = create_expr("Role");
 export const Ref = create_expr("Ref");
 export const Roles = create_expr("Roles");
 export const Remove = create_expr("Remove");
@@ -207,6 +227,51 @@ export const Union = create_expr("Union");
 export const Update = create_expr("Update");
 export const UpperCase = create_expr("UpperCase");
 export const Var = create_expr("Var");
+
+export const Collection = create_schema_ref("Collection");
+export const Fn         = create_schema_ref("Fn");
+export const Index      = create_schema_ref("Index");
+export const Role       = create_schema_ref("Role");
+
+export function create_schema_ref<T extends Schema_Ref_Collection>(name: T) {
+  return (id: string): Schema_Ref<T> => {
+    return {
+      name: name,
+      id: id,
+      [Symbol.for("Deno.customInspect")](): string {
+        return `${name}(${inspect(id)})`;
+      }
+    };
+  };
+} // export function
+
+export function create_expr(name: string) {
+  return (...args: any[]) : Expr => {
+    return {
+      name: name,
+      args: args,
+      [Symbol.for("Deno.customInspect")](): string {
+        return `${name}(${args.map((x: any) => inspect(x)).join(', ')})`;
+      }
+    };
+  };
+} // function
+
+export function CreateIndex(i: New_Index): Expr {
+  return create_expr("CreateIndex")(i);
+} // export function
+
+export function CreateFunction(f: New_Fn): Expr {
+  return create_expr("CreateFunction")(f);
+} // export function
+
+export function CreateCollection(coll: New_Collection): Expr {
+  return create_expr("CreateCollection")(coll);
+} // export function
+
+export function CreateRole(role: New_Role) : Expr {
+  return create_expr("CreateRole")(role);
+} // function
 
 // # =============================================================================
 // # === Node Process Functions ==================================================
@@ -318,18 +383,6 @@ export function concat_array(...args: Expr[]) {
   });
 } // export function
 
-export function create_expr(name: string) {
-  return (...args: any[]) : Expr => {
-    return {
-      name: name,
-      args: args,
-      [Symbol.for("Deno.customInspect")](): string {
-        return `${name}(${args.map((x: any) => Deno.inspect(x, {depth: Infinity})).join(', ')})`;
-      }
-    };
-  };
-} // function
-
 export function drop_schema() {
   return Do(
     drop(Collections()),
@@ -395,50 +448,58 @@ export function select_keys(keys: string[], x: Expr) {
   return o;
 } // export function
 
-export function create_doc(doc: FQL_Doc): Expr {
-  const ref        = doc.ref as Expr;
-  const coll_name  = ref.name;
-  const new_values = Object.assign({}, doc);
-  delete new_values.ref;
+export function create_doc(doc: New_Doc): Expr {
+  const coll_name  = doc.coll;
+  const new_values = doc.doc;
 
   switch (coll_name) {
     case "Index": {
-      return CreateIndex(new_values);
+      return CreateIndex(new_values as New_Index);
     }
     case "Role": {
-      return CreateRole(new_values);
+      return CreateRole(new_values as New_Role);
     }
     case "Collection": {
-      delete new_values.ts
-      return CreateCollection(new_values);
+      return CreateCollection(new_values as New_Collection);
     }
-    case "Function": {
-      return CreateFunction(new_values);
+    case "Fn": {
+      return CreateFunction(new_values as New_Fn);
     }
     default: {
-      throw new Error(`Unknown resource: ${ref.name}`);
+      throw new Error(`Unknown resource: ${coll_name} ${inspect(doc)}`);
     }
   } // swotcj
 } // export function
 
-export function ref_compare(x: FQL_Doc, y: FQL_Doc) {
-  return deepEqual(x.ref, y.ref);
+export function new_ref(d: New_Doc) {
+  switch (d.coll) {
+    case "Index": { return Index(d.doc.name); }
+    case "Role": { return Role(d.doc.name); }
+    case "Collection": { return Collection(d.doc.name); }
+    case "Fn": { return Fn(d.doc.name); }
+    default: {
+    }
+  } // switch
 } // export function
 
-export function doc_compare(old_doc: FQL_Doc, new_doc: FQL_Doc): boolean | Expr {
+export function ref_compare(x: Schema_Doc, y: New_Doc) {
+  return deepEqual(x.ref, new_ref(y));
+} // export function
+
+export function doc_compare(old_doc: Schema_Doc, new_doc: New_Doc): boolean | Expr {
   if (!ref_compare(old_doc, new_doc))
     return false;
-  const merged = Object.assign({}, old_doc, new_doc);
+  const merged = Object.assign({}, old_doc, new_doc.doc);
   if (deepEqual(merged, old_doc))
     return true;
 
-  const ref = new_doc.ref;
-  const new_new = Object.assign({}, new_doc);
-  delete new_new.ref
+  const ref = old_doc.ref;
+  const new_new = Object.assign({}, new_doc.doc);
+
   return Update(ref, new_new);
 } // export function
 
-export function diff(f_old: Schema, f_new: Schema) {
+export function diff(f_old: Schema, f_new: New_Schema) {
   const fin: Expr[] = [];
 
   for (let i = 0; i < f_new.length; i++) {
@@ -470,7 +531,7 @@ export function diff(f_old: Schema, f_new: Schema) {
 
   for (const old_doc of f_old) {
     const new_doc = f_new.find(
-      (n: FQL_Doc) => ref_compare(n, old_doc)
+      (n: New_Doc) => ref_compare(old_doc, n)
     );
 
     if (!new_doc) {

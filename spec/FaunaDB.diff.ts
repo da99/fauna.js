@@ -3,12 +3,13 @@ import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 import {deepEqual} from "https://deno.land/x/cotton@v0.7.3/src/utils/deepequal.ts";
 import {
   diff, doc_compare,
-//   drop_schema, diff,schema, query,
   CreateCollection, Collection, Update, Delete
-//   If, Exists,
-//   delete_if_exists, collection_names
 } from "../src/FaunaDB.ts";
-// import type {Expr} from "../src/FaunaDB.ts";
+import type {
+  Collection_Record,
+  New_Collection,
+  New_Doc
+} from "../src/FaunaDB.ts";
 
 function must_equal(x: any, y: any) {
   if (deepEqual(x, y))
@@ -16,7 +17,7 @@ function must_equal(x: any, y: any) {
   return assertEquals(x,y);
 }
 
-function old_collection(s: string) {
+function old_collection(s: string): Collection_Record {
   return {
     ref: Collection(s),
     ts: 1644689714440000,
@@ -25,11 +26,13 @@ function old_collection(s: string) {
   };
 }
 
-function new_collection(s: string) {
+function new_collection(s: string): New_Doc {
   return {
-    ref: Collection(s),
-    name: s,
-    history_days: 0,
+    coll: "Collection",
+    doc: {
+      name: s,
+      history_days: 0,
+    }
   };
 }
 
@@ -75,7 +78,7 @@ it("returns documents that need to be updated", function () {
 
   const new_k = new_collection("kittens");
   const new_p = new_collection("puppies");
-  new_p.history_days = 1;
+  (new_p.doc as New_Collection).history_days = 1;
 
   const actual = diff([kittens, puppies], [new_k, new_p]);
   const expected = [

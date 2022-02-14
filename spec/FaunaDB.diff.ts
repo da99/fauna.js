@@ -8,7 +8,7 @@ import {
 import type {
   Collection_Record,
   New_Collection,
-  New_Doc
+  Collection_Spec
 } from "../src/FaunaDB.ts";
 
 function must_equal(x: any, y: any) {
@@ -26,7 +26,7 @@ function old_collection(s: string): Collection_Record {
   };
 }
 
-function new_collection(s: string): New_Doc {
+function new_collection(s: string): Collection_Spec {
   return {
     coll: "Collection",
     doc: {
@@ -65,6 +65,7 @@ it("returns which documents need to be created", function () {
 it("skips documents that are a subset of existing documents", function () {
   const kittens = old_collection("kittens");
   const puppies = old_collection("puppies");
+
   const new_coll1 = new_collection("puppies");
   const new_coll2 = new_collection("kittens");
 
@@ -78,7 +79,7 @@ it("returns documents that need to be updated", function () {
 
   const new_k = new_collection("kittens");
   const new_p = new_collection("puppies");
-  (new_p.doc as New_Collection).history_days = 1;
+  new_p.doc.history_days = 1;
 
   const actual = diff([kittens, puppies], [new_k, new_p]);
   const expected = [

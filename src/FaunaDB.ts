@@ -20,18 +20,19 @@ export type Expr = {
 
 export type Schema_Doc            = Fn_Record | Index_Record | Role_Record | Collection_Record;
 export type Schema                = Array<Schema_Doc>;
-export type New_Schema            = Array<New_Doc>;
+export type New_Schema            = Array<New_Spec>;
 export type Schema_Ref_Collection = "Collection" | "Role" | "Index" | "Fn";
-export type New_Doc = {
-  coll: "Collection"; doc: New_Collection;
-} | {
-  coll: "Role", doc: New_Role
-} | {
-  coll: "Index", doc: New_Index
-} | {
-  coll: "Fn", doc: New_Fn
-};
+export type New_Spec = 
+  Collection_Spec |
+  Role_Spec |
+  Index_Spec |
+  Fn_Spec;
 
+export type New_Doc = 
+  New_Collection |
+  New_Role |
+  New_Index |
+  New_Fn;
 
 interface Client_Options {
   secret?: string,
@@ -67,7 +68,12 @@ interface Schema_Ref<T extends Schema_Ref_Collection> {
   id: string
 } // interface
 
-interface New_Index {
+export interface Index_Spec {
+  coll: "Index";
+  doc: New_Index;
+} // interface
+
+export interface New_Index {
   name: string;
   source: Expr;
   terms: Array<Index_Term>;
@@ -80,6 +86,11 @@ export interface Index_Record extends New_Index {
   ts: number;
 } // interface
 
+export interface Role_Spec {
+  coll: "Role";
+  doc: New_Role;
+} // interface
+
 export interface New_Role {
   name: string;
   privileges: Array<Privilege>;
@@ -90,6 +101,11 @@ export interface Role_Record extends New_Role {
   ts: number;
 } // interface
 
+export interface Collection_Spec {
+  coll: "Collection";
+  doc: New_Collection;
+} // interface
+
 export interface New_Collection {
   name: string;
   history_days?: number;
@@ -98,6 +114,11 @@ export interface New_Collection {
 export interface Collection_Record extends New_Collection {
   ref: Schema_Ref<"Collection">;
   ts: number;
+} // interface
+
+export interface Fn_Spec {
+  coll: "Fn";
+  doc: New_Fn;
 } // interface
 
 export interface New_Fn {
@@ -126,7 +147,6 @@ export const ContainsValue = create_expr("ContainsValue");
 export const Count = create_expr("Count");
 export const Create = create_expr("Create");
 export const CurrentIdentity = create_expr("CurrentIdentity");
-export const Delete = create_expr("Delete");
 export const Difference = create_expr("Difference");
 export const Distinct = create_expr("Distinct");
 export const Divide = create_expr("Divide");
@@ -224,7 +244,6 @@ export const ToTime = create_expr("ToTime");
 export const Trim = create_expr("Trim");
 export const Trunc = create_expr("Trunc");
 export const Union = create_expr("Union");
-export const Update = create_expr("Update");
 export const UpperCase = create_expr("UpperCase");
 export const Var = create_expr("Var");
 
@@ -232,6 +251,17 @@ export const Collection = create_schema_ref("Collection");
 export const Fn         = create_schema_ref("Fn");
 export const Index      = create_schema_ref("Index");
 export const Role       = create_schema_ref("Role");
+
+export const Delete = create_expr_ref("Delete");
+export const Update = function (id: Schema_Ref<any>, doc: New_Doc): Expr {
+  return {
+    name: "Update",
+    args: [id, doc],
+    [Symbol.for("Deno.customInspect")](): string {
+      return `Update(${[id, doc].map((x: any) => inspect(x)).join(', ')})`;
+    }
+  };
+};
 
 export function create_schema_ref<T extends Schema_Ref_Collection>(name: T) {
   return (id: string): Schema_Ref<T> => {
@@ -252,6 +282,18 @@ export function create_expr(name: string) {
       args: args,
       [Symbol.for("Deno.customInspect")](): string {
         return `${name}(${args.map((x: any) => inspect(x)).join(', ')})`;
+      }
+    };
+  };
+} // function
+
+export function create_expr_ref(name: string) {
+  return (r: Schema_Ref<any> | Expr) : Expr => {
+    return {
+      name: name,
+      args: [r],
+      [Symbol.for("Deno.customInspect")](): string {
+        return `${name}(${[r].map((x: any) => inspect(x)).join(', ')})`;
       }
     };
   };
@@ -448,7 +490,7 @@ export function select_keys(keys: string[], x: Expr) {
   return o;
 } // export function
 
-export function create_doc(doc: New_Doc): Expr {
+export function create_doc(doc: New_Spec): Expr {
   const coll_name  = doc.coll;
   const new_values = doc.doc;
 
@@ -471,7 +513,7 @@ export function create_doc(doc: New_Doc): Expr {
   } // swotcj
 } // export function
 
-export function new_ref(d: New_Doc) {
+export function new_ref(d: New_Spec) {
   switch (d.coll) {
     case "Index": { return Index(d.doc.name); }
     case "Role": { return Role(d.doc.name); }
@@ -482,19 +524,19 @@ export function new_ref(d: New_Doc) {
   } // switch
 } // export function
 
-export function ref_compare(x: Schema_Doc, y: New_Doc) {
+export function ref_compare(x: Schema_Doc, y: New_Spec) {
   return deepEqual(x.ref, new_ref(y));
 } // export function
 
-export function doc_compare(old_doc: Schema_Doc, new_doc: New_Doc): boolean | Expr {
-  if (!ref_compare(old_doc, new_doc))
+export function doc_compare(old_doc: Schema_Doc, new_spec: New_Spec): boolean | Expr {
+  if (!ref_compare(old_doc, new_spec))
     return false;
-  const merged = Object.assign({}, old_doc, new_doc.doc);
+  const merged = Object.assign({}, old_doc, new_spec.doc);
   if (deepEqual(merged, old_doc))
     return true;
 
   const ref = old_doc.ref;
-  const new_new = Object.assign({}, new_doc.doc);
+  const new_new = Object.assign({}, new_spec.doc);
 
   return Update(ref, new_new);
 } // export function
@@ -531,7 +573,7 @@ export function diff(f_old: Schema, f_new: New_Schema) {
 
   for (const old_doc of f_old) {
     const new_doc = f_new.find(
-      (n: New_Doc) => ref_compare(old_doc, n)
+      (n: New_Spec) => ref_compare(old_doc, n)
     );
 
     if (!new_doc) {

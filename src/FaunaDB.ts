@@ -111,7 +111,6 @@ export interface Fn_Spec {
 } // interface
 
 export interface New_Fn {
-  ref: Schema_Ref<"Fn">;
   name: string;
   body: Expr;
 } // interface

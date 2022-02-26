@@ -6,8 +6,8 @@ import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 import {
   drop_schema, diff,schema, query,
   Select, CreateCollection, Collection, Collections,
-  Do,
-  If, Exists,
+  CreateFunction, Lambda,
+  Do, If, Exists, Query, Fn,
   delete_if_exists, collection_names
 } from "../src/FaunaDB.ts";
 
@@ -51,7 +51,7 @@ it("executes the query", async function () {
   daEquals(actual, expected);
 }); // it async
 
-it("executes the commands from a diff(...)", async function () {
+it("executes the Create/Delete Collection commands from a diff(...)", async function () {
   const name1 = random_name("dogs");
   const name2 = random_name("cats");
   await query(options, drop_schema());
@@ -85,6 +85,25 @@ it("retrieves schema from database", async () => {
       history_days: doc.history_days,
     };
     const expected = [ standard_doc ];
+    const actual   = await query(options, schema());
+
+    daEquals(actual.map(remove("ts")), expected);
+}); // it async
+
+it("converts Function refs to Function(..) format", async function () {
+    await query(options, drop_schema());
+    const name = random_name("helloF");
+    const doc  = {
+      name,
+      body: Query(
+        Lambda(
+          "_",
+          Select(1, [0,1,2])
+        )
+      )
+    };
+    await query( options, CreateFunction(doc));
+    const expected = [ {...doc, ref: Fn(name)} ];
     const actual   = await query(options, schema());
 
     daEquals(actual.map(remove("ts")), expected);

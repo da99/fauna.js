@@ -97,3 +97,12 @@ it("returns documents that need to be deleted", function () {
   daEquals(actual, expected);
 }); // it function
 
+// it("returns Function documents that need to be created/updated/deleted", function () {
+//   const old_schema = {
+//     ref: Ref(Ref("functions"), "hello1"),
+//     ts: 1645871589530000,
+//     name: "hello1",
+//     body: Query(Lambda("x", Add(Var("x"), Var("x"))))
+//   };
+// }); // it function
+

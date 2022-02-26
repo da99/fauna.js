@@ -1,11 +1,11 @@
 
-/.shards/
 /shard.lock
+/.shards/
 /.crystal/
 
 /node_modules/
-/tmp/
 /package-lock.json
 
-/hello
+/tmp/
+
 

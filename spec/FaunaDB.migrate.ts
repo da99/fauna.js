@@ -6,11 +6,12 @@ import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 import {
   drop_schema, diff,schema, query,
   Select, CreateCollection, Collection, Collections,
+  Do,
   If, Exists,
   delete_if_exists, collection_names
 } from "../src/FaunaDB.ts";
 
-import type {Expr} from "../src/FaunaDB.ts";
+import type {Schema, Schema_Doc, Expr, Collection_Record} from "../src/FaunaDB.ts";
 
 // # =============================================================================
 // # === Helpers: ================================================================
@@ -31,6 +32,16 @@ function remove(k: string) {
   };
 } // function
 
+function standardize_schema(x: Schema) {
+  return x.map((s: Schema_Doc) => {
+    if (s.ref && s.ref.name === "Collection") {
+      const doc = s as Collection_Record;
+      return {"name": doc.name, "history_days": doc.history_days};
+    }
+    return s;
+  });
+} // function
+
 // # =============================================================================
 describe("query(...)");
 
@@ -38,6 +49,24 @@ it("executes the query", async function () {
   const expected = "c";
   const actual   = await query(options, Select(2, "a b c d e f".split(' ')));
   daEquals(actual, expected);
+}); // it async
+
+it("executes the commands from a diff(...)", async function () {
+  const name1 = random_name("dogs");
+  const name2 = random_name("cats");
+  await query(options, drop_schema());
+  await query(options,
+    CreateCollection({name: name1})
+  );
+  const old_schema = await query(options, schema());
+  const changes = diff(old_schema, [{"Collection": {name: name2, history_days: 1}}]);
+  await query(options, Do(changes));
+  const new_schema = await query(options, schema());
+  const expected = [
+    {name: name2, history_days: 1}
+  ];
+  daEquals(expected, standardize_schema(new_schema));
+  
 }); // it async
 
 // # =============================================================================
@@ -70,6 +99,7 @@ it("drops from the database: collections, roles, indexes, functions", async func
   const actual = await query(options, schema());
   daEquals(actual, []);
 }); // it async
+
 
 
 

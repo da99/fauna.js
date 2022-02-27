@@ -125,7 +125,7 @@ it("returns Functions that need to be updated", function () {
   daEquals(diff([f], [new_f]), expected);
 }); // it function
 
-it("returns documents that need to be deleted", function () {
+it("returns the Collections that need to be deleted", function () {
   const kittens = old_collection("kittens");
   const puppies = old_collection("puppies");
 
@@ -136,6 +136,22 @@ it("returns documents that need to be deleted", function () {
   ];
   daEquals(actual, expected);
 }); // it function
+
+it("returns the Functions that need to be deleted", function () {
+  const f = {
+    ref: Fn("hello1"),
+    ts: 1645953999190000,
+    name: "hello1",
+    body: Query(Lambda("_", Select(1, [0, 1, 2])))
+  };
+
+  const actual = diff([f], []);
+  const expected = [
+    Delete(Fn("hello1")),
+  ];
+  daEquals(actual, expected);
+}); // it function
+
 
 // it("returns Function documents that need to be created/updated/deleted", function () {
 //   const old_schema = {

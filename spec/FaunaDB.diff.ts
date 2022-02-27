@@ -3,8 +3,9 @@ import { daEquals } from "./_.helper.ts";
 
 import {
   diff, doc_compare,
-  Collection, Ref,
-  Create, Update, Delete
+  Collection, Ref, Fn,
+  Query, Lambda, Select,
+  Create, Update, Delete,
 } from "../src/FaunaDB.ts";
 
 import type {
@@ -44,7 +45,7 @@ it("returns false if old document has the same values as new doc.", function () 
 // # =============================================================================
 describe("diff(x, y)");
 
-it("returns which documents need to be created", function () {
+it("returns the Collections that need to be created", function () {
   const kittens = old_collection("kittens");
   const puppies = new_collection("puppies");
   const new_k = new_collection("kittens");
@@ -52,6 +53,27 @@ it("returns which documents need to be created", function () {
   const actual = diff([kittens], [new_k, puppies]);
   const expected = [
     Create(Ref("collections"), {name: "puppies", history_days: 0})
+  ];
+
+  daEquals(actual, expected);
+}); // it function
+
+it("returns the Functions that need to be created", function () {
+  const old_f = {
+    ref: Fn("hello1"),
+    ts: 1645953999190000,
+    name: "hello3",
+    body: Query(Lambda("_", Select(1, [0, 1, 2])))
+  };
+
+  const new_f = {
+    ref: Fn("hello2"),
+    body: Query(Lambda("_", Select(1, [0, 1, 2])))
+  };
+
+  const actual = diff([old_f], [old_f, new_f]);
+  const expected = [
+    Create(Ref("functions"), {name: new_f.ref.id, body: new_f.body})
   ];
 
   daEquals(actual, expected);
@@ -68,7 +90,7 @@ it("skips documents that are a subset of existing documents", function () {
   daEquals(actual, []);
 }); // it function
 
-it("returns documents that need to be updated", function () {
+it("returns Collections that need to be updated", function () {
   const kittens = old_collection("kittens");
   const puppies = old_collection("puppies");
 
@@ -82,6 +104,25 @@ it("returns documents that need to be updated", function () {
   ];
 
   daEquals(actual, expected);
+}); // it function
+
+it("returns Functions that need to be updated", function () {
+  const f = {
+    ref: Fn("hello1"),
+    ts: 1645953999190000,
+    name: "hello1",
+    body: Query(Lambda("_", Select(1, [0, 1, 2])))
+  };
+  const new_f = {
+    ref: f.ref,
+    body: Query(Lambda("_", Select(2, [0, 1, 2])))
+  };
+  const expected = [
+    Update(new_f.ref, {
+      body: new_f.body
+    })
+  ];
+  daEquals(diff([f], [new_f]), expected);
 }); // it function
 
 it("returns documents that need to be deleted", function () {

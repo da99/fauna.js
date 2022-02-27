@@ -61,7 +61,7 @@ interface Schema_Ref<T extends Schema_Ref_Collection> {
 export interface Index_Doc {
   ref: Schema_Ref<"Index">;
   ts?: number;
-  name: string;
+  name?: string;
   source: Expr;
   terms: Array<Index_Term>;
   values?: Array<Index_Value>;
@@ -73,7 +73,7 @@ export type New_Index = Omit<Index_Doc, "ref">;
 export interface Role_Doc {
   ref: Schema_Ref<"Role">;
   ts?: number;
-  name: string;
+  name?: string;
   privileges: Array<Privilege>;
 } // interface
 
@@ -82,7 +82,7 @@ export type New_Role = Omit<Role_Doc, "ref">;
 export interface Collection_Doc {
   ref: Schema_Ref<"Collection">
   ts?: number;
-  name: string;
+  name?: string;
   history_days?: number;
 } // interface
 
@@ -91,7 +91,7 @@ export type New_Collection = Omit<Collection_Doc, "ref">;
 export interface Fn_Doc {
   ref: Schema_Ref<"Fn">;
   ts?: number;
-  name: string;
+  name?: string;
   body: Expr;
 } // interface
 
@@ -460,6 +460,7 @@ export function create_doc(doc: Schema_Doc): Expr {
   const ref = doc.ref;
   const new_doc = Object.assign({}, doc) as any;
   delete new_doc.ref;
+  new_doc.name = new_doc.name || ref.id;
   return Create(ref.collection, new_doc);
 } // export function
 

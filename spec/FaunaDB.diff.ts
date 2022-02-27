@@ -152,13 +152,19 @@ it("returns the Functions that need to be deleted", function () {
   daEquals(actual, expected);
 }); // it function
 
+it("returns an empty array if nothing needs to be updated", function () {
+  const f = {
+    ref: Fn("hello1"),
+    ts: 1645953999190000,
+    name: "hello1",
+    body: Query(Lambda("_", Select(1, [0, 1, 2])))
+  };
+  const c = {
+    ref: Collection("kittens"),
+    history_days: 1
+  };
 
-// it("returns Function documents that need to be created/updated/deleted", function () {
-//   const old_schema = {
-//     ref: Ref(Ref("functions"), "hello1"),
-//     ts: 1645871589530000,
-//     name: "hello1",
-//     body: Query(Lambda("x", Add(Var("x"), Var("x"))))
-//   };
-// }); // it function
+  const actual = diff([f, c], [{ref: f.ref, body: f.body}, {ref: c.ref, history_days: c.history_days}]);
+  daEquals(actual.length, 0);
+}); // it function
 

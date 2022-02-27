@@ -3,17 +3,17 @@ import { daEquals } from "./_.helper.ts";
 
 import {
   diff, doc_compare,
-  CreateCollection, Collection, Update, Delete
+  Collection, Ref,
+  Create, Update, Delete
 } from "../src/FaunaDB.ts";
 
 import type {
-  Collection_Record,
+  Collection_Doc,
   New_Collection,
-  Collection_Spec
 } from "../src/FaunaDB.ts";
 
 
-function old_collection(s: string): Collection_Record {
+function old_collection(s: string): Collection_Doc {
   return {
     ref: Collection(s),
     ts: 1644689714440000,
@@ -22,12 +22,11 @@ function old_collection(s: string): Collection_Record {
   };
 }
 
-function new_collection(s: string): Collection_Spec {
+function new_collection(s: string): Collection_Doc {
   return {
-    "Collection": {
-      name: s,
-      history_days: 0,
-    }
+    ref: Collection(s),
+    name: s,
+    history_days: 0,
   };
 }
 
@@ -52,7 +51,7 @@ it("returns which documents need to be created", function () {
 
   const actual = diff([kittens], [new_k, puppies]);
   const expected = [
-    CreateCollection({name: "puppies", history_days: 0})
+    Create(Ref("collections"), {name: "puppies", history_days: 0})
   ];
 
   daEquals(actual, expected);
@@ -75,7 +74,7 @@ it("returns documents that need to be updated", function () {
 
   const new_k = new_collection("kittens");
   const new_p = new_collection("puppies");
-  new_p.Collection.history_days = 1;
+  new_p.history_days = 1;
 
   const actual = diff([kittens, puppies], [new_k, new_p]);
   const expected = [

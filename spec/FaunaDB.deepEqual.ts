@@ -2,7 +2,7 @@ import { describe, it } from "../src/Spec.ts";
 import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 import {deepEqual} from "https://deno.land/x/cotton@v0.7.3/src/utils/deepequal.ts";
 import {
-  Role
+  Role, Ref
 } from "../src/FaunaDB.ts";
 
 
@@ -35,7 +35,7 @@ it("returns false if two FQL objects are different", () => {
 
 it("returns true if a Record has the same values of a Expr", function () {
   const e = Role("123");
-  const r = {name: "Role", id: "123"};
+  const r = {name: "Role", collection: Ref("roles"), id: "123"};
   assertEquals(deepEqual(e, r), true);
 }); // it function
 

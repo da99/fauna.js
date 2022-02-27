@@ -5,13 +5,13 @@ import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 
 import {
   drop_schema, diff,schema, query,
-  Select, CreateCollection, Collection, Collections,
-  CreateFunction, Lambda,
+  Select, CreateCollection, CreateFunction, Collection, Collections,
+  Lambda,
   Do, If, Exists, Query, Fn,
   delete_if_exists, collection_names
 } from "../src/FaunaDB.ts";
 
-import type {Schema, Schema_Doc, Expr, Collection_Record} from "../src/FaunaDB.ts";
+import type {Schema, Schema_Doc, Expr, Collection_Doc} from "../src/FaunaDB.ts";
 
 // # =============================================================================
 // # === Helpers: ================================================================
@@ -35,7 +35,7 @@ function remove(k: string) {
 function standardize_schema(x: Schema) {
   return x.map((s: Schema_Doc) => {
     if (s.ref && s.ref.name === "Collection") {
-      const doc = s as Collection_Record;
+      const doc = s as Collection_Doc;
       return {"name": doc.name, "history_days": doc.history_days};
     }
     return s;
@@ -59,7 +59,7 @@ it("executes the Create/Delete Collection commands from a diff(...)", async func
     CreateCollection({name: name1})
   );
   const old_schema = await query(options, schema());
-  const changes = diff(old_schema, [{"Collection": {name: name2, history_days: 1}}]);
+  const changes = diff(old_schema, [{ref: Collection(name2), name: name2, history_days: 1}]);
   await query(options, Do(changes));
   const new_schema = await query(options, schema());
   const expected = [

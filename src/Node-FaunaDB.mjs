@@ -54,7 +54,7 @@ const DEFAULT_OPTIONS = {
   port:      443,
   scheme:    "https",
   keepAlive: false,
-  timeout:   5,
+  timeout:   8,
   domain:    "db.us.fauna.com"
 };
 

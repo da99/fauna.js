@@ -26,7 +26,7 @@ const Ref_Types = {
 
 export type Schema_Doc = Collection_Doc | Index_Doc | Fn_Doc | Role_Doc ;
 export type Schema     = Array<Schema_Doc>;
-export type New_Doc    = Omit<Schema_Doc, "name">;
+export type New_Doc    = Omit<Collection_Doc, "name"> | Omit<Index_Doc, "name"> | Omit<Fn_Doc, "name"> | Omit<Role_Doc, "name">;
 export type New_Schema = Array<New_Doc>;
 
 interface Client_Options {
@@ -220,20 +220,20 @@ export const Role       = create_schema_ref("Role", "roles");
 
 export const Delete = create_expr("Delete");
 
-export const Create = function (id: Expr, doc: Partial<Schema_Doc>): Expr {
-  return create_expr_with_args("Update", [id, doc]);
-};
+export function Create(id: Expr, doc: Partial<Schema_Doc>): Expr {
+  return create_expr_with_args("Create", [id, doc]);
+}
 
-export const Update = function (id: Schema_Ref<any, any>, doc: Partial<Schema_Doc>): Expr {
+export function Update(id: Schema_Ref<any, any>, doc: Partial<Schema_Doc>): Expr {
   return create_expr_with_args("Update", [id, doc]);
-};
+}
 
 export function create_schema_ref<K extends keyof typeof Ref_Types, V extends typeof Ref_Types[K]>(name: K, collection: V) {
   return (id: string): Schema_Ref<K, V> => {
     return {
       name, collection, id,
       [Symbol.for("Deno.customInspect")](): string {
-        return `${name}(${raw_inspect([Ref(collection), id])})`;
+        return `${name}(${raw_inspect(id)})`;
       }
     };
   };
@@ -344,6 +344,9 @@ export function concat_data(...args: Expr[]) {
 } // export function
 
 export function drop(x: Expr) {
+  if (!Deno.env.get("IS_TEST")) {
+    throw new Error("drop(...) can only be used in IS_TEST environments.");
+  }
   return Map(
     Paginate(x),
     Lambda("x", Delete(Var("x")))

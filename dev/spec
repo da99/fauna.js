@@ -7,9 +7,9 @@ mkdir -p tmp/spec
 
 source $HOME/secrets/fauna.miniuni_dev_key.sh
 
-deno run \
+IS_TEST="yes" deno run \
   --allow-run=node,uptime \
-  --allow-env="NO_COLOR,FAUNA_SECRET_TEST_A,FAUNA_SECRET_TEST_B" \
+  --allow-env="IS_TEST,NO_COLOR,FAUNA_SECRET_TEST_A,FAUNA_SECRET_TEST_B" \
   --allow-net=deno.land,raw.githubusercontent.com \
   --allow-read="./,tmp/spec" \
   --allow-write="tmp/spec" \

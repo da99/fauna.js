@@ -59,7 +59,7 @@ it("executes the Create/Delete Collection commands from a diff(...)", async func
     CreateCollection({name: name1})
   );
   const old_schema = await query(options, schema());
-  const changes = diff(old_schema, [{ref: Collection(name2), name: name2, history_days: 1}]);
+  const changes = diff(old_schema, [{ref: Collection(name2), history_days: 1}]);
   await query(options, Do(changes));
   const new_schema = await query(options, schema());
   const expected = [

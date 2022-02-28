@@ -17,16 +17,70 @@ export type Expr = {
   // [Deno.customInspect](): string;
 } // class
 
-export type Schema_Ref_Collection = "Collection" | "Index" | "Fn" | "Role" ;
+const Ref_Types = {
+  "Collection": "collections",
+  "Role": "roles",
+  "Index": "indexes",
+  "Fn": "functions"
+};
 
 export type Schema_Doc = Collection_Doc | Index_Doc | Fn_Doc | Role_Doc ;
 export type Schema     = Array<Schema_Doc>;
-export type New_Doc    = New_Collection | New_Index | New_Fn | New_Role;
+export type New_Doc    = Omit<Schema_Doc, "name">;
+export type New_Schema = Array<New_Doc>;
 
 interface Client_Options {
   secret?: string,
   domain?: string,
 }
+
+export interface Schema_Ref<T extends keyof typeof Ref_Types, P extends typeof Ref_Types[T]> {
+  name: T;
+  collection: P;
+  id: string
+} // interface
+
+export interface Collection_Doc {
+  ref: Schema_Ref<"Collection", "collections">;
+  ts?: number;
+  name: string;
+  history_days?: number;
+} // interface
+
+export interface Fn_Doc {
+  ref: Schema_Ref<"Fn", "functions">;
+  ts?: number;
+  name: string;
+  body: Expr;
+} // interface
+
+export interface Index_Doc {
+  ref: Schema_Ref<"Index", "indexes">;
+  ts?: number;
+  name: string;
+  source: Expr;
+  terms: Array<Index_Term>;
+  values?: Array<Index_Value>;
+  unique: boolean;
+} // interface
+
+interface Index_Term {
+  field?: string[] | string,
+  binding?: string
+} // interface
+
+interface Index_Value {
+  field? : string[],
+  binding: string,
+  reverse: boolean
+} // interface
+
+export interface Role_Doc {
+  ref: Schema_Ref<"Role", "roles">;
+  ts?: number;
+  name: string;
+  privileges: Array<Privilege>;
+} // interface
 
 type Privilege = {
   resource: Expr,
@@ -41,62 +95,6 @@ type Privilege = {
   }
 } // type
 
-interface Index_Term {
-  field?: string[] | string,
-  binding?: string
-} // interface
-
-interface Index_Value {
-  field? : string[],
-  binding: string,
-  reverse: boolean
-} // interface
-
-interface Schema_Ref<T extends Schema_Ref_Collection> {
-  name: T;
-  collection: Expr;
-  id: string;
-} // interface
-
-export interface Index_Doc {
-  ref: Schema_Ref<"Index">;
-  ts?: number;
-  name?: string;
-  source: Expr;
-  terms: Array<Index_Term>;
-  values?: Array<Index_Value>;
-  unique: boolean;
-} // interface
-
-export type New_Index = Omit<Index_Doc, "ref">;
-
-export interface Role_Doc {
-  ref: Schema_Ref<"Role">;
-  ts?: number;
-  name?: string;
-  privileges: Array<Privilege>;
-} // interface
-
-export type New_Role = Omit<Role_Doc, "ref">;
-
-export interface Collection_Doc {
-  ref: Schema_Ref<"Collection">
-  ts?: number;
-  name?: string;
-  history_days?: number;
-} // interface
-
-export type New_Collection = Omit<Collection_Doc, "ref">;
-
-export interface Fn_Doc {
-  ref: Schema_Ref<"Fn">;
-  ts?: number;
-  name?: string;
-  body: Expr;
-} // interface
-
-export type New_Fn = Omit<Fn_Doc, "ref">;
-
 // start macro: create_expr
 export const Add              = create_expr("Add");
 export const Append           = create_expr("Append");
@@ -110,7 +108,6 @@ export const ContainsStr      = create_expr("ContainsStr");
 export const ContainsStrRegex = create_expr("ContainsStrRegex");
 export const ContainsValue    = create_expr("ContainsValue");
 export const Count            = create_expr("Count");
-export const Create           = create_expr("Create");
 export const CreateCollection = create_expr("CreateCollection");
 export const CreateFunction   = create_expr("CreateFunction");
 export const CreateRole       = create_expr("CreateRole");
@@ -216,33 +213,27 @@ export const Union            = create_expr("Union");
 export const UpperCase        = create_expr("UpperCase");
 export const Var              = create_expr("Var");
 
-export const Collection = create_schema_ref("Collection");
-export const Fn         = create_schema_ref("Fn");
-export const Index      = create_schema_ref("Index");
-export const Role       = create_schema_ref("Role");
+export const Collection = create_schema_ref("Collection", "collections");
+export const Fn         = create_schema_ref("Fn", "functions");
+export const Index      = create_schema_ref("Index", "indexes");
+export const Role       = create_schema_ref("Role", "roles");
 
 export const Delete = create_expr("Delete");
 
-export const Update = function (id: Schema_Ref<Schema_Ref_Collection>, doc: New_Doc): Expr {
+export const Create = function (id: Expr, doc: Partial<Schema_Doc>): Expr {
   return create_expr_with_args("Update", [id, doc]);
 };
 
-export function pluralize(name: string): string {
-  switch (name) {
-    case "index": { return "indexes"; }
-    case "fn": { return "functions"; }
-  } // switch
-  return `${name}s`;
-} // function
+export const Update = function (id: Schema_Ref<any, any>, doc: Partial<Schema_Doc>): Expr {
+  return create_expr_with_args("Update", [id, doc]);
+};
 
-export function create_schema_ref<T extends Schema_Ref_Collection>(name: T) {
-  return (id: string): Schema_Ref<T> => {
+export function create_schema_ref<K extends keyof typeof Ref_Types, V extends typeof Ref_Types[K]>(name: K, collection: V) {
+  return (id: string): Schema_Ref<K, V> => {
     return {
-      name: name,
-      collection: Ref(pluralize(name.toLowerCase())),
-      id: id,
+      name, collection, id,
       [Symbol.for("Deno.customInspect")](): string {
-        return `${name}(${raw_inspect(id)})`;
+        return `${name}(${raw_inspect([Ref(collection), id])})`;
       }
     };
   };
@@ -264,21 +255,6 @@ export function create_expr_with_args(name: string, args: any[]) {
   };
 } // function
 
-// export function CreateIndex(i: New_Index): Expr {
-//   return create_expr("CreateIndex")(i);
-// } // export function
-
-// export function CreateFunction(f: New_Fn): Expr {
-//   return create_expr("CreateFunction")(f);
-// } // export function
-
-// export function CreateCollection(coll: New_Collection): Expr {
-//   return create_expr("CreateCollection")(coll);
-// } // export function
-
-// export function CreateRole(role: New_Role) : Expr {
-//   return create_expr("CreateRole")(role);
-// } // function
 
 // # =============================================================================
 // # === Node Process Functions ==================================================
@@ -456,19 +432,19 @@ export function select_keys(keys: string[], x: Expr) {
   return o;
 } // export function
 
-export function create_doc(doc: Schema_Doc): Expr {
+export function create_doc(doc: New_Doc): Expr {
   const ref = doc.ref;
-  const new_doc = Object.assign({}, doc) as any;
+  const new_doc = Object.assign({}, doc) as Partial<Schema_Doc>;
   delete new_doc.ref;
-  new_doc.name = new_doc.name || ref.id;
-  return Create(ref.collection, new_doc);
+  new_doc.name = ref.id;
+  return Create(Ref(ref.collection), new_doc);
 } // export function
 
-export function ref_compare(x: Schema_Doc, y: Schema_Doc) {
+export function ref_compare(x: Schema_Doc, y: New_Doc) {
   return deepEqual(x.ref, y.ref);
 } // export function
 
-export function doc_compare(old_doc: Schema_Doc, new_doc: Schema_Doc): boolean | Expr {
+export function doc_compare(old_doc: Schema_Doc, new_doc: New_Doc): boolean | Expr {
   if (!ref_compare(old_doc, new_doc))
     return false;
   const merged = Object.assign({}, old_doc, new_doc);
@@ -476,7 +452,7 @@ export function doc_compare(old_doc: Schema_Doc, new_doc: Schema_Doc): boolean |
   if (deepEqual(merged, old_doc))
     return true;
 
-  const update_doc = Object.assign({}, new_doc) as any;
+  const update_doc = Object.assign({}, new_doc) as Partial<Schema_Doc>;
   delete update_doc.ref;
   return Update(
     old_doc.ref,
@@ -484,7 +460,7 @@ export function doc_compare(old_doc: Schema_Doc, new_doc: Schema_Doc): boolean |
   );
 } // export function
 
-export function diff(f_old: Schema, f_new: Schema) {
+export function diff(f_old: Schema, f_new: New_Schema) {
   const fin: Expr[] = [];
 
   for (let i = 0; i < f_new.length; i++) {
@@ -516,7 +492,7 @@ export function diff(f_old: Schema, f_new: Schema) {
 
   for (const old_doc of f_old) {
     const new_doc = f_new.find(
-      (n: Schema_Doc) => ref_compare(old_doc, n)
+      (n: New_Doc) => ref_compare(old_doc, n)
     );
 
     if (!new_doc) {

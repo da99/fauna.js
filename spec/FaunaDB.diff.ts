@@ -9,8 +9,7 @@ import {
 } from "../src/FaunaDB.ts";
 
 import type {
-  Collection_Doc,
-  New_Collection,
+  Collection_Doc, Fn_Doc
 } from "../src/FaunaDB.ts";
 
 
@@ -161,10 +160,17 @@ it("returns an empty array if nothing needs to be updated", function () {
   };
   const c = {
     ref: Collection("kittens"),
+    name: "kittens",
     history_days: 1
   };
 
-  const actual = diff([f, c], [{ref: f.ref, body: f.body}, {ref: c.ref, history_days: c.history_days}]);
+  const actual = diff(
+    [f, c],
+    [
+      {ref: f.ref, body: f.body} as Fn_Doc,
+      {ref: c.ref, history_days: c.history_days} as Collection_Doc
+    ]
+  );
   daEquals(actual.length, 0);
 }); // it function
 

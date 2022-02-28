@@ -463,6 +463,36 @@ export function doc_compare(old_doc: Schema_Doc, new_doc: New_Doc): boolean | Ex
   );
 } // export function
 
+export function migrate_doc(d: New_Doc) {
+  const partial = Object.assign({}, d) as Partial<Schema_Doc>;
+  delete partial.ref;
+  partial.name = d.ref.id;
+
+  return If(
+    Exists(d.ref),
+    Update(d.ref, partial),
+    Create(Ref(d.ref.collection), partial),
+  );
+} // export function
+
+export function upsert(new_schema: New_Schema) {
+  return new_schema.map(migrate_doc);
+} // export function
+
+export function prune(old_schema: Schema, new_schema: New_Schema) {
+  const cmds: Expr[] = [];
+  for (const old_doc of old_schema) {
+    const new_doc = new_schema.find(
+      (n: New_Doc) => ref_compare(old_doc, n)
+    );
+
+    if (!new_doc) {
+      cmds.push(Delete(old_doc.ref));
+    } // if
+  } // for
+  return cmds;
+} // export function
+
 export function diff(f_old: Schema, f_new: New_Schema) {
   const fin: Expr[] = [];
 
@@ -505,6 +535,24 @@ export function diff(f_old: Schema, f_new: New_Schema) {
 
   return fin;
 } // export function
+
+export async function migrate(opts: Client_Options, new_schema: New_Schema): Promise<Expr | false> {
+  const old_schema = await query(opts, schema());
+  const new_cache = `${raw_inspect(old_schema)} ${raw_inspect(new_schema)}`;
+  const cache_file = "tmp/schema.js";
+  let old_cache = "";
+  try {
+    old_cache = Deno.readTextFileSync(cache_file);
+  } catch (e) {
+  }
+  if (new_cache !== old_cache) { // run migrate.
+    const results = await query(opts, Do(upsert(new_schema)));
+    Deno.writeTextFileSync(cache_file, new_cache);
+    return results;
+  } else {
+    return false;
+  }
+} // export async function
 
 // CreateRole({
 //   name: "cloudflare_worker_function",

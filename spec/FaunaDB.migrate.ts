@@ -106,7 +106,7 @@ it("converts Function refs to Function(..) format", async function () {
 // }); // it async
 
 // # =============================================================================
-describe("do_upsert(...)");
+describe("upsert(...)");
 
 it("executes new schema", async function () {
   // await query(options, drop_schema());

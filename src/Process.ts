@@ -20,7 +20,8 @@ export async function run_or_throw(x: string | string[]) {
   if (r.status.success) {
     return r
   }
-  throw new Error(`Exit ${r.status.code}: ${string_to_array(x).join(' ')}`);
+  const msgs = [`Exit ${r.status.code}: ${string_to_array(x).join(' ')}`, r.stdout, r.stderr].join("\n").trim();
+  throw new Error(msgs);
 } // export async function
 
 export async function run(arr: string | string[]) {

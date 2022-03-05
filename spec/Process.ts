@@ -45,6 +45,6 @@ it("throws if result is not success", async function () {
   } catch (err) {
     msg = err.message;
   }
-  daEquals(msg, "Exit 1: node 1 2 3");
+  daEquals(msg.match("Exit 1: node 1 2 3"), ["Exit 1: node 1 2 3"]);
 }); // it async
 

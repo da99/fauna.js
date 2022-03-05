@@ -9,26 +9,29 @@ export async function run_or_exit(full_cmd: string) {
   return result;
 } // async function
 
-export async function run(o: Deno.RunOptions) {
-  const default_options: Deno.RunOptions = {
-    cmd: ["exit", "1"],
+export function string_to_array(x: string | string[]) {
+  if (Array.isArray(x))
+    return x;
+  return split_whitespace(x);
+} // export function
+
+export async function run_or_throw(x: string | string[]) {
+  const r = await run(x);
+  if (r.status.success) {
+    return r
+  }
+  throw new Error(`Exit ${r.status.code}: ${string_to_array(x).join(' ')}`);
+} // export async function
+
+export async function run(arr: string | string[]) {
+  const proc = Deno.run({
+    cmd: string_to_array(arr),
     stderr: "piped",
     stdout: "piped"
-  };
-  const final_o = Object.assign({}, default_options, o);
-  const proc = Deno.run(final_o);
-  const result     = await proc.status();
-
-  let s_o: string | null = null;
-  let s_e: string | null = null;
-
-  if (final_o.stdout === "piped") {
-    s_o = new TextDecoder().decode(await proc.output());
-  }
-
-  if (final_o.stderr === "piped") {
-    s_e = new TextDecoder().decode(await proc.stderrOutput());
-  }
+  });
+  const status = await proc.status();
+  const s_o = new TextDecoder().decode(await proc.output());
+  const s_e = new TextDecoder().decode(await proc.stderrOutput());
 
   // NOTE: For some reason, the process is never closed automatically.
   // At this point, we can close it manually since we have all the output
@@ -36,11 +39,11 @@ export async function run(o: Deno.RunOptions) {
   proc.close();
 
   return {
-    result,
-    success: result.success,
-    code:    result.code,
+    status,
+    success: status.success,
+    code:    status.code,
     stdout:  s_o,
-    stderr:   s_e,
+    stderr:  s_e,
     process: proc
   };
 } // export

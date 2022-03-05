@@ -260,17 +260,17 @@ export function create_expr_with_args(name: string, args: any[]) {
 // # === Node Process Functions ==================================================
 // # =============================================================================
 export async function node(...args: string[]) {
-  return await run({
-    cmd: [
+  return await run(
+    [
       "node",
       "src/Node-FaunaDB.mjs",
       ...args
     ]
-  });
+ );
 } // export
 
 export async function inherit_node(...args: string[]) {
-  const result = await run({
+  const result = await Deno.run( {
     cmd: [
       "node",
       "src/Node-FaunaDB.mjs",
@@ -280,7 +280,8 @@ export async function inherit_node(...args: string[]) {
     stdout: "inherit"
   });
 
-  if (!result.success) {
+  const status = await result.status();
+  if (!status.success) {
     throw Error("Failed.");
   }
   return true;
@@ -290,7 +291,7 @@ export async function query(o: Client_Options, raw_body: Expr | Record<string, a
   const options = JSON.stringify(o);
   const body    = raw_inspect(raw_body);
   const cmd     = ["node", "src/Node-FaunaDB.mjs", "query", options, body ];
-  const result  = await run({cmd});
+  const result  = await run(cmd);
 
 
   if (result.success) {

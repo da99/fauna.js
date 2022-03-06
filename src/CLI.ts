@@ -1,8 +1,6 @@
 
 
-
 import * as path from "https://deno.land/std/path/mod.ts";
-import {split_cli_command} from "./String.ts";
 
 // // Colors from: https://stackoverflow.com/questions/9781218/how-to-change-node-jss-console-font-color
 const COLORS = {
@@ -61,29 +59,67 @@ interface Command {
   action: Action;
 } // interface
 
-function arg_match(pattern: Array<Pattern_Element>, user_input: string[]) {
-  if (pattern.length !== user_input.length)
-    return false;
-  const vars: string[] = [];
+/*
+ * 0 = grab any value.
+ */
+export function get_vars(raw_cmd: string, input: string[]) {
+  const pattern = split_cli_command(raw_cmd).map((x: string) => {
+    if (x.indexOf('<') === 0 && x.indexOf('>') === (x.length - 1)) {
+      if (x.indexOf('|') > 1) {
+        return x.substring(1, x.length - 1).split('|').map(x => x.trim());
+      }
+      if (x === "<...args>") {
+        return x;
+      }
+      return 0;
+    }
+    if (x.indexOf('[') === 0 && x.indexOf(']') === (x.length - 1)) {
+      if (x === "[...args]") {
+        return x;
+      }
+      return 0;
+    }
+    return x;
+  }); // pattern
+
+  const vars: Array<string | string[]> = [];
+  const used_inputs: string[] = [];
   const is_a_match = pattern.every((x, i) => {
-    const u = user_input[i];
-    if (x === u ) { return true; }
+    const u = input[i];
+    if (x === u ) { used_inputs.push(u); return true; }
     if (x === 0) {
+      used_inputs.push(u);
       vars.push(u);
       return true;
     }
+    if (x === "<...args>" || x === "[...args]") {
+      const args = input.slice(i);
+      if (x === "<...args>" && args.length === 0) {
+        return false;
+      }
+      used_inputs.push(...args)
+      vars.push(args);
+      return true;
+    }
     if (Array.isArray(x) && x.includes(u)) {
+      used_inputs.push(u)
       vars.push(u);
       return true
     }
   });
+
+  if (used_inputs.length != input.length) {
+    return false;
+  }
+
   if (is_a_match)
     return vars;
+
   return false;
 } // function
 
 let _user_input: string[] = [];
-let _vars: string[] = [];
+let _vars: Array<string | string[]> = [];
 let is_found = false;
 let is_help = false;
 let filename = path.basename(import.meta.url);
@@ -135,25 +171,16 @@ export function print_help(raw_cmd: string) {
   return true;
 } // export
 
-export function match(raw_cmd: string) {
+export function match(pattern: string) {
   if (is_help) {
-    print_help(raw_cmd);
+    print_help(pattern);
   } // if is_help
 
   if (is_found)
     return false;
 
-  const pattern = split_cli_command(raw_cmd).map((x: string) => {
-    if (x.indexOf('<') === 0 && x.indexOf('>') === (x.length - 1)) {
-      if (x.indexOf('|') > 1) {
-        return x.substring(1, x.length - 1).split('|').map(x => x.trim());
-      }
-      return 0;
-    }
-    return x;
-  }); // pattern
+  const new_vars = get_vars(pattern, _user_input);
 
-  const new_vars = arg_match(pattern, _user_input);
   if (new_vars) {
     _vars = new_vars;
     is_found = true;
@@ -168,4 +195,72 @@ export function not_found() {
   console.error(`Command not recognized: ${_user_input.map(x => Deno.inspect(x)).join(" ")}`);
   Deno.exit(1);
 }
+
+export function split_cli_command(raw_s: string) : Array<string> {
+  const s = raw_s.trim().replace(/\s+/g, " ");
+  const words: Array<string> = [];
+  let current_bracket: null | string = null;
+  let current_word: string[] = [];
+  let next_char: undefined | string = "";
+  let last_was_open_bracket = false;
+  let next_is_closing_bracket = false;
+  let last_was_pipe = false;
+  let next_is_pipe = false;
+  let last_c = "";
+
+  let i = -1;
+  let fin = s.length - 1;
+  for (const c of s) {
+    ++i;
+    next_char = s.charAt(i+1);
+    next_is_closing_bracket = next_char === ']' || next_char === '>';
+    next_is_pipe = next_char === '|'
+    switch (c) {
+      case "[":
+      case "<": {
+        current_bracket = c;
+        current_word = [c];
+        break;
+      }
+
+      case ">":
+      case "]": {
+        current_word.push(c);
+        current_bracket = null
+        const new_word = current_word.join("");
+        if (i !== fin && (new_word === "<...args>" || new_word === "[...args]")) {
+          throw new Error(`${new_word} has to be the last element in the pattern: ${s}.`);
+        }
+        words.push(new_word);
+        current_word = [];
+        break;
+      }
+
+      case " ": {
+        if (current_bracket) {
+          if (!last_was_pipe && !next_is_pipe && !last_was_open_bracket && !next_is_closing_bracket && last_c !== c) {
+            current_word.push(c);
+          }
+        } else {
+          if (current_word.length !== 0) {
+            words.push(current_word.join(""));
+            current_word = [];
+          }
+        }
+        break;
+      }
+
+      default:
+        current_word.push(c);
+        if (i === fin) {
+          words.push(current_word.join(""));
+          current_word = [];
+        }
+    } // switch
+    last_c = c;
+    last_was_open_bracket = last_c === '[' || last_c === '<';
+    last_was_pipe = last_c === '|'
+  } // for
+  return words; // .map(x => x.replace(/\s*\|\s*/g, "|"));
+} // function
 

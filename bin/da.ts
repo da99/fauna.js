@@ -5,8 +5,9 @@ THIS_DIR="$(realpath "$( dirname "$(realpath "$0")" )/..")"
 
 # set -x
 
-deno run \
-  --quiet \
-  --allow-read="${THIS_DIR}/,./" \
+DA_DIR="$THIS_DIR" deno run \
+  --quiet                                         \
+  --allow-env="DA_DIR"                            \
+  --allow-read="${THIS_DIR}/,./"                  \
   --allow-write="./,./bin/,./spec/,./src/,./tmp/" \
   "${THIS_DIR}/bin/_da.ts" $@

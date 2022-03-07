@@ -11,9 +11,16 @@ const DEFAULT_CLIENT_VALUES = {
   timeout:   5
 }; // const
 
+export type ExprArg = Partial<Schema_Doc> |
+  string | string[] |
+  number | number[] |
+  boolean |
+  Expr | Expr[] |
+  Record<string, Expr> | null;
+
 export type Expr = {
   readonly name: string;
-  readonly args: any[];
+  readonly args: Array<ExprArg>;
   // [Deno.customInspect](): string;
 } // class
 
@@ -95,7 +102,6 @@ type Privilege = {
   }
 } // type
 
-// start macro: create_expr
 export const Add              = create_expr("Add");
 export const Append           = create_expr("Append");
 export const Call             = create_expr("Call");
@@ -240,12 +246,12 @@ export function create_schema_ref<K extends keyof typeof Ref_Types, V extends ty
 } // export function
 
 export function create_expr(name: string) {
-  return (...args: any[]) : Expr => {
+  return (...args: ExprArg[]) : Expr => {
     return create_expr_with_args(name, args);
   };
 } // function
 
-export function create_expr_with_args(name: string, args: any[]) {
+export function create_expr_with_args(name: string, args: Array<ExprArg>): Expr {
   return {
     name: name,
     args: args,

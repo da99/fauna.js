@@ -1,6 +1,6 @@
 
 import caller from 'https://raw.githubusercontent.com/apiel/caller/master/caller.ts';
-import { Text_File } from "../src/Text_File.ts";
+import { Text_File } from "../src/FS.ts";
 import { assertEquals as EQUALS } from "https://deno.land/std/testing/asserts.ts";
 import { bold as BOLD, blue as BLUE, green as GREEN, red as RED, yellow as YELLOW  } from "https://deno.land/std/fmt/colors.ts";
 

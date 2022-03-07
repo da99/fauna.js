@@ -1,5 +1,5 @@
 
-import {Text_File, find_parent_file} from "../src/Text_File.ts";
+import {Text_File, find_parent_file} from "../src/FS.ts";
 import {split_whitespace, insert_after_line_contains} from "../src/String.ts";
 import {cmd_name, match, values, not_found} from "../src/CLI.ts";
 import { yellow, bold } from "https://deno.land/std/fmt/colors.ts";

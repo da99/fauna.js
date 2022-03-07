@@ -2,6 +2,25 @@
 import {existsSync} from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 
+export async function is_directory(raw: string) {
+  try {
+    const result = await Deno.stat(raw);
+    return result.isDirectory;
+  } catch (err) {
+    return false;
+  }
+} // func
+
+export async function is_file(raw: string) {
+  try {
+    const result = await Deno.stat(raw);
+    return result.isFile;
+  } catch (err) {
+    return false;
+  }
+} // func
+
+
 /*
  * Text_File: The file does not have to exist.
  */

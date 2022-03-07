@@ -26,8 +26,8 @@ if (match(".gitignore")) {
 } // if
 
 if (match("init spec.ts")) {
-  await create_from_template("dev_spec.ts", "dev/spec");
-  await create_from_template("spec_main.ts", "spec/main.ts");
+  await create_from_template("spec_run.ts", "spec/run");
+  await create_from_template("spec___.ts", "spec/__.ts");
 } // if
 
 if (match("<spec.ts|src.ts> <Name>")) {
@@ -47,26 +47,6 @@ if (match("keep-alive reload")) {
   console.error(`=== ${yellow(cmd[0])} ${bold(cmd.slice(1).join(' '))}`);
   await Deno.run({cmd}).status();
 } // if
-
-// if (match("keep-alive <cmd> [...args]")) {
-//   const opts = { cmd: values().flat() };
-//   let proc: null | Deno.Process<typeof opts> = null;
-
-//   Deno.addSignalListener("SIGUSR1", () => {
-//     console.error("--- SIGUSR1 received");
-//     const old_proc = proc;
-//     if (old_proc) {
-//       old_proc.kill("SIGTERM");
-//     }
-//   });
-
-//   do {
-//     proc = Deno.run(opts);
-//     console.error(`=== ${bold("Running")}: ${yellow(opts.cmd.join(" "))} ===`);
-//     await proc.status();
-//     console.error(`--- ${bold("Process ended")}: ${yellow(opts.cmd.join(" "))} ---`);
-//   } while (true);
-// } // if
 
 not_found();
 

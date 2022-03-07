@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+#
+#
+set -u -e -o pipefail
+
+IS_TEST="yes" deno run \
+  --allow-net=deno.land,raw.githubusercontent.com \
+  --allow-run="echo,node" \
+  --allow-read="./,./tmp/spec" \
+  --allow-write="./tmp/spec" \
+  --allow-env=IS_TEST,NO_COLOR,FAUNA_SECRET_TEST_A,FAUNA_SECRET_TEST_B \
+  spec/__.ts $@

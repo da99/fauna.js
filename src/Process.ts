@@ -87,7 +87,7 @@ export async function keep_alive(cmd: string | string[]) {
   if (typeof cmd === "string")
     cmd = split_whitespace(cmd);
   const opts = { cmd };
-  let proc: null | Deno.Process<typeof opts> = null;
+  let proc: null | Deno.Process<Deno.RunOptions> = null;
 
   Deno.addSignalListener("SIGUSR1", async () => {
     const old_proc = proc;

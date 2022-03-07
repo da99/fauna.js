@@ -2,10 +2,10 @@
 import {Text_File, find_parent_file} from "../src/Text_File.ts";
 import {split_whitespace, insert_after_line_contains} from "../src/String.ts";
 import {cmd_name, match, values, not_found} from "../src/CLI.ts";
+import { yellow, bold } from "https://deno.land/std/fmt/colors.ts";
 
 import {exists, ensureDirSync} from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
-import { sleep } from "https://deno.land/x/sleep/mod.ts";
 
 const THIS_DIR = path.dirname(path.dirname((new URL(import.meta.url)).pathname));
 
@@ -42,25 +42,31 @@ if (match("<zsh|sh> <relative/path/to/file>")) {
   create_from_template(tmpl_name, fpath);
 } // if
 
-if (match("keep-alive <cmd> <...args>")) {
-  const [cmd, args] = values();
-  let keep_alive = true;
-  console.log(`CMD: ${cmd} ARGS: ${Deno.inspect(args)}`);
-  Deno.addSignalListener("SIGUSR1", () => {
-    console.error("--- SIGUSR1 received");
-    keep_alive = false;
-  });
-  Deno.addSignalListener("SIGUSR2", () => {
-    console.error("--- SIGUSR1 received");
-    keep_alive = false;
-  });
-
-  while (keep_alive) {
-    console.error("=== RUNNING ===");
-    await sleep(3);
-  }
-  console.error("--- DONE ---");
+if (match("keep-alive reload")) {
+  const cmd = ["pkill", "-f", "^deno .+ keep-alive"];
+  console.error(`=== ${yellow(cmd[0])} ${bold(cmd.slice(1).join(' '))}`);
+  await Deno.run({cmd}).status();
 } // if
+
+// if (match("keep-alive <cmd> [...args]")) {
+//   const opts = { cmd: values().flat() };
+//   let proc: null | Deno.Process<typeof opts> = null;
+
+//   Deno.addSignalListener("SIGUSR1", () => {
+//     console.error("--- SIGUSR1 received");
+//     const old_proc = proc;
+//     if (old_proc) {
+//       old_proc.kill("SIGTERM");
+//     }
+//   });
+
+//   do {
+//     proc = Deno.run(opts);
+//     console.error(`=== ${bold("Running")}: ${yellow(opts.cmd.join(" "))} ===`);
+//     await proc.status();
+//     console.error(`--- ${bold("Process ended")}: ${yellow(opts.cmd.join(" "))} ---`);
+//   } while (true);
+// } // if
 
 not_found();
 

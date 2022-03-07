@@ -1,16 +1,8 @@
 
 
 import * as path from "https://deno.land/std/path/mod.ts";
-
-// // Colors from: https://stackoverflow.com/questions/9781218/how-to-change-node-jss-console-font-color
-const COLORS = {
-  "BOLD" : "\x1b[1m",
-  "RED": "\x1b[31m",
-  "GREEN": "\x1b[32m",
-  "YELLOW": "\x1b[33m",
-  "BLUE": "\x1b[34m",
-  "RESET": "\x1b[0m"
-}; // const
+import { bold, green, yellow, blue } from "https://deno.land/std/fmt/colors.ts";
+// import { split_whitespace } from "./String.ts";
 
 // const WHITESPACE = /(\s+)/;
 
@@ -36,18 +28,6 @@ export function raw_inspect(x: any) {
     }
   );
 } // export
-
-export function colorize(s: string, ...arr: Array<keyof typeof COLORS>) {
-  const content = [] as string[];
-  for (const k of arr) {
-    let color = COLORS[k];
-    content.push(color);
-  } // for
-
-  content.push(s)
-  content.push(COLORS.RESET);
-  return content.join("");
-} // function
 
 type Action = (...args: string[]) => void;
 type Pattern_Element = string | 0 | string[];
@@ -160,11 +140,11 @@ export function print_help(raw_cmd: string) {
 
   const pieces = split_cli_command(raw_cmd).map((x, i) => {
     if (i === 0)
-      return`${COLORS.BLUE}${COLORS.BOLD}${x}${COLORS.RESET}`;
+      return bold(blue(x));
     if (x.indexOf('|') > 0)
-      return`${COLORS.YELLOW}${x}${COLORS.RESET}`;
+      return yellow(x);
     if (x.indexOf('<') > -1)
-      return`${COLORS.GREEN}${x}${COLORS.RESET}`;
+      return green(x);
     return x;
   });
   console.log(`  ${cmd_name()} ${pieces.join(" ")}`);
@@ -263,4 +243,5 @@ export function split_cli_command(raw_s: string) : Array<string> {
   } // for
   return words; // .map(x => x.replace(/\s*\|\s*/g, "|"));
 } // function
+
 

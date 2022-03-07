@@ -1,6 +1,13 @@
 
 import {split_whitespace} from "../src/String.ts";
 import { bold, red, green, yellow, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
+import { sleep } from "https://deno.land/x/sleep/mod.ts";
+
+
+export interface Keep_Alive {
+  cmd: Array<string>;
+  process: Deno.Process<Deno.RunOptions>;
+}
 
 export interface Result {
   cmd:     string[];
@@ -10,7 +17,7 @@ export interface Result {
   stderr:  string;
   success: boolean;
   code:    number;
-};
+}
 
 export async function run_or_exit(full_cmd: string) {
   const result = await Deno.run({cmd: split_whitespace(full_cmd)}).status();
@@ -83,24 +90,37 @@ export function print_status(cmd: string[], r: Deno.ProcessStatus) {
   }
 } // export function
 
-export async function keep_alive(cmd: string | string[]) {
-  if (typeof cmd === "string")
-    cmd = split_whitespace(cmd);
-  const opts = { cmd };
-  let proc: null | Deno.Process<Deno.RunOptions> = null;
+export async function keep_alive(...args: Array<string | string[]>) {
 
-  Deno.addSignalListener("SIGUSR1", async () => {
-    const old_proc = proc;
-    if (old_proc) {
-      await run(`kill -TERM ${old_proc.pid}`, "inherit", "verbose-exit")
-    }
+  const processes: Array<Keep_Alive> = [];
+
+  const promises: Array<Promise<void>> = args.map((cmd: string | string[]) => {
+    if (typeof cmd === "string")
+      cmd = split_whitespace(cmd);
+    const ka = {cmd, process: Deno.run({cmd})};
+    processes.push(ka);
+    return _keep_alive_process(ka);
   });
 
-  do {
-    console.error(`\n=== ${yellow(opts.cmd.join(" "))} ===`);
-    proc = Deno.run(opts);
-    const x = await proc.status();
-    print_status(opts.cmd, x);
-  } while (true);
+  Deno.addSignalListener("SIGUSR1", async () => {
+    for (const proc of processes) {
+      await run(`kill -TERM ${proc.process.pid}`, "inherit", "verbose-exit")
+      if (Deno.resources()[proc.process.rid])
+        proc.process.close();
+    } // for
+  });
+
+  await Promise.all(promises);
+
 } // export async
 
+async function _keep_alive_process(proc: Keep_Alive) {
+  while (true) {
+    console.error(`\n=== ${yellow(proc.cmd.join(" "))} ===`);
+    const status = await proc.process.status();
+    if (Deno.resources()[proc.process.rid])
+      proc.process.close();
+    print_status(proc.cmd, status);
+    proc.process = Deno.run({cmd: proc.cmd});
+  }
+} // async function

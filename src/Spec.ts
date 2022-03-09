@@ -2,7 +2,7 @@
 import caller from 'https://raw.githubusercontent.com/apiel/caller/master/caller.ts';
 import { Text_File } from "../src/FS.ts";
 import { assertEquals as EQUALS } from "https://deno.land/std/testing/asserts.ts";
-import { bold as BOLD, blue as BLUE, green as GREEN, red as RED, yellow as YELLOW  } from "https://deno.land/std/fmt/colors.ts";
+import { bold as BOLD, blue as BLUE, green as GREEN, red as RED, bgBlue, yellow as YELLOW, white  } from "https://deno.land/std/fmt/colors.ts";
 
 // # =============================================================================
 type Asyn_Function = () => Promise<void>;
@@ -89,7 +89,7 @@ export async function finish() {
 
     if (x.filename) {
       last_filename = x.filename;
-      prompt(`\n${BOLD(YELLOW("FILE:"))} ${(x.filename)}\n`);
+      prompt(`\n${BOLD(YELLOW("FILE:"))} ${bgBlue(x.filename)}\n`);
       continue;
     }
 

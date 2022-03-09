@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 #
 #
-set -u -e -o pipefail
+set -u -e -o pipefail -x
 
 IS_TEST="yes" deno run \
   --allow-net=deno.land,raw.githubusercontent.com \

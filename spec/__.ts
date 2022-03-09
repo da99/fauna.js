@@ -48,8 +48,21 @@ switch (cmd) {
 } // switch
 
 
-for (const f of target_files) {
-  await import(`./${f}`);
-} // for
+import "./CLI.ts";
+import "./FaunaDB.ts";
+import "./Process.ts";
+import "./Spec.ts";
+import "./String.ts";
+import "./Text_File.ts";
+import {slow} from "./FaunaDB.migrate.ts";
+
+// for (const f of target_files) {
+//   console.error(`./${f}`);
+//   // await import(`./${f}`);
+// } // for
+if (cmd !== "quick") {
+  slow();
+}
 
 await finish();
+

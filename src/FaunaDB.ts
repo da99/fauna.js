@@ -33,8 +33,8 @@ const Ref_Types = {
 
 export type Schema_Doc = Collection_Doc | Index_Doc | Fn_Doc | Role_Doc ;
 export type Schema     = Array<Schema_Doc>;
-export type New_Doc    = Omit<Collection_Doc, "name"> | Omit<Index_Doc, "name"> | Omit<Fn_Doc, "name"> | Omit<Role_Doc, "name">;
-export type New_Schema = Array<New_Doc>;
+export type New_Doc    = New_Collection | New_Index | New_Fn | New_Role;
+export type New_Schema = Array<Expr>;
 
 interface Client_Options {
   secret?: string,
@@ -47,28 +47,42 @@ export interface Schema_Ref<T extends keyof typeof Ref_Types, P extends typeof R
   id: string
 } // interface
 
-export interface Collection_Doc {
-  ref: Schema_Ref<"Collection", "collections">;
-  ts?: number;
+export interface New_Collection {
   name: string;
   history_days?: number;
 } // interface
 
-export interface Fn_Doc {
-  ref: Schema_Ref<"Fn", "functions">;
-  ts?: number;
+export interface New_Role {
+  name: string;
+  privileges: Array<Privilege>;
+} // interface
+
+export interface New_Fn {
   name: string;
   body: Expr;
 } // interface
 
-export interface Index_Doc {
-  ref: Schema_Ref<"Index", "indexes">;
-  ts?: number;
+export interface New_Index {
   name: string;
   source: Expr;
   terms: Array<Index_Term>;
   values?: Array<Index_Value>;
   unique: boolean;
+} // interface
+
+export interface Collection_Doc extends New_Collection {
+  ref: Schema_Ref<"Collection", "collections">;
+  ts?: number;
+} // interface
+
+export interface Fn_Doc extends New_Fn {
+  ref: Schema_Ref<"Fn", "functions">;
+  ts?: number;
+} // interface
+
+export interface Index_Doc extends New_Index {
+  ref: Schema_Ref<"Index", "indexes">;
+  ts?: number;
 } // interface
 
 interface Index_Term {
@@ -82,11 +96,9 @@ interface Index_Value {
   reverse: boolean
 } // interface
 
-export interface Role_Doc {
+export interface Role_Doc extends New_Role {
   ref: Schema_Ref<"Role", "roles">;
   ts?: number;
-  name: string;
-  privileges: Array<Privilege>;
 } // interface
 
 type Privilege = {
@@ -115,7 +127,7 @@ export const ContainsStrRegex = create_expr("ContainsStrRegex");
 export const ContainsValue    = create_expr("ContainsValue");
 export const Count            = create_expr("Count");
 export const CreateCollection = create_expr("CreateCollection");
-export const CreateFunction   = create_expr("CreateFunction");
+export const CreateFn         = create_expr("CreateFunction");
 export const CreateRole       = create_expr("CreateRole");
 export const CreateIndex      = create_expr("CreateIndex");
 export const CurrentIdentity  = create_expr("CurrentIdentity");
@@ -233,6 +245,26 @@ export function Create(id: Expr, doc: Partial<Schema_Doc>): Expr {
 export function Update(id: Schema_Ref<any, any>, doc: Partial<Schema_Doc>): Expr {
   return create_expr_with_args("Update", [id, doc]);
 }
+
+export function MigrateCollection(c: New_Collection) {
+  const ref = Collection(c.name);
+  return If(Exists(ref), Update(ref, c), CreateCollection(c));
+} // export function
+
+export function MigrateRole(c: New_Role) {
+  const ref = Role(c.name);
+  return If(Exists(ref), Update(ref, c), CreateRole(c));
+} // export function
+
+export function MigrateIndex(c: New_Index) {
+  const ref = Index(c.name);
+  return If(Exists(ref), Update(ref, c), CreateIndex(c));
+} // export function
+
+export function MigrateFn(c: New_Fn) {
+  const ref = Fn(c.name);
+  return If(Exists(ref), Update(ref, c), CreateFn(c));
+} // export function
 
 export function create_schema_ref<K extends keyof typeof Ref_Types, V extends typeof Ref_Types[K]>(name: K, collection: V) {
   return (id: string): Schema_Ref<K, V> => {
@@ -442,119 +474,38 @@ export function select_keys(keys: string[], x: Expr) {
   return o;
 } // export function
 
-export function create_doc(doc: New_Doc): Expr {
-  const ref = doc.ref;
-  const new_doc = Object.assign({}, doc) as Partial<Schema_Doc>;
-  delete new_doc.ref;
-  new_doc.name = ref.id;
-  return Create(Ref(ref.collection), new_doc);
-} // export function
-
-export function ref_compare(x: Schema_Doc, y: New_Doc) {
-  return deepEqual(x.ref, y.ref);
-} // export function
-
-export function doc_compare(old_doc: Schema_Doc, new_doc: New_Doc): boolean | Expr {
-  if (!ref_compare(old_doc, new_doc))
-    return false;
-  const merged = Object.assign({}, old_doc, new_doc);
-
-  if (deepEqual(merged, old_doc))
-    return true;
-
-  const update_doc = Object.assign({}, new_doc) as Partial<Schema_Doc>;
-  delete update_doc.ref;
-  return Update(
-    old_doc.ref,
-    update_doc
-  );
-} // export function
-
-export function migrate_doc(d: New_Doc) {
-  const partial = Object.assign({}, d) as Partial<Schema_Doc>;
-  delete partial.ref;
-  partial.name = d.ref.id;
-
-  return If(
-    Exists(d.ref),
-    Update(d.ref, partial),
-    Create(Ref(d.ref.collection), partial),
-  );
-} // export function
-
-export function upsert(new_schema: New_Schema) {
-  return new_schema.map(migrate_doc);
+export function new_ref(x: Expr) {
+  return (x.args[0] as Expr).args[0];
 } // export function
 
 export function prune(old_schema: Schema, new_schema: New_Schema) {
   const cmds: Expr[] = [];
-  for (const old_doc of old_schema) {
-    const new_doc = new_schema.find(
-      (n: New_Doc) => ref_compare(old_doc, n)
-    );
+  const old_refs = old_schema.map(x => x.ref);
+  const new_refs = new_schema.map(x => new_ref(x));
+  for (const old_r of old_refs) {
+    const match = new_refs.find( nr => deepEqual(old_r, nr));
 
-    if (!new_doc) {
-      cmds.push(Delete(old_doc.ref));
+    if (!match) {
+      cmds.push(Delete(old_r));
     } // if
   } // for
   return cmds;
 } // export function
 
-export function diff(f_old: Schema, f_new: New_Schema) {
-  const fin: Expr[] = [];
+function cache_schemas(os: Schema, ns: New_Schema) {
+  return `${raw_inspect(os)} ${raw_inspect(ns)}`;
+} // function
 
-  for (let i = 0; i < f_new.length; i++) {
-    const new_doc = f_new[i];
-    let do_create = true;
-
-    for (let j = 0; j < f_old.length; j++) inner: {
-      const old_doc = f_old[j];
-      const c = doc_compare(old_doc, new_doc);
-      switch (c) {
-        case true: { // Docs match.
-          do_create = false;
-          break inner;
-        }
-        case false: { // No match.
-          break;
-        }
-        default: {
-          fin.push(c as Expr);
-          do_create = false;
-          break inner;
-        }
-      } // switch
-    } // for
-
-    if (do_create)
-      fin.push(create_doc(new_doc));
-  } // for
-
-  for (const old_doc of f_old) {
-    const new_doc = f_new.find(
-      (n: New_Doc) => ref_compare(old_doc, n)
-    );
-
-    if (!new_doc) {
-      fin.push(Delete(old_doc.ref));
-    } // if
-  } // for
-
-  return fin;
-} // export function
-
-export async function migrate(opts: Client_Options, new_schema: New_Schema): Promise<Expr | false> {
-  const old_schema = await query(opts, schema());
-  const new_cache = `${raw_inspect(old_schema)} ${raw_inspect(new_schema)}`;
-  const cache_file = "tmp/schema.js";
+export async function migrate(opts: Client_Options, new_schema: New_Schema, cache_file: string): Promise<Expr | false> {
+  const current_schema = await query(opts, schema());
+  const new_cache = cache_schemas(current_schema, new_schema);
   let old_cache = "";
-  try {
-    old_cache = Deno.readTextFileSync(cache_file);
-  } catch (e) {
-  }
+  try { old_cache = Deno.readTextFileSync(cache_file); } catch (_) { "ignore"; }
+
   if (new_cache !== old_cache) { // run migrate.
-    const results = await query(opts, Do(upsert(new_schema)));
-    Deno.writeTextFileSync(cache_file, new_cache);
+    const results = await query(opts, Do(new_schema));
+    const updated_schema = await query(opts, schema());
+    Deno.writeTextFileSync(cache_file, cache_schemas(updated_schema, new_schema));
     return results;
   } else {
     return false;

@@ -3,7 +3,6 @@ import {split_whitespace} from "../src/String.ts";
 import { bold, red, green, yellow, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
 import { sleep } from "https://deno.land/x/sleep/mod.ts";
 
-
 export interface Keep_Alive {
   cmd: Array<string>;
   process: Deno.Process<Deno.RunOptions>;
@@ -69,7 +68,7 @@ export async function run(
   } // if
 
   if (verbose === "verbose" || verbose === "verbose-exit" || (!status.success && verbose === "verbose-fail" )) {
-      print_status(cmd, status);
+      print_status(cmd, process.pid, status);
   } // if
 
 
@@ -81,12 +80,12 @@ export async function run(
   };
 } // export
 
-export function print_status(cmd: string[], r: Deno.ProcessStatus) {
+export function print_status(cmd: string[], pid: number, r: Deno.ProcessStatus) {
   const human_cmd = cmd.join(' ');
   if (r.success) {
-    console.error(`--- ${green(human_cmd)} ---`);
+    console.error(`--- (${pid}) ${green(human_cmd)} ---`);
   } else {
-    console.error(`--- ${bgRed(white(" " + r.code.toString() + " "))}: ${bold(red(human_cmd))} ---`);
+    console.error(`--- (${pid}) ${bgRed(white(" " + r.code.toString() + " "))}: ${bold(red(human_cmd))} ---`);
   }
 } // export function
 
@@ -116,11 +115,38 @@ export async function keep_alive(...args: Array<string | string[]>) {
 
 async function _keep_alive_process(proc: Keep_Alive) {
   while (true) {
-    console.error(`\n=== ${yellow(proc.cmd.join(" "))} ===`);
+    console.error(`\n=== ${proc.process.pid} ${yellow(proc.cmd.join(" "))} ===`);
     const status = await proc.process.status();
     if (Deno.resources()[proc.process.rid])
       proc.process.close();
-    print_status(proc.cmd, status);
+    print_status(proc.cmd, proc.process.pid, status);
     proc.process = Deno.run({cmd: proc.cmd});
   }
 } // async function
+
+export async function pgrep_f(pattern: string): Promise<number[]> {
+  const io = await run(["pgrep", "-f", pattern], "piped", "quiet");
+  return split_whitespace(io.stdout).map(x => parseInt(x));
+} // export async function
+
+/*
+ * Returns: A number[] of child processes (recursively). In other words,
+ * the family tree of pids, including the PID originally passed to the
+ * function.
+ */
+export async function pstree_p(pid: string | number): Promise<number[]> {
+  const result = await run(`pstree --hide-threads --ascii -p ${pid}`);
+  let pids: number[] = [];
+  if (!result.success)
+    return pids;
+
+  // Output is something like: name(123)--name(456)--name(789)
+  // The pattern here grabs just the whole numbers with lookbehind/lookahead.
+  const match = result.stdout.match(/(?<=\()\d+(?=\))/g);
+  if (match) {
+    pids = match.map(
+      (x: string) => parseInt(x)
+    );
+  }
+  return pids;
+} // export async function

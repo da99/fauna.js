@@ -103,7 +103,7 @@ let _vars: Array<string | string[]> = [];
 let is_found = false;
 let is_help = false;
 let filename = path.basename(import.meta.url);
-let _cmd_name: string = path.basename(Deno.mainModule);
+let _cmd_name: string = import.meta.url;
 
 command(Deno.args);
 

@@ -4,6 +4,7 @@ import {split_whitespace, insert_after_line_contains} from "../src/String.ts";
 import {cmd_name, match, values, not_found} from "../src/CLI.ts";
 import { yellow, bold } from "https://deno.land/std/fmt/colors.ts";
 
+import {keep_alive} from "../src/Process.ts";
 import {exists, ensureDirSync} from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 
@@ -43,9 +44,16 @@ if (match("<zsh|sh> <relative/path/to/file>")) {
 } // if
 
 if (match("keep-alive reload")) {
-  const cmd = ["pkill", "-f", "^deno .+ keep-alive"];
+  const cmd = ["pkill", "-USR1", "-f", "^deno .+ __keep-alive"];
   console.error(`=== ${yellow(cmd[0])} ${bold(cmd.slice(1).join(' '))}`);
   await Deno.run({cmd}).status();
+} // if
+
+if (match("__keep-alive <...args>")) {
+  const args = Deno.args.slice(1);
+  console.error(`=== ${Deno.args[0]} ${args.map(x => Deno.inspect(x)).join(" ")}`);
+  const cmds = args.map(x => split_whitespace(x));
+  await keep_alive(...cmds);
 } // if
 
 not_found();

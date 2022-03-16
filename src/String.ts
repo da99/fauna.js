@@ -61,3 +61,20 @@ export function insert_after_line_contains(new_s: string, needle: string, haysta
   return new_lines.reverse().join('\n');
 } // export
 
+export function string_to_array(x: string | string[]) {
+  if (Array.isArray(x))
+    return x;
+  return split_whitespace(x);
+} // export function
+
+export function flatten_cmd(args: Array<string | string[]>) {
+  return args.reduce((prev: string[], curr: string | string[]) => {
+    if (typeof curr === "string") {
+      return prev.concat(split_whitespace(curr));
+    } else {
+      return prev.concat(curr);
+    }
+  }, [] as string[]);
+} // export function
+
+

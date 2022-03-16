@@ -2,7 +2,7 @@
 
 import * as path from "https://deno.land/std/path/mod.ts";
 import { bold, green, yellow, blue } from "https://deno.land/std/fmt/colors.ts";
-// import { split_whitespace } from "./String.ts";
+import { flatten_cmd, split_whitespace } from "./String.ts";
 
 // const WHITESPACE = /(\s+)/;
 
@@ -103,22 +103,28 @@ let _vars: Array<string | string[]> = [];
 let is_found = false;
 let is_help = false;
 let filename = path.basename(import.meta.url);
-let _cmd_name: string = import.meta.url;
+let _import_meta_url = "file:///unknown_project/bin/unknown";
 
-command(Deno.args);
+args(Deno.args);
 
-export function cmd_name(s?: string) {
-  if (s) {
-    _cmd_name = s;
-  }
-  return _cmd_name;
-} // export
+export function meta_url(url: string) {
+  _import_meta_url = url;
+  return about();
+} // export function
+
+export function about() {
+  const file = (new URL(_import_meta_url)).pathname;
+  const dir  = path.dirname(file);
+  const bin  = file.split('/').slice(-2).join('/');
+  const project_dir = file.replace(`/${bin}`, "");
+  return { file, dir, bin, project_dir };
+} // export function
 
 export function values() {
   return _vars;
 } // export
 
-export function command(i: string[]) {
+export function args(i: string[]) {
   _user_input = i;
   switch(_user_input[0]) {
     case "-h":
@@ -147,7 +153,7 @@ export function print_help(raw_cmd: string) {
       return green(x);
     return x;
   });
-  console.log(`  ${cmd_name()} ${pieces.join(" ")}`);
+  console.log(` ${pieces.join(" ")}`);
   return true;
 } // export
 

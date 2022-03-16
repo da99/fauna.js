@@ -1,5 +1,5 @@
 
-import {split_whitespace} from "../src/String.ts";
+import {split_whitespace, flatten_cmd} from "../src/String.ts";
 import { bold, red, green, yellow, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
 import { sleep } from "https://deno.land/x/sleep/mod.ts";
 
@@ -18,26 +18,28 @@ export interface Result {
   code:    number;
 }
 
-export async function run_or_exit(full_cmd: string) {
-  const result = await Deno.run({cmd: split_whitespace(full_cmd)}).status();
+export async function run_and_exit(...args: Array<string | string[]>) {
+  const cmd = flatten_cmd(args);
+  const result = await Deno.run({cmd}).status();
+  Deno.exit(result.code);
+} // async function
+
+export async function run_or_exit(...args: Array<string | string[]>) {
+  const cmd = flatten_cmd(args);
+  const result = await Deno.run({cmd}).status();
   if (!result.success) {
     Deno.exit(result.code);
   }
   return result;
 } // async function
 
-export function string_to_array(x: string | string[]) {
-  if (Array.isArray(x))
-    return x;
-  return split_whitespace(x);
-} // export function
-
-export async function run_or_throw(x: string | string[]) {
-  const r = await run(x);
+export async function run_or_throw(...args: Array<string | string[]>) {
+  const cmd = flatten_cmd(args);
+  const r = await run(cmd);
   if (r.status.success) {
     return r
   }
-  const msgs = [`Exit ${r.status.code}: ${string_to_array(x).join(' ')}`, r.stdout, r.stderr].join("\n").trim();
+  const msgs = [`Exit ${r.status.code}: ${cmd.join(' ')}`, r.stdout, r.stderr].join("\n").trim();
   throw new Error(msgs);
 } // export async function
 
@@ -46,7 +48,7 @@ export async function run(
   std: | "inherit" | "piped" | "null" | number = "piped",
   verbose: "verbose" | "verbose-exit" | "verbose-fail" | "quiet" = "quiet"
 ): Promise<Result> {
-  const cmd    = string_to_array(arr);
+  const cmd    = flatten_cmd([arr]);
   let stdout   = "";
   let stderr   = "";
 
@@ -70,7 +72,6 @@ export async function run(
   if (verbose === "verbose" || verbose === "verbose-exit" || (!status.success && verbose === "verbose-fail" )) {
       print_status(cmd, process.pid, status);
   } // if
-
 
   return {
     cmd, status, process,

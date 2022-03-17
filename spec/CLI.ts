@@ -42,6 +42,11 @@ it("returns vars that are optional: help [search]", function () {
    daEquals(actual, ["something"]);
 }); // it function
 
+it("returns the default value if the user input is missing: build [*all|worker|public]", function () {
+   const actual = get_vars("build [*all|worker|public]", split_whitespace("build"));
+   daEquals(actual, ["all"]);
+}); // it function
+
 it("returns remaining values as an Array for <...args>: run <cmd> <...args>", function () {
    const actual = get_vars("run <cmd> <...args>", split_whitespace("run my command with args"));
    daEquals(actual, ["my", ["command", "with", "args"]]);

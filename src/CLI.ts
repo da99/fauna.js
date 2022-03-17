@@ -39,63 +39,93 @@ interface Command {
   action: Action;
 } // interface
 
-/*
- * 0 = grab any value.
- */
-export function get_vars(raw_cmd: string, input: string[]) {
-  const pattern = split_cli_command(raw_cmd).map((x: string) => {
-    if (x.indexOf('<') === 0 && x.indexOf('>') === (x.length - 1)) {
-      if (x.indexOf('|') > 1) {
-        return x.substring(1, x.length - 1).split('|').map(x => x.trim());
-      }
-      if (x === "<...args>") {
-        return x;
-      }
-      return 0;
-    }
-    if (x.indexOf('[') === 0 && x.indexOf(']') === (x.length - 1)) {
-      if (x === "[...args]") {
-        return x;
-      }
-      return 0;
-    }
-    return x;
-  }); // pattern
+function is_pattern(x: string) {
+  const first_char = x.charAt(0);
+  return first_char === '[' || first_char === '<';
+} // function
 
-  const vars: Array<string | string[]> = [];
-  const used_inputs: string[] = [];
-  const is_a_match = pattern.every((x, i) => {
-    const u = input[i];
-    if (x === u ) { used_inputs.push(u); return true; }
-    if (x === 0) {
-      used_inputs.push(u);
-      vars.push(u);
-      return true;
-    }
-    if (x === "<...args>" || x === "[...args]") {
-      const args = input.slice(i);
-      if (x === "<...args>" && args.length === 0) {
-        return false;
-      }
-      used_inputs.push(...args)
-      vars.push(args);
-      return true;
-    }
-    if (Array.isArray(x) && x.includes(u)) {
-      used_inputs.push(u)
-      vars.push(u);
-      return true
-    }
-  });
+function inner_pattern(s: string) {
+  return s.substring(1, s.length - 1);
+} // function
 
-  if (used_inputs.length != input.length) {
-    return false;
+function is_menu(s: string) {
+  return s.indexOf('|') > 0;
+} // function
+
+function* gen(arr: string[]) {
+  for (const x of arr) {
+    yield x;
   }
+} // function*
 
-  if (is_a_match)
-    return vars;
+export function get_vars(raw_cmd: string, user_input: string[]) : false | Array<string | string[]> {
+  const patterns = split_cli_command(raw_cmd);
+  const inputs   = gen(user_input);
 
-  return false;
+  let vars: Array<string | string[]> = [];
+  let used_inputs: string[]          = [];
+  let i_done = false;
+
+
+  for (const pattern of patterns) {
+    const i_next = inputs.next();
+    const i      = i_next.value;
+    i_done       = i_next.done || false;
+
+    if (!is_pattern(pattern)) {
+      if (i !== pattern)
+        return false;
+      continue;
+    }
+
+    const inner = inner_pattern(pattern);
+
+    if (inner === "...args") {
+      const _args = (!i_done) ? [i, ...inputs] : [...inputs];
+      if (pattern.indexOf('<') === 0 && _args.length === 0)
+        return false;
+      vars.push(_args as string[]);
+      return vars;
+    }
+
+    if (!is_menu(inner)) {
+      if (pattern.indexOf('<') === 0) {
+        if (i_done)
+          return false;
+      } // if
+      if (pattern.indexOf('[') === 0) {
+        if (i_done)
+          continue
+      } // if
+
+      vars.push(i as string);
+      continue;
+    } // if
+
+    /* It's a menu: cmd <a|b|c>, cmd [a|b|c], cmd [*a|b|c] */
+    const menu = inner.split('|');
+    if (pattern.indexOf('<') === 0) {
+      if (i_done)
+        return false;
+    } // if
+    if (pattern.indexOf('[') === 0) {
+      if (i_done && menu[0].indexOf('*') === 0) {
+        vars.push(menu[0].replace('*', ""));
+        continue;
+      }
+    } // if
+
+    if (!menu.includes(i as string))
+      return false;
+    vars.push(i as string);
+  } // for
+
+
+  const i_next = inputs.next();
+  if (!i_next.done)
+    return false;
+
+  return vars;
 } // function
 
 let _user_input: string[] = [];

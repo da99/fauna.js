@@ -1,7 +1,7 @@
 
 import {Text_File, find_parent_file} from "../src/FS.ts";
 import {split_whitespace, insert_after_line_contains} from "../src/String.ts";
-import {cmd_name, match, values, not_found} from "../src/CLI.ts";
+import {match, values, not_found} from "../src/CLI.ts";
 import { yellow, bold } from "https://deno.land/std/fmt/colors.ts";
 
 import {keep_alive} from "../src/Process.ts";
@@ -10,7 +10,6 @@ import * as path from "https://deno.land/std/path/mod.ts";
 
 const THIS_DIR = path.dirname(path.dirname((new URL(import.meta.url)).pathname));
 
-cmd_name("da.ts");
 
 function in_da_ts_dir() {
   const p = Deno.cwd();

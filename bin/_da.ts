@@ -69,6 +69,10 @@ if (match("file-server")) {
   `);
 } // if
 
+if (match("file-server reload www-browser")) {
+  await run_and_exit(['pkill', '-USR1', '-f', '^deno run .+bin/_.file_server.ts']);
+} // if
+
 not_found();
 
 function relative_to_da(fpath: string) {

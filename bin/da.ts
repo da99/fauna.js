@@ -21,11 +21,11 @@ case "$@" in
     DA_DIR="$THIS_DIR" deno run \
       --quiet                                         \
       --allow-env="DA_DIR"                            \
-      --allow-run="deno,echo,node" \
+      --allow-run="pkill,deno,echo,node"              \
       --allow-net="deno.land"                         \
       --allow-read="${THIS_DIR}/,./"                  \
       --allow-write="./,./bin/,./spec/,./src/,./tmp/" \
-      "${THIS_DIR}/bin/_da.ts" "$@"
+      "${THIS_DIR}/bin/_da.ts"  "$@"
     ;;
 esac
 

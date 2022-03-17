@@ -1,15 +1,16 @@
 
 import {Text_File, find_parent_file} from "../src/FS.ts";
 import {split_whitespace, insert_after_line_contains} from "../src/String.ts";
-import {match, values, not_found} from "../src/CLI.ts";
+import {meta_url, about, match, values, not_found} from "../src/CLI.ts";
 import { yellow, bold } from "https://deno.land/std/fmt/colors.ts";
 
-import {keep_alive} from "../src/Process.ts";
+import {keep_alive, run_and_exit} from "../src/Process.ts";
 import {exists, ensureDirSync} from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 
 const THIS_DIR = path.dirname(path.dirname((new URL(import.meta.url)).pathname));
 
+meta_url(import.meta.url);
 
 function in_da_ts_dir() {
   const p = Deno.cwd();
@@ -53,6 +54,19 @@ if (match("__keep-alive <...args>")) {
   console.error(`=== ${Deno.args[0]} ${args.map(x => Deno.inspect(x)).join(" ")}`);
   const cmds = args.map(x => split_whitespace(x));
   await keep_alive(...cmds);
+} // if
+
+if (match("file-server")) {
+  const __this = about();
+  await run_and_exit(`
+    deno run
+    --unstable
+    --allow-env=CONFIG.JSON
+    --allow-read=./
+    --allow-run=npx
+    --allow-net
+    ${path.join(__this.dir, "_.file_server.ts")}
+  `);
 } // if
 
 not_found();

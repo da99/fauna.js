@@ -1,4 +1,5 @@
 
+
 /*
  * npm install less
  * deno run    \
@@ -151,4 +152,7 @@ export async function start(config: Record<string, any>) {
   return await app.listen({ port: CONFIG["PORT"] });
 } // export async function
 
-
+if (import.meta.main) {
+  const config = JSON.parse(Deno.env.get("CONFIG.JSON") || "no config specified.")
+  await start(config);
+} // if

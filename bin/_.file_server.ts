@@ -5,7 +5,6 @@
  * deno run    \
  * --allow-net \
  * --allow-read=./ \
- *  --allow-env=CONFIG.JSON \
  *  path/to/this.file.ts
  *
  */
@@ -151,8 +150,3 @@ export async function start(config: Record<string, any>) {
   Object.assign(CONFIG, config);
   return await app.listen({ port: CONFIG["PORT"] });
 } // export async function
-
-if (import.meta.main) {
-  const config = JSON.parse(Deno.env.get("CONFIG.JSON") || "no config specified.")
-  await start(config);
-} // if

@@ -127,7 +127,7 @@ async function _keep_alive_process(proc: Keep_Alive) {
 
 export async function pgrep_f(pattern: string): Promise<number[]> {
   const io = await run(["pgrep", "-f", pattern], "piped", "quiet");
-  return split_whitespace(io.stdout).map(x => parseInt(x));
+  return split_whitespace(io.stdout).map(x => parseInt(x)).filter(x => x !== Deno.pid);
 } // export async function
 
 /*

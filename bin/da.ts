@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --unstable --allow-run --allow-net --allow-read --allow-write
 
 import {meta_url, about, match, values, not_found} from "../src/CLI.ts";
-import {keep_alive, run, run_and_exit} from "../src/Process.ts";
+import {pgrep_f, pstree_p, keep_alive, run, run_and_exit} from "../src/Process.ts";
 import { yellow, bold, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
 
 // import {Text_File, find_parent_file} from "../src/FS.ts";
@@ -64,6 +64,16 @@ if (match("file-server reload www-browser")) {
   await run_and_exit(['pkill', '-USR1', '-f', '^deno run .+bin/_.file_server.ts']);
 } // if
 
+// # =============================================================================
+// # === Process related:
+// # =============================================================================
+if (match("ls child pids <pattern>")) {
+  const [pattern] = values();
+  let pids = await pgrep_f(pattern as string);
+  (
+    await Promise.all(pids.map(x => pstree_p(x)))
+  ).flat().forEach(x => console.log(x));
+} // if
 
 not_found();
 

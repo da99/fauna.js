@@ -1,11 +1,11 @@
 import { describe, it } from "DA_PATH/src/Spec.ts";
 import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
-import { Name } from "../src/Name.ts";
+import { {Name} } from "../src/{Name}.ts";
 
-describe("Name");
+describe("{Name}");
 
 it("does something", () => {
-  const actual = new Name();
+  const actual = new {Name}();
   assertEquals("", actual);
 });
 

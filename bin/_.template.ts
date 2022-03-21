@@ -52,7 +52,7 @@ export async function create_from_template(tmpl_name: string, fpath: string) {
 export function compile_template(fname: string, vars: Record<string, string>) {
   let text = Deno.readTextFileSync(`${_this.project_dir}/templates/${fname}`);
   for (const [k,v] of Object.entries(vars)) {
-    text = text.replaceAll(k, v);
+    text = text.replaceAll(`{${k}}`, v);
   } // for
   return text;
 } // function

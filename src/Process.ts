@@ -18,28 +18,24 @@ export interface Result {
   code:    number;
 }
 
-export async function run_and_exit(...args: Array<string | string[]>) {
-  const cmd = flatten_cmd(args);
-  const result = await Deno.run({cmd}).status();
+export async function exit(pr: Promise<Result>) {
+  const result = await pr;
   Deno.exit(result.code);
-} // async function
+} // export async function
 
-export async function run_or_exit(...args: Array<string | string[]>) {
-  const cmd = flatten_cmd(args);
-  const result = await Deno.run({cmd}).status();
+export async function exit_on_fail(pr: Promise<Result>) {
+  const result = await pr;
   if (!result.success) {
     Deno.exit(result.code);
   }
   return result;
-} // async function
+} // export async function
 
-export async function run_or_throw(...args: Array<string | string[]>) {
-  const cmd = flatten_cmd(args);
-  const r = await run(cmd);
-  if (r.status.success) {
-    return r
-  }
-  const msgs = [`Exit ${r.status.code}: ${cmd.join(' ')}`, r.stdout, r.stderr].join("\n").trim();
+export async function throw_on_fail(pr: Promise<Result>) {
+  const r = await pr;
+  if (r.success)
+    return r;
+  const msgs = [`Exit ${r.status.code}`, r.stdout, r.stderr].join("\n").trim();
   throw new Error(msgs);
 } // export async function
 

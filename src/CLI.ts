@@ -10,6 +10,11 @@ import { flatten_cmd, split_whitespace } from "./String.ts";
 //   return raw.split(WHITESPACE).filter((e) => e !== "" );
 // }
 
+export function verbose(f: (...args: any[]) => any, ...args: any[]) {
+  console.error(`${yellow(f.name)}(${args.map(x => blue(Deno.inspect(x))).join(", ")})`);
+  return f.apply(null, args);
+} // export function
+
 export function inspect(x: any) {
   return Deno.inspect(
     x,

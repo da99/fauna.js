@@ -6,7 +6,9 @@
 
 import {emptyDir, existsSync, ensureDirSync, ensureDir} from "https://deno.land/std/fs/mod.ts";
 import nunjucks from "https://deno.land/x/nunjucks/mod.js";
-import {run_or_throw} from "../../da.ts/src/Process.ts";
+import {verbose} from "./CLI.ts";
+import {throw_on_fail, run} from "./Process.ts";
+import {download} from "./FS.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 import { bold, yellow } from "https://deno.land/std/fmt/colors.ts";
 
@@ -18,15 +20,19 @@ const DEFAULT_OPTIONS = {
   "public_dist": "./dist/Public"
 };
 
+function _run(cmd: string) {
+  return throw_on_fail(run(cmd, "inherit", "verbose"));
+} // async function
+
 export async function css(file_path: string) {
-  const { success, stdout, stderr } = await run_or_throw(`npx lessc ${file_path.replace(/\.css$/, ".less")}`);
+  const { success, stdout, stderr } = await _run(`npx lessc ${file_path.replace(/\.css$/, ".less")}`);
   if (!success)
     throw new Error(stderr);
   return stdout;
 } // export async function
 
 export async function js(file_path: string) {
-  const { stdout } = await run_or_throw(`deno bundle ${file_path.replace(/\.js$/, ".ts")}`);
+  const { stdout } = await _run(`deno bundle ${file_path.replace(/\.js$/, ".ts")}`);
   return stdout;
 } // export async function
 
@@ -43,7 +49,7 @@ function print_wrote(x: string) {
 export async function build_worker(WORKER_TS: string, WORKER_JS: string) {
   const filename = WORKER_TS;
   const new_file = WORKER_JS;
-  const { stdout } = await run_or_throw(`deno bundle ${filename}`);
+  const { stdout } = await _run(`deno bundle ${filename}`);
   await ensureDir(path.dirname(new_file));
   await Deno.writeTextFile(new_file, stdout);
   print_wrote(new_file);
@@ -54,7 +60,7 @@ export async function build_public(in_dir: string, out_dir: string, site: Record
   await emptyDir(out_dir);
 
   const promises: Promise<void>[] = [];
-  const { stdout } = await run_or_throw(
+  const { stdout } = await _run(
     `find ${in_dir} -type f -iname *.less -o -iname *.ts -o -iname *.njk`,
   );
   const files = stdout.split("\n").filter(
@@ -141,7 +147,32 @@ export async function build_www(group: "css"|"js"|"html", public_path: string, R
 
 } // export async function
 
-export async function build_app(group: "app"|"public"|"worker", RAW_CONFIG: Record<string, any>) {
+export async function download_normalize_css(vendor: string) {
+  return await verbose(
+    download,
+    "https://necolas.github.io/normalize.css/latest/normalize.css",
+    path.join(vendor, "normalize.css")
+  );
+} // export async function
+
+export async function download_alpine_js(vendor: string) {
+  return await verbose(
+    download,
+    "https://unpkg.com/alpinejs@latest/dist/cdn.min.js",
+    path.join(vendor, "alpine.js")
+  );
+} // export async function
+
+export async function build_update(src_dir: string) {
+  const vendor = path.join(src_dir, "vendor");
+  await ensureDir(vendor);
+  return await Promise.all([
+    download_normalize_css(vendor),
+    download_alpine_js(vendor)
+  ]);
+} // export async function
+
+export async function build_app(group: "app"|"public"|"worker"|"update", RAW_CONFIG: Record<string, any>) {
   const CONFIG      = Object.assign({}, DEFAULT_OPTIONS, RAW_CONFIG);
   const PUBLIC      = CONFIG.public;
   const PUBLIC_DIST = CONFIG.public_dist;
@@ -165,6 +196,11 @@ export async function build_app(group: "app"|"public"|"worker", RAW_CONFIG: Reco
 
     case "worker": {
       await build_worker(WORKER_TS, WORKER_JS);
+      break;
+    }
+
+    case "update": {
+      await build_update(PUBLIC);
       break;
     }
 

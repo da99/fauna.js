@@ -1,6 +1,6 @@
 import { describe, it } from "../src/Spec.ts";
 import { daEquals } from "./_.helper.ts";
-import { run_or_throw, run } from "../src/Process.ts";
+import { throw_on_fail, run } from "../src/Process.ts";
 
 // =============================================================================
 describe("run");
@@ -36,15 +36,16 @@ it("returns status w/success boolean", async function () {
 }); // it async
 
 // =============================================================================
-describe("run_or_throw(...)");
+describe("throw_on_fail(...)");
 
 it("throws if result is not success", async function () {
   let msg = null;
   try {
-    await run_or_throw("node 1 2 3");
+    await throw_on_fail(run("node 1 2 3"));
   } catch (err) {
     msg = err.message;
   }
-  daEquals(msg.match("Exit 1: node 1 2 3"), ["Exit 1: node 1 2 3"]);
+  const actual = (msg || "").split("\n")[0];
+  daEquals(actual, "Exit 1");
 }); // it async
 

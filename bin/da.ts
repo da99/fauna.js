@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-run=deno,pkill,find,ln,tar,npm,npx --allow-net --allow-read=./ --allow-write=./
 
 import {meta_url, about, match, values, not_found} from "../src/CLI.ts";
-import {pgrep_f, pstree_p, keep_alive, run, run_and_exit} from "../src/Process.ts";
+import {pgrep_f, pstree_p, keep_alive, run, exit} from "../src/Process.ts";
 
 import {build_www, build_app} from "../src/Build_WWW.ts";
 import { yellow, bold, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
@@ -20,6 +20,10 @@ meta_url(import.meta.url);
 
 if (match(".gitignore")) {
   await create_from_template("gitignore", ".gitignore");
+} // if
+
+if (match("sh bin/update")) {
+  await create_from_template("bin_update.sh", "bin/update");
 } // if
 
 if (match("ts bin/test")) {
@@ -67,7 +71,7 @@ if (match("file-server stop")) {
 } // if
 
 if (match("file-server reload www-browser")) {
-  await run_and_exit(['pkill', '-USR1', '-f', '^deno run .+bin/_.file_server.ts']);
+  await exit(run(['pkill', '-USR1', '-f', '^deno run .+bin/_.file_server.ts'], "inherit", "verbose"));
 } // if
 
 // # =============================================================================
@@ -81,10 +85,10 @@ if (match("build [css|js|html] <url_path> <json_config>")) {
   );
 } // if
 
-if (match("build [app|public|worker] <json_config>")) {
+if (match("build [app|public|worker|update] <json_config>")) {
   const [group, config] = values();
   await build_app(
-    group as "app" | "public" | "worker",
+    group as "app" | "public" | "worker" | "update",
     JSON.parse(config as string)
   );
 } // if

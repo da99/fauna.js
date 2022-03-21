@@ -3,7 +3,7 @@
 import { yellow, bold, green, red, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
 import nunjucks from "https://deno.land/x/nunjucks/mod.js";
 import * as path from "https://deno.land/std/path/mod.ts";
-import {run_or_throw, run} from "../../da.ts/src/Process.ts";
+import {throw_on_fail, run} from "../../da.ts/src/Process.ts";
 import {
   Application,
   Router,
@@ -22,6 +22,10 @@ const static_files = `${Deno.cwd()}/dist/Public`;
 async function print(s: string) {
   return await Deno.writeAll(Deno.stderr, new TextEncoder().encode(s));
 } // async function
+
+function _run(cmd: string) {
+  return throw_on_fail(run(cmd, "piped", "quiet"));
+} // function
 
 const CONFIG = {
   "PORT": 5555,
@@ -74,7 +78,7 @@ export async function render(file_path: string) {
       if (contents)
         return {code: 200, body: contents, type: "css"};
       const less = path.join(CONFIG.public_dir, file_path).replace(/\.css$/, ".less");
-      const { stdout } = await run_or_throw(`npx lessc ${less}`);
+      const { stdout } = await _run(`npx lessc ${less}`);
       return {code: 200, body: stdout, type: "css"};
     }
     case ".html": {
@@ -90,7 +94,7 @@ export async function render(file_path: string) {
       if (contents)
         return {code: 200, body: contents, type: "js"};
       const ts = path.join(CONFIG.public_dir,file_path).replace(/\.js$/, ".ts");
-      const { stdout } = await run_or_throw(`deno bundle ${ts}`);
+      const { stdout } = await _run(`deno bundle ${ts}`);
       return {code: 200, body: stdout, type: "js"};
     }
   } // switch

@@ -3,8 +3,8 @@
 // import { ensureDirSync } from "https://deno.land/std/fs/mod.ts";
 // import * as path from "https://deno.land/std/path/mod.ts";
 //
-import {download} from "../src/Download.ts";
-import {run_or_throw, run} from "../src/Process.ts";
+import {download} from "../src/FS.ts";
+import {run} from "../src/Process.ts";
 import { yellow, bold } from "https://deno.land/std/fmt/colors.ts";
 
 async function prune() {
@@ -26,6 +26,7 @@ async function _run(cmd: string) {
   }
   throw new Error(`Exited: ${result.code}`);
 } // async function
+
 export async function install_latest() {
   const remote_path = "https://nodejs.org/dist";
   const resp = await fetch(`${remote_path}/index.json`);
@@ -59,9 +60,9 @@ export async function install_latest() {
     prune();
     console.error(`Downloading: ${NODE_DIR}`);
     await download(REMOTE_FILE, FILENAME);
-    await run_or_throw(`tar -xf ${FILENAME}`);
-    await run_or_throw(`ln -sf ${NODE_DIR} current`);
-    await run_or_throw(`npm install less -g`);
+    await _run(`tar -xf ${FILENAME}`);
+    await _run(`ln -sf ${NODE_DIR} current`);
+    await _run(`npm install less -g`);
   }
 
   console.error(version);

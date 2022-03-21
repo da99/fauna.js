@@ -56,29 +56,34 @@ export async function run(
       console.error(`=== ${yellow(cmd.join(" "))} ===`);
   } // if
 
-  const process = Deno.run({ cmd, stderr: std, stdout: std });
-  const status  = await process.status();
+  try {
+    const process = Deno.run({ cmd, stderr: std, stdout: std });
+    const status  = await process.status();
 
-  // NOTE: For some reason, the process is never closed automatically.
-  // At this point, we can close it manually since we have all the output
-  // we need.
-  process.close();
+    // NOTE: For some reason, the process is never closed automatically.
+    // At this point, we can close it manually since we have all the output
+    // we need.
+    process.close();
 
-  if (std === "piped") {
+    if (std === "piped") {
       stdout = new TextDecoder().decode(await process.output());
       stderr =  new TextDecoder().decode(await process.stderrOutput());
-  } // if
+    } // if
 
-  if (verbose === "verbose" || verbose === "verbose-exit" || (!status.success && verbose === "verbose-fail" )) {
+    if (verbose === "verbose" || verbose === "verbose-exit" || (!status.success && verbose === "verbose-fail" )) {
       print_status(cmd, process.pid, status);
-  } // if
+    } // if
 
-  return {
-    cmd, status, process,
-    stdout, stderr,
-    success: status.success,
-    code:    status.code
-  };
+    return {
+      cmd, status, process,
+      stdout, stderr,
+      success: status.success,
+      code:    status.code
+    };
+  } catch (e) {
+    console.error(cmd);
+    throw e;
+  }
 } // export
 
 export function print_status(cmd: string[], pid: number, r: Deno.ProcessStatus) {

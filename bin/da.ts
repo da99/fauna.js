@@ -1,7 +1,8 @@
-#!/usr/bin/env -S deno run --unstable --allow-run=find,ln,tar,npm,npx --allow-net --allow-read=./ --allow-write=./
+#!/usr/bin/env -S deno run --allow-run=deno,pkill,find,ln,tar,npm,npx --allow-net --allow-read=./ --allow-write=./
 
 import {meta_url, about, match, values, not_found} from "../src/CLI.ts";
 import {pgrep_f, pstree_p, keep_alive, run, run_and_exit} from "../src/Process.ts";
+
 import {build_www, build_app} from "../src/Build_WWW.ts";
 import { yellow, bold, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
 
@@ -57,6 +58,9 @@ if (match("file-server start <json>")) {
   await start(JSON.parse((values()[0] as string).trim()));
 } // if
 
+// # =============================================================================
+// # === File Server related:
+// # =============================================================================
 if (match("file-server stop")) {
   const {code} = await run(split_whitespace(`pkill -INT -f`).concat(['^deno run .+ file-server start .+']), "inherit", "verbose-exit");
   Deno.exit(code);
@@ -66,6 +70,9 @@ if (match("file-server reload www-browser")) {
   await run_and_exit(['pkill', '-USR1', '-f', '^deno run .+bin/_.file_server.ts']);
 } // if
 
+// # =============================================================================
+// # === Build related:
+// # =============================================================================
 if (match("build [css|js|html] <url_path> <json_config>")) {
   const [group, filepath, config] = values();
   await build_www(

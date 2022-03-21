@@ -2,7 +2,6 @@
 /*
  * Permissions:
  *   Nunjucks: requires permission to read ./ (CWD)
- *   Deno.emit: requires net access to Deno.land
  */
 
 import {emptyDir, existsSync, ensureDirSync, ensureDir} from "https://deno.land/std/fs/mod.ts";
@@ -27,8 +26,8 @@ export async function css(file_path: string) {
 } // export async function
 
 export async function js(file_path: string) {
-  const { files } = await Deno.emit(file_path.replace(/\.js$/, ".ts"), { bundle: "module", });
-  return files["deno:///bundle.js"];
+  const { stdout } = await run_or_throw(`deno bundle ${file_path.replace(/\.js$/, ".ts")}`);
+  return stdout;
 } // export async function
 
 export function html(file_path: string, site: Record<string, any>) {
@@ -44,9 +43,9 @@ function print_wrote(x: string) {
 export async function build_worker(WORKER_TS: string, WORKER_JS: string) {
   const filename = WORKER_TS;
   const new_file = WORKER_JS;
-  const { files } = await Deno.emit(filename, { bundle: "module" });
+  const { stdout } = await run_or_throw(`deno bundle ${filename}`);
   await ensureDir(path.dirname(new_file));
-  await Deno.writeTextFile(new_file, files["deno:///bundle.js"]);
+  await Deno.writeTextFile(new_file, stdout);
   print_wrote(new_file);
 } // export async function
 

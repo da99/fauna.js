@@ -1,14 +1,5 @@
 
 
-/*
- * npm install less
- * deno run    \
- * --allow-net \
- * --allow-read=./ \
- *  path/to/this.file.ts
- *
- */
-
 import { yellow, bold, green, red, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
 import nunjucks from "https://deno.land/x/nunjucks/mod.js";
 import * as path from "https://deno.land/std/path/mod.ts";
@@ -19,6 +10,8 @@ import {
   send,
   ServerSentEventTarget
 } from "https://deno.land/x/oak/mod.ts";
+
+const NUN = nunjucks.configure({noCache: true});
 
 const watches: Array<ServerSentEventTarget> = [];
 
@@ -63,26 +56,42 @@ app.use(async (ctx, next) => {
   }
 });
 
+async function read_file(file_path: string) {
+  try {
+    console.error(`--- reading ${file_path} ---`);
+    return await Deno.readTextFile(file_path);
+  } catch (e) {
+    return null;
+  }
+} // function
+
 export async function render(file_path: string) {
   const ext = path.extname(file_path);
+  const src_file_path = path.join(CONFIG.public_dir, file_path);
+  const contents = await read_file(src_file_path);
   switch (ext) {
     case ".css": {
+      if (contents)
+        return {code: 200, body: contents, type: "css"};
       const less = path.join(CONFIG.public_dir, file_path).replace(/\.css$/, ".less");
       const { stdout } = await run_or_throw(`npx lessc ${less}`);
       return {code: 200, body: stdout, type: "css"};
     }
     case ".html": {
-      const html = nunjucks.render(
+      if (contents)
+        return {code: 200, body: contents, type: "html"};
+      const html = NUN.render(
         path.join(CONFIG.public_dir,file_path).replace(/\.html$/, ".njk"),
         CONFIG["html"]
       );
       return {code: 200, body: html, type: "html"};
     }
     case ".js": {
+      if (contents)
+        return {code: 200, body: contents, type: "js"};
       const ts = path.join(CONFIG.public_dir,file_path).replace(/\.js$/, ".ts");
-      const { files } = await Deno.emit(ts, { bundle: "module", });
-      const body = files["deno:///bundle.js"];
-      return {code: 200, body: body, type: "js"};
+      const { stdout } = await run_or_throw(`deno bundle ${ts}`);
+      return {code: 200, body: stdout, type: "js"};
     }
   } // switch
   return {code: 418, body: "Unknown type: ${ext}", type: "text"};

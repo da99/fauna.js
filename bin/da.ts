@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --unstable --allow-run --allow-net --allow-read --allow-write
+#!/usr/bin/env -S deno run --unstable  --allow-run=ln,tar,npm,npx --allow-net --allow-read=./ --allow-write=./
 
 import {meta_url, about, match, values, not_found} from "../src/CLI.ts";
 import {pgrep_f, pstree_p, keep_alive, run, run_and_exit} from "../src/Process.ts";
@@ -8,6 +8,7 @@ import { yellow, bold, bgRed, white } from "https://deno.land/std/fmt/colors.ts"
 // import {exists, ensureDirSync} from "https://deno.land/std/fs/mod.ts";
 import {create_from_template} from "./_.template.ts";
 import {split_whitespace} from "../src/String.ts";
+import {install_latest as nodejs_install_latest} from "../src/NodeJS.ts";
 import {start} from "./_.file_server.ts";
 
 import * as path from "https://deno.land/std/path/mod.ts";
@@ -62,6 +63,13 @@ if (match("file-server stop")) {
 
 if (match("file-server reload www-browser")) {
   await run_and_exit(['pkill', '-USR1', '-f', '^deno run .+bin/_.file_server.ts']);
+} // if
+
+// # =============================================================================
+// # === NodeJS related:
+// # =============================================================================
+if (match("nodejs install latest")) {
+  nodejs_install_latest();
 } // if
 
 // # =============================================================================

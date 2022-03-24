@@ -122,7 +122,9 @@ router
       context.response.body   = `${body}`;
       context.response.type   = type;
     }
-  } catch (err) { console.error(err.message); "ignore"; }
+  } catch (err) {
+    console.error(err.message);
+  }
 })
 ;
 

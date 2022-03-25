@@ -1,7 +1,7 @@
 
 import {split_whitespace, flatten_cmd} from "../src/String.ts";
 import { bold, red, green, yellow, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
-import { sleep } from "https://deno.land/x/sleep/mod.ts";
+// import { sleep } from "https://deno.land/x/sleep/mod.ts";
 
 export interface Keep_Alive {
   cmd: Array<string>;

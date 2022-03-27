@@ -62,7 +62,6 @@ export async function install_latest() {
     await download(REMOTE_FILE, FILENAME);
     await _run(`tar -xf ${FILENAME}`);
     await _run(`ln -sf ${NODE_DIR} current`);
-    await _run(`npm install less -g`);
   }
 
   console.error(version);

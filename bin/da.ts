@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-run --allow-net --allow-read=./ --allow-write=./
+#!/usr/bin/env -S deno run --allow-run --allow-net --allow-read --allow-write=./
 
 import {meta_url, about, match, values, not_found} from "../src/CLI.ts";
 import {pgrep_f, pstree_p, keep_alive, run, exit} from "../src/Process.ts";

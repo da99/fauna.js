@@ -53,7 +53,7 @@ export async function install_latest() {
   const REMOTE_FILE = `${remote_path}/${version.version}/${FILENAME}`;
 
   try {
-    const dir = await Deno.stat(NODE_DIR);
+    await Deno.stat(NODE_DIR);
     console.error(`=== Skipping download: ${REMOTE_FILE}`);
     console.error(`=== Latest version already installed.`);
   } catch (e) {

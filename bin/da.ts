@@ -74,6 +74,24 @@ if (match("file-server reload www-browser")) {
   await exit(run(['pkill', '-USR1', '-f', '^deno run .+bin/_.file_server.ts'], "inherit", "verbose"));
 } // if
 
+// =============================================================================
+// === Downlaod related:
+// =============================================================================
+if (match("latest release <repo/name> <substring>")) {
+  const [repo, substring] = values() as string[];
+  let url = repo
+  if (url.indexOf("http") === -1) {
+    url = `https://api.github.com/repos/${repo}/releases/latest`
+  }
+  let resp = await fetch(url as string);
+  let json = await resp.json();
+  for (const x of json.assets) {
+    let download = (x as any)['browser_download_url'] as string | null;
+    if (download && download.indexOf(substring) > -1)
+      console.log(download)
+  }
+}
+
 // # =============================================================================
 // # === Build related:
 // # =============================================================================

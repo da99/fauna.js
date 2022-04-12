@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 #
 #
 set -u -e -o pipefail -x
@@ -18,4 +18,4 @@ IS_TEST="yes" deno run \
   --allow-read="./,./tmp/spec" \
   --allow-write="./tmp/spec" \
   --allow-env=IS_TEST,NO_COLOR,FAUNA_SECRET_TEST_A,FAUNA_SECRET_TEST_B \
-  spec/__.ts $@
+  spec/__.ts "$*"

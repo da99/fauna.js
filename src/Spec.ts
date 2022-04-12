@@ -3,6 +3,8 @@ import caller from 'https://raw.githubusercontent.com/apiel/caller/master/caller
 import { Text_File } from "../src/FS.ts";
 import { assertEquals as EQUALS } from "https://deno.land/std/testing/asserts.ts";
 import { bold as BOLD, blue as BLUE, green as GREEN, red as RED, bgBlue, yellow as YELLOW, white  } from "https://deno.land/std/fmt/colors.ts";
+import {ensureDirSync} from "https://deno.land/std/fs/mod.ts";
+import * as path from "https://deno.land/std/path/mod.ts";
 
 // # =============================================================================
 type Asyn_Function = () => Promise<void>;
@@ -75,6 +77,7 @@ export function it(raw_title: string, raw_f: Void_Function | Asyn_Function) {
 } // function
 
 export async function finish() {
+  ensureDirSync(path.dirname(LAST_FAIL_FILE));
   let last_filename       = null;
   let last_desc           = null;
   let at_least_one_it_ran = false;

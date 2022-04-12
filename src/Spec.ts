@@ -2,8 +2,9 @@
 import caller from 'https://raw.githubusercontent.com/apiel/caller/master/caller.ts';
 import { Text_File } from "../src/FS.ts";
 import { assertEquals as EQUALS } from "https://deno.land/std/testing/asserts.ts";
+import { deepEqual } from "https://deno.land/x/cotton/src/utils/deepequal.ts";
 import { bold as BOLD, blue as BLUE, green as GREEN, red as RED, bgBlue, yellow as YELLOW, white  } from "https://deno.land/std/fmt/colors.ts";
-import {ensureDirSync} from "https://deno.land/std/fs/mod.ts";
+import { ensureDirSync } from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 
 // # =============================================================================
@@ -29,6 +30,16 @@ function is_async_function(x: any) {
 // # =============================================================================
 const LAST_FAIL_FILE = "tmp/spec/last.fail";
 const PRINT_STACK: Array<Print_Stack_Record> = [];
+
+export function equals(x: any, y: any, z: any = "iGnOrEd") {
+  if (deepEqual(x, y))
+    return true;
+  if (z !== "iGnOrEd") {
+    console.error("");
+    console.error(z);
+  }
+  return EQUALS(x,y);
+} // export function
 
 function get_content(s: string) {
   try{

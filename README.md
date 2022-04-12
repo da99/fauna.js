@@ -1,11 +1,21 @@
 # DA.ts
 Various helpers... in TypeScript... for Deno.
 
-# Evan
-My own little module for ghetto-styled Spec Driven Development.
-
 # Status
 Untested. This is too specific and my tastes are too weird for you people.
+
+# Spec
+```bash
+deno run \
+  --allow-read="tmp/spec" \
+  --allow-write="tmp/spec" \
+  my_test_file.ts
+```
+
+```typescript
+import { describe, it, finish, equals} from "https://github.com/da99/da.ts/raw/main/src/Spec.ts";
+```
+
 
 
 

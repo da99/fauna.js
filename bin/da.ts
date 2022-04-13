@@ -12,7 +12,6 @@ import {create_from_template} from "./_.template.ts";
 import {split_whitespace} from "../src/String.ts";
 import {install_latest as nodejs_install_latest} from "../src/NodeJS.ts";
 import {start} from "./_.file_server.ts";
-import {current_files_txt, current_files_json, current_files_ts} from "../src/File_Manifest.ts";
 
 import * as path from "https://deno.land/std/path/mod.ts";
 
@@ -112,47 +111,6 @@ if (match("build [app|public|worker|update] <json_config>")) {
   );
 } // if
 
-// if (match("file manifest current files <.txt|.json|.ts> <dir>")) {
-//   const [format, dir] = values();
-//   switch (format) {
-//     case ".txt": {
-//       const files = await current_files_txt(dir as string);
-//       files.split('\n').forEach(x => console.log(x));
-//       break;
-//     }
-//     case ".json": {
-//       console.log(await current_files_json(dir as string));
-//       break;
-//     }
-//     case ".ts": {
-//       console.log(await current_files_ts(dir as string));
-//       break;
-//     }
-//   }
-// } // if
-//
-// if (match("file manifest new files <file_name> <dir>")) {
-//   const [file_name, dir] = values();
-//   let old_files: string[] = [];
-//   try {
-//     const file = Deno.readTextFileSync(file_name as string);
-//     old_files = file.trim().split('\n')
-//   } catch(e) {
-//     console.error(e.message)
-//     Deno.exit(2)
-//     // ignore
-//   }
-//   const result = await exit_on_fail(
-//     run(
-//       ["find", dir as string, "-maxdepth", "4", "-type", "f", "-not", "-path", "*/.*", "-exec", "sha256sum", "{}", ";"],
-//       "piped",
-//       "verbose-fail"
-//     )
-//   );
-//   const current_files = result.stdout.trim().split('\n')
-//   const new_files = current_files.filter((x: string) => !old_files.includes(x))
-//   console.log(new_files.join('\n'));
-// } // if
 
 // # =============================================================================
 // # === NodeJS related:

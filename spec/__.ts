@@ -54,6 +54,7 @@ import "./Process.ts";
 import "./Spec.ts";
 import "./String.ts";
 import "./Text_File.ts";
+import "./File_Manifest.ts";
 import {slow} from "./FaunaDB.migrate.ts";
 
 // for (const f of target_files) {

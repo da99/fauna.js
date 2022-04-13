@@ -14,7 +14,7 @@ esac
 
 IS_TEST="yes" deno run \
   --allow-net=deno.land,raw.githubusercontent.com \
-  --allow-run="echo,node" \
+  --allow-run="find,fd,ls,echo,node" \
   --allow-read="./,./tmp/spec" \
   --allow-write="./tmp/spec" \
   --allow-env=IS_TEST,NO_COLOR,FAUNA_SECRET_TEST_A,FAUNA_SECRET_TEST_B \

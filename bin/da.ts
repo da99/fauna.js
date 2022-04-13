@@ -1,10 +1,10 @@
 #!/usr/bin/env -S deno run --allow-run --allow-net --allow-read --allow-write=./
 
-import {meta_url, about, match, values, not_found} from "../src/CLI.ts";
-import {pgrep_f, pstree_p, keep_alive, run, exit} from "../src/Process.ts";
+import {meta_url, match, values, not_found} from "../src/CLI.ts";
+import {pgrep_f, pstree_p, keep_alive, run, exit, exit_on_fail} from "../src/Process.ts";
 
 import {build_www, build_app} from "../src/Build_WWW.ts";
-import { yellow, bold, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
+// import { yellow, bold, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
 
 // import {Text_File, find_parent_file} from "../src/FS.ts";
 // import {exists, ensureDirSync} from "https://deno.land/std/fs/mod.ts";
@@ -12,6 +12,7 @@ import {create_from_template} from "./_.template.ts";
 import {split_whitespace} from "../src/String.ts";
 import {install_latest as nodejs_install_latest} from "../src/NodeJS.ts";
 import {start} from "./_.file_server.ts";
+import {current_files_txt, current_files_json, current_files_ts} from "../src/File_Manifest.ts";
 
 import * as path from "https://deno.land/std/path/mod.ts";
 
@@ -31,12 +32,12 @@ if (match("ts bin/test")) {
   await create_from_template("spec___.ts", "spec/__.ts");
 } // if
 
-if (match("ts spec/ <Name>")) {
+if (match("spec <Name>")) {
   const [name] = values() as string[];
   create_from_template("spec.ts", `spec/${name}.ts`);
 } // if
 
-if (match("ts src/ <Name>")) {
+if (match("src <Name>")) {
   const [name] = values() as string[];
   create_from_template("src.ts", `src/${name}.ts`);
 } // if
@@ -110,6 +111,48 @@ if (match("build [app|public|worker|update] <json_config>")) {
     JSON.parse(config as string)
   );
 } // if
+
+// if (match("file manifest current files <.txt|.json|.ts> <dir>")) {
+//   const [format, dir] = values();
+//   switch (format) {
+//     case ".txt": {
+//       const files = await current_files_txt(dir as string);
+//       files.split('\n').forEach(x => console.log(x));
+//       break;
+//     }
+//     case ".json": {
+//       console.log(await current_files_json(dir as string));
+//       break;
+//     }
+//     case ".ts": {
+//       console.log(await current_files_ts(dir as string));
+//       break;
+//     }
+//   }
+// } // if
+//
+// if (match("file manifest new files <file_name> <dir>")) {
+//   const [file_name, dir] = values();
+//   let old_files: string[] = [];
+//   try {
+//     const file = Deno.readTextFileSync(file_name as string);
+//     old_files = file.trim().split('\n')
+//   } catch(e) {
+//     console.error(e.message)
+//     Deno.exit(2)
+//     // ignore
+//   }
+//   const result = await exit_on_fail(
+//     run(
+//       ["find", dir as string, "-maxdepth", "4", "-type", "f", "-not", "-path", "*/.*", "-exec", "sha256sum", "{}", ";"],
+//       "piped",
+//       "verbose-fail"
+//     )
+//   );
+//   const current_files = result.stdout.trim().split('\n')
+//   const new_files = current_files.filter((x: string) => !old_files.includes(x))
+//   console.log(new_files.join('\n'));
+// } // if
 
 // # =============================================================================
 // # === NodeJS related:

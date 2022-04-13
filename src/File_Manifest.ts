@@ -12,7 +12,7 @@ export function cdn_filename(sha256: string, x: string) {
 } // export function
 
 export async function current_files(dir: string): Promise<File_Info[]> {
-  const raw_lines = (await current_files_txt(dir)).split('\n');
+  const raw_lines = (await __current_files(dir));
   const files: File_Info[] = [];
   raw_lines.forEach((l: string) => {
     const pieces = l.match(/([a-z0-9]+)\s+(.+)/);
@@ -35,7 +35,7 @@ export async function current_files_object(key: keyof File_Info, dir: string): P
   )
 } // export async function
 
-export async function current_files_txt(dir: string): Promise<string> {
+export async function __current_files(dir: string): Promise<string[]> {
   const result = await throw_on_fail(
     run(
       ["find", dir, "-maxdepth", "4", "-type", "f", "-size", "-15M", "-not", "-path", "*/.*", "-exec", "sha256sum", "{}", ";"],
@@ -43,17 +43,18 @@ export async function current_files_txt(dir: string): Promise<string> {
       "verbose-fail"
     )
   );
-  return result.stdout.trim();
+  const lines = result.stdout.trim().split('\n');
+  return lines.map(x => x.replace(`${dir}/`, ''));
 } // export async function
 
-export async function current_files_ts(dir: string): Promise<string> {
-  const files = await current_files_txt(dir);
-  return `export const FILES = ${as_json(files)};`;
-} // export async function
-
-export async function current_files_json(dir: string): Promise<string> {
-  return as_json(await current_files_txt(dir));
-} // export async function
+// export async function current_files_ts(dir: string): Promise<string> {
+//   const files = await current_files_txt(dir);
+//   return `export const FILES = ${as_json(files)};`;
+// } // export async function
+//
+// export async function current_files_json(dir: string): Promise<string> {
+//   return as_json(await current_files_txt(dir));
+// } // export async function
 
 export function as_json(files: string) {
   const h_files: Record<string, File_Info> = {};

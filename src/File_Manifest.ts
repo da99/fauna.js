@@ -3,16 +3,16 @@ import {contentType} from "https://deno.land/x/media_types/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 
 export interface File_Info {
-  sha256: string,
+  sha256:       string,
   raw_filename: string,
   cdn_filename: string,
-  line: string,
+  line:         string,
   content_type: string,
-  size: number
+  size:         number
 }
 
 export function cdn_filename(sha256: string, x: string) {
-  return `${sha256}.${x.replace(/[\ \/]/,"_")}`;
+  return `${sha256}.${x.replace(/[\ \/]/g,"_")}`;
 } // export function
 
 export async function current_files(dir: string): Promise<File_Info[]> {
@@ -24,7 +24,7 @@ export async function current_files(dir: string): Promise<File_Info[]> {
       const [__all_matched, sha256, raw_filename] = pieces;
       const _cdn_filename = cdn_filename(sha256, raw_filename);
       const file_stat     = await Deno.stat(path.join(dir, raw_filename));
-      const content_type  = contentType(raw_filename) || "";
+      const content_type  = contentType(path.basename(raw_filename)) || "";
       if (content_type === "")
         throw new Error(`Unknown file type for: ${dir}/${raw_filename}`);
       files.push({

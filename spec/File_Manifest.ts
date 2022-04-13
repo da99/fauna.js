@@ -1,5 +1,6 @@
 import { describe, it, equals } from "../src/Spec.ts";
-import { current_files, current_files_object } from "../src/File_Manifest.ts";
+import { subtract, current_files, current_files_object } from "../src/File_Manifest.ts";
+import type { File_Info } from "../src/File_Manifest.ts";
 
 import {exists, ensureDirSync} from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
@@ -86,3 +87,14 @@ it("returns a Record with the specified key", async () => {
   equals(Object.keys(b).map(x => x.length), [expect, expect])
 });
 
+
+describe("File_Manifest subtract(a, b)");
+
+it("returns a Record with files in a, not in b.", async () => {
+  await setup();
+  const a = await current_files_object("raw_filename", DIR);
+  const b = {} as Record<keyof File_Info, File_Info>;
+  b["1/2/3/b.txt" as keyof File_Info] = a["1/2/3/b.txt"];
+  const actual = subtract(a, b);
+  equals(Object.values(actual).map(x => x.raw_filename), ["1/2/3/a.txt"])
+});

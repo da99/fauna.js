@@ -11,6 +11,15 @@ export interface File_Info {
   size:         number
 }
 
+export function subtract(a: Record<keyof File_Info, File_Info>, b: Record<keyof File_Info, File_Info>) {
+  const x = {} as Record<keyof File_Info, File_Info>;
+  for (const [k,v] of Object.entries(a)) {
+    if (b[k as keyof File_Info]) { continue; }
+    x[k as keyof File_Info] = v;
+  } // for
+  return x;
+} // export
+
 export function cdn_filename(sha256: string, x: string) {
   return `${sha256}.${x.replace(/[\ \/]/g,"_")}`;
 } // export function

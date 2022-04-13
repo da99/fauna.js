@@ -13,7 +13,7 @@ async function setup() {
     )
   } catch (e) {
     await Promise.all(
-      files.map(x => Deno.writeTextFile(x, x))
+      files.map(x => Deno.writeTextFile(x, (new Date()).toString()))
     );
   }
   return files;
@@ -24,7 +24,7 @@ describe("File_Manifest current_files");
 it("returns the sha256sum of each file in a directory", async () => {
   const files = await setup();
   const a = await current_files("tmp/spec/check");
-  equals(a.map(x => x.raw_filename), ["a.txt", "b.txt"]);
+  equals(a.map(x => typeof x.sha256), ["string", "string"]);
 });
 
 it("ignores hidden files", async () => {
@@ -47,6 +47,14 @@ it("returns the content type of the file.", async () => {
   equals(actual.map(x => x.content_type), expect)
 });
 
+it("returns the file size for each file.", async () => {
+  const files = await setup();
+  const actual = await current_files("tmp/spec/check");
+
+  const expect = (new Date()).toString().length
+  equals(actual.map(x => x.size), [expect, expect])
+});
+
 describe("File_Manifest current_files_object");
 
 it("returns a Record with the specified key", async () => {
@@ -55,10 +63,7 @@ it("returns a Record with the specified key", async () => {
   equals(Object.keys(a), ["a.txt", "b.txt"]);
   const b = await current_files_object("cdn_filename", "tmp/spec/check");
 
-  const expect = [
-    "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb.a.txt",
-   "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d.b.txt",
-  ];
-  equals(Object.keys(b), expect)
+  const expect = "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb.a.txt".length;
+  equals(Object.keys(b).map(x => x.length), [expect, expect])
 });
 

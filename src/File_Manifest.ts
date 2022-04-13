@@ -1,12 +1,14 @@
 import {run, throw_on_fail} from "../src/Process.ts";
 import {contentType} from "https://deno.land/x/media_types/mod.ts";
+import * as path from "https://deno.land/std/path/mod.ts";
 
 export interface File_Info {
   sha256: string,
   raw_filename: string,
   cdn_filename: string,
   line: string,
-  content_type: string
+  content_type: string,
+  size: number
 }
 
 export function cdn_filename(sha256: string, x: string) {
@@ -16,17 +18,25 @@ export function cdn_filename(sha256: string, x: string) {
 export async function current_files(dir: string): Promise<File_Info[]> {
   const raw_lines = (await __current_files(dir));
   const files: File_Info[] = [];
-  raw_lines.forEach((l: string) => {
+  for (const l of raw_lines) {
     const pieces = l.match(/([a-z0-9]+)\s+(.+)/);
     if (pieces) {
       const [__all_matched, sha256, raw_filename] = pieces;
       const _cdn_filename = cdn_filename(sha256, raw_filename);
-      const content_type = contentType(raw_filename) || "";
+      const file_stat     = await Deno.stat(path.join(dir, raw_filename));
+      const content_type  = contentType(raw_filename) || "";
       if (content_type === "")
         throw new Error(`Unknown file type for: ${dir}/${raw_filename}`);
-      files.push({content_type, sha256, raw_filename, cdn_filename: _cdn_filename, line: l});
+      files.push({
+        content_type,
+        sha256,
+        raw_filename,
+        cdn_filename: _cdn_filename,
+        line: l,
+        size: file_stat.size
+      });
     }
-  });
+  } // for
   return files;
 } // export async function
 

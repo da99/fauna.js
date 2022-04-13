@@ -38,7 +38,7 @@ export async function current_files_object(key: keyof File_Info, dir: string): P
 export async function current_files_txt(dir: string): Promise<string> {
   const result = await throw_on_fail(
     run(
-      ["find", dir, "-maxdepth", "4", "-type", "f", "-not", "-path", "*/.*", "-exec", "sha256sum", "{}", ";"],
+      ["find", dir, "-maxdepth", "4", "-type", "f", "-size", "-15M", "-not", "-path", "*/.*", "-exec", "sha256sum", "{}", ";"],
       "piped",
       "verbose-fail"
     )

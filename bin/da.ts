@@ -58,19 +58,22 @@ if (match("keep-alive <...args>")) {
   await keep_alive(...cmds);
 } // if
 
-if (match("file-server start <json>")) {
-  await start(JSON.parse((values()[0] as string).trim()));
-} // if
-
 // # =============================================================================
 // # === File Server related:
 // # =============================================================================
-if (match("file-server stop")) {
+if (match(
+  "file server start <json>",
+  Deno.inspect({"port": 5555, "public_dir": "dist/Public", "html":{}}, {colors: true})
+)) {
+  await start(JSON.parse((values()[0] as string).trim()));
+} // if
+
+if (match("file server stop")) {
   const {code} = await run(split_whitespace(`pkill -INT -f`).concat(['^deno run .+ file-server start .+']), "inherit", "verbose-exit");
   Deno.exit(code);
 } // if
 
-if (match("file-server reload www-browser")) {
+if (match("file server reload www-browser")) {
   await exit(run(['pkill', '-USR1', '-f', '^deno run .+bin/_.file_server.ts'], "inherit", "verbose"));
 } // if
 

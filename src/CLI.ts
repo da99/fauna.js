@@ -173,7 +173,7 @@ export function args(i: string[]) {
   } // switch
 } // export
 
-export function print_help(raw_cmd: string) {
+export function print_help(raw_cmd: string, desc: string) {
   const search = _user_input[1];
   if (search && raw_cmd.indexOf(search) === -1) {
     return false;
@@ -189,12 +189,15 @@ export function print_help(raw_cmd: string) {
     return x;
   });
   console.log(` ${pieces.join(" ")}`);
+  if (desc.trim().length > 0) {
+    console.log(`  ${desc.trim()}`);
+  }
   return true;
 } // export
 
-export function match(pattern: string) {
+export function match(pattern: string, desc: string = "") {
   if (is_help) {
-    print_help(pattern);
+    print_help(pattern, desc);
   } // if is_help
 
   if (is_found)

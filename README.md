@@ -16,7 +16,10 @@ deno run \
 import { describe, it, finish, equals} from "https://github.com/da99/da.ts/raw/main/src/Spec.ts";
 ```
 
-
+# File Server
+```sh
+  da.ts file server start '{"public_dir": ..., "html": {}, "port": 1111}'
+```
 
 
 # Health Propaganda

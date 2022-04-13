@@ -36,6 +36,17 @@ it("ignores hidden files", async () => {
   );
 });
 
+it("returns the content type of the file.", async () => {
+  const files = await setup();
+  const actual = await current_files("tmp/spec/check");
+
+  const expect = [
+    "text/plain; charset=utf-8",
+    "text/plain; charset=utf-8",
+  ];
+  equals(actual.map(x => x.content_type), expect)
+});
+
 describe("File_Manifest current_files_object");
 
 it("returns a Record with the specified key", async () => {

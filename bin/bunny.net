@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+set -u -e -o pipefail
+
+case "$*" in
+  "ls files")
+    fd --max-depth 4 --type f --size -15M --exec sha256sum {} | tr -s ' ' | while IFS= read -r line ; do
+      sha="$(echo "$line" | cut -d' ' -f1)"
+      file="$(echo "$line" | cut -d' ' -f2- | cut -c3-  )"
+      new_file="$(echo "$file" | tr ' /' '.')"
+      echo "${sha}.${new_file}"
+    done | grep -P -v '[^a-zA-Z0-9\.\-\_]'
+    ;;
+
+  "ls remote files "*)
+    folder="$4"
+    curl --silent --request GET \
+     --url "${BUNNY_URL}/${folder}"/ \
+     --header 'Accept: */*' \
+     --header "AccessKey: $BUNNY_KEY" | jq .[].ObjectName --raw-output
+    ;;
+
+  "ls files to upload "*)
+    folder="$5"
+    uploaded="$("$0" ls remote files "$folder")"
+    (echo "$uploaded"; echo "$uploaded"; "$0" ls files) | sort # | uniq -u
+    ;;
+
+  *)
+    echo "!!! Unknown commands: $0 $*" >&2
+    exit 2
+    ;;
+esac

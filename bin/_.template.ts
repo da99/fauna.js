@@ -7,17 +7,15 @@ import {exists, ensureDirSync} from "https://deno.land/std/fs/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 
 meta_url(import.meta.url);
-const _this = about();
-
-export function in_da_ts_dir() {
-  const p = Deno.cwd();
-  const info = path.parse(p);
-  return info.base === "da.ts";
-} // export
+const _this    = about();
+const in_da_ts = path.parse(Deno.cwd()).base === 'da.ts';
+const da_dir   = path.dirname(path.dirname((new URL(import.meta.url)).pathname));
 
 export function relative_to_da(fpath: string) {
-  const da_dir = path.dirname(path.dirname((new URL(import.meta.url)).pathname));
-  return path.relative(path.parse(fpath).dir, da_dir);
+  return path.relative(
+    path.join(da_dir, path.parse(fpath).dir),
+    da_dir
+  );
 } // function
 
 export async function create_from_template(tmpl_name: string, fpath: string) {
@@ -31,7 +29,7 @@ export async function create_from_template(tmpl_name: string, fpath: string) {
   const vals: Record<string, string> = {
     Name: name,
     name,
-    "DA_PATH": relative_to_da(fpath)
+    DA_PATH: in_da_ts ? relative_to_da(fpath) : "https://raw.githubusercontent.com/da99/da.ts/main"
   };
   const file = new Text_File(fpath);
 

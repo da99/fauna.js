@@ -87,7 +87,7 @@ export function it(raw_title: string, raw_f: Void_Function | Asyn_Function) {
   });
 } // function
 
-export async function finish() {
+export async function finish(match? : string) {
   ensureDirSync(path.dirname(LAST_FAIL_FILE));
   let last_filename       = null;
   let last_desc           = null;
@@ -108,6 +108,9 @@ export async function finish() {
     }
 
     if (x.it && x.async_f) {
+      const is_match = !match || !!(`${last_desc}${x.it}`.match(match));
+      if (!is_match)
+        continue;
       const res = Deno.resources();
       const version = `${last_filename} ${last_desc} ${x.it}`;
 

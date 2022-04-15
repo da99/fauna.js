@@ -10,6 +10,9 @@ deno run \
   --allow-read="tmp/spec" \
   --allow-write="tmp/spec" \
   my_test_file.ts
+
+# For da.ts:
+sh/test
 ```
 
 ```typescript

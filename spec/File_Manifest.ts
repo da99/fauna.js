@@ -72,7 +72,9 @@ it("returns the file size for each file.", async () => {
   const actual = await current_files(DIR);
 
   const expect = (new Date()).toString().length
-  equals(actual.map(x => x.size), [expect, expect])
+  for (const f of actual) {
+    equals(`${f.raw_filename} is ${f.size}`, `${f.raw_filename} is 45`)
+  }
 });
 
 describe("File_Manifest current_files_object");

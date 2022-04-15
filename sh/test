@@ -3,15 +3,6 @@
 #
 set -u -e -o pipefail -x
 
-case "$@" in
-  "quick")
-    :
-    ;;
-  *)
-    deno cache --reload bin/da.ts
-    ;;
-esac
-
 IS_TEST="yes" deno run \
   --allow-net=deno.land,raw.githubusercontent.com \
   --allow-run="find,fd,ls,echo,node" \

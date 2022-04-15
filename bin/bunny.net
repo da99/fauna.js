@@ -2,6 +2,12 @@
 
 set -u -e -o pipefail
 
+files_file=".FILES.ts"
+if ! test -e "$files_file" ; then
+  echo "!!! No ${files_file} in this directory." >&2
+  exit 2
+fi # if
+
 case "$*" in
   "ls files")
     fd --max-depth 4 --type f --size -15M --exec sha256sum {} | tr -s ' ' | while IFS= read -r line ; do
@@ -23,7 +29,107 @@ case "$*" in
   "ls files to upload "*)
     folder="$5"
     uploaded="$("$0" ls remote files "$folder")"
-    (echo "$uploaded"; echo "$uploaded"; "$0" ls files) | sort # | uniq -u
+    (echo "$uploaded"; echo "$uploaded"; "$0" ls files) | sort | uniq -u
+    ;;
+
+  "upload files "*)
+    folder="$3"
+    count=""
+    fails=""
+    while IFS= read -r fname ; do
+      if test -z "$fname" ; then
+        continue;
+      fi
+      echo "=== Uploading: $fname"
+        # new Request(
+        #   path.join(BUNNY_URL, "miniuni", cdn_filename),
+        #   {
+        #     method: 'PUT',
+        #     headers: new Headers({
+        #       Checksum: sha256.toUpperCase(),
+        #       AccessKey: BUNNY_KEY,
+        #       "Content-Type": f.content_type,
+        #       "Content-Length": f.size.toString()
+        #     }),
+        #     body: stream
+        #   }
+        # )
+      result="$(curl --silent \
+        --request PUT \
+        --url "$BUNNY_URL/$folder/$fname" \
+        --header "Checksum: $SHA256" \
+        --header "AccessKey: $BUNNY_KEY" \
+        --header "Content-Type: $(da.ts Content-Type "$fname")" \
+        --data-binary @"$fname"
+      case "$(echo "$result" | jq .HttpCode)" in
+        201)
+          count="${count}${fname:0:1}"
+          printf "\033[0;32m $result \033[0m\n"
+          ;;
+        *)
+          fails="${fails}${fname:0:1}"
+          printf "\033[0;31m $result \033[0m\n"
+          ;;
+      esac
+    done <<<$("$0" ls files to upload "$folder") # while
+
+    n_count="$(echo -n "$count" | wc --chars)"
+    case "$n_count" in
+      0) printf "\033[1;33mNo files uploaded.\033[0m\n" ;;
+      1) printf "Uploaded: \033[0;32m 1 file\033[0m\n." ;;
+      *) printf "Uploaded: \033[0;32m ${n_count} files\033[0m\n." ;;
+    esac
+
+    n_count="$(echo -n "$fails" | wc --chars)"
+    case "$n_count" in
+      0) : ;;
+      *) printf "Failures: \033[0;32m ${n_count}\033[0m\n." ;;
+    esac
+    ;;
+
+  "ls outdated remote files "*)
+    folder="$5"
+    current="$("$0" ls files)"
+    (echo "$current"; echo "$current"; "$0" ls remote files "$folder") | sort | uniq -u
+    ;;
+
+  "delete outdated remote files "*)
+    folder="$5"
+    count=""
+    fails=""
+    while IFS= read -r fname ; do
+      if test -z "$fname" ; then
+        continue;
+      fi
+      echo "=== Deleting: $fname"
+      result="$(curl --silent \
+        --request DELETE \
+        --url "$BUNNY_URL/$folder/$fname" \
+        --header "AccessKey: $BUNNY_KEY")"
+      case "$(echo "$result" | jq .HttpCode)" in
+        200)
+          count="${count}${fname:0:1}"
+          printf "\033[0;32m $result \033[0m\n"
+          ;;
+        *)
+          fails="${fails}${fname:0:1}"
+          printf "\033[0;31m $result \033[0m\n"
+          ;;
+      esac
+    done <<<$("$0" ls outdated remote files "$folder") # while
+
+    n_count="$(echo -n "$count" | wc --chars)"
+    case "$n_count" in
+      0) printf "\033[1;33mNo files deleted.\033[0m\n" ;;
+      1) printf "Deleted: \033[0;32m 1 file\033[0m\n." ;;
+      *) printf "Deleted: \033[0;32m ${n_count} files\033[0m\n." ;;
+    esac
+
+    n_count="$(echo -n "$fails" | wc --chars)"
+    case "$n_count" in
+      0) : ;;
+      *) printf "Failures: \033[0;32m ${n_count}\033[0m\n." ;;
+    esac
     ;;
 
   *)

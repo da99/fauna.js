@@ -70,25 +70,3 @@ export async function __current_files(dir: string): Promise<string[]> {
   const lines = result.stdout.trim().split('\n');
   return lines.map(x => x.replace(`${dir}/`, ''));
 } // export async function
-
-// export async function current_files_ts(dir: string): Promise<string> {
-//   const files = await current_files_txt(dir);
-//   return `export const FILES = ${as_json(files)};`;
-// } // export async function
-//
-// export async function current_files_json(dir: string): Promise<string> {
-//   return as_json(await current_files_txt(dir));
-// } // export async function
-
-// export function as_json(files: string) {
-//   const h_files: Record<string, File_Info> = {};
-//   files.split('\n').forEach((x: string) => {
-//     const pieces = x.match(/([a-z0-9]+)\s+(.+)/);
-//     if (pieces) {
-//       const [__all_matched, sha256, raw_filename] = pieces;
-//       const _cdn_filename = cdn_filename(sha256, raw_filename);
-//       h_files[raw_filename] = {content_type, sha256, raw_filename, cdn_filename: _cdn_filename, line: x};
-//     }
-//   });
-//   return JSON.stringify(h_files);
-// } // export function

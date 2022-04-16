@@ -1,67 +1,135 @@
 
 import * as path from "https://deno.land/std/path/mod.ts";
-import {run} from "../src/Process.ts";
-import type {Result} from "../src/Process.ts";
+import {run} from "./Process.ts";
+import type {Result} from "./Process.ts";
+import {
+  split_whitespace as  splitws,
+  squeeze_whitespace as squeezews
+} from "./String.ts";
 
-// export async function find(cmd : string | string[] = ".") {
-//   const proc = await run(cmd, "piped", "quiet")
-// } // export function
 
-  // const files = shell()
-  //   .find(`--max-depth 4 --type f --size -15m --exec sha256sum {}`)
-  //   .squeeze_whitespace()
-  //   .split('\n')
-  //   .cut(' ', 2)
   //   .filter_column(1, (x) => x.match(/^[a-zA-Z0-9\.\-\_]+$/))
   //   .map_column(1, (x)=> x.toUpperCase())
-  // ;
 
-export function stringy(s: string) { return new Stringy(s); } // export function
-export function lines(l: string[]) { return new Lines(l); } // export function
-export function columns(c: string[][]) { return new Columns(c); } // export function
+export function apply_if_string(f: (x: string) => any) {
+  return((x: any) => (typeof x === "string") ? f(x as string) : x);
+} // export function
 
-export interface Slice_Args {
-  args: number[],
-  type: "range" | "to_end";
+export interface Slice_Spec {
+  begin: number,
+  end:   number,
+  type:  "head" | "tail" | "slice";
 } // export interface
 
-export function slice(n: number, end: number = -1): Slice_Args {
-  if (n < 1 || end < -1 || end < 1)
-    throw new Error(`Invalid number for slice(${n}, ${end})`);
-  const args = [n];
-  if (end !== -1)
-    args.push(end);
+export function head(n: number): Slice_Spec {
+  if (n < 1)
+    throw new Error(`Invalid value for head(${Deno.inspect(n)})`);
+  return({ begin: 0, end: n, type: "head" });
+} // export function
+
+export function tail(n: number): Slice_Spec {
+  if (n < 1)
+    throw new Error(`Invalid value for tail(${Deno.inspect(n)})`);
+  return({ begin: 0, end: n, type: "tail" });
+} // export function
+
+export function slice(n: number, quantity: number): Slice_Spec {
+  if (n < 0 || quantity < 0)
+    throw new Error(`Invalid number for slice(${Deno.inspect(n)}, ${Deno.inspect(quantity)})`);
   return({
-    args,
-    type: (end === -1) ? "to_end" : "range"
+    begin: n,
+    end: quantity,
+    type: "slice"
   });
+} // export function
+
+export function range(n: number, end: number): Slice_Spec {
+  if (n < 0 || end <= end)
+    throw new Error(`Invalid number for slice(${Deno.inspect(n)}, ${Deno.inspect(end)})`);
+  return({
+    begin: n,
+    end: end - n,
+    type: "slice"
+  });
+} // export function
+
+export function merge_columns(...arrs: any[][]) {
+  const col_count = arrs.map(x => x.length).reduce((prev, curr) => {
+    return (curr > prev) ? curr : prev;
+  }, 0);
+  const cols = [];
+  for (let x = 0; x < col_count; ++x) {
+    const row = [];
+    for (const a of arrs) {
+      if (x < a.length) {
+        row.push(a[x]);
+      }
+    }
+    cols.push(row);
+  }
+  return columns(cols);
+} // export function
+
+export function rows(x: any) {
+  if (typeof x === 'string')
+    return new Rows(x.split('\n'));
+  return new Rows(x)
+} // export function
+
+export function columns(x: any[][]) {
+  return new Columns(x)
 } // export function
 
 export async function fd(cmd: string | string[]) {
   if (typeof cmd === "string")
-    cmd = cmd.split(/\s+/);
+    cmd = splitws(cmd);
   const result = await run(["fd"].concat(cmd), "piped", "quiet");
-  return lines(result.stdout.split('\n'));
+  return rows(result.stdout);
 } // async find
 
-export class Stringy {
-  value:   string;
-  result?: Result;
+export async function find(cmd: string | string[]) {
+  if (typeof cmd === "string")
+    cmd = splitws(cmd);
+  const result = await run(["find"].concat(cmd), "piped", "quiet");
+  return rows(result.stdout);
+} // async find
 
-  constructor(s: string = "") {
-    this.value = s;
-  }
+export function split_whitespace(s: string) {
+  return rows(splitws(s));
+} // export function
 
-  split(s: string = '\n') {
-    return new Lines(this.value.split(s));
-  } // method
+export function arrange_columns<T>(arr: T[], spec: Array<number | Slice_Spec>): T[] {
+  let new_arr: T[] = [];
+  for (const i of spec) {
+    if (typeof i === "number") {
+      const v = arr[i];
+      if (typeof v !== "undefined")
+        new_arr.push(v);
+      continue;
+    }
+    switch (i.type) {
+      case "head": {
+        new_arr = new_arr.concat(arr.slice(i.begin, i.end));
+        break;
+      }
+      case "tail": {
+        new_arr = new_arr.concat(arr.slice(arr.length - i.end))
+        break;
+      }
+      case "slice": {
+        new_arr = new_arr.concat(arr.slice(i.begin, i.end))
+        break;
+      }
+      default: {
+        throw new Error(`Not implemented: ${i.type} for arrange_columns`)
+      }
+    }
+  } // for
 
-  split_whitespace() {
-    return new Lines(this.value.trim().split(/\s+/));
-  } // method
-} // export class
+  return new_arr;
+} // export function
 
-export class Lines {
+export class Rows {
   value:        string[];
   result?:      Result;
   column_count: number = 0;
@@ -72,46 +140,121 @@ export class Lines {
 
   get length() { return this.value.length; }
 
-
   replace_all(pattern: RegExp | string, target: string) {
     this.value = this.value.map(x => x.replaceAll(pattern, target));
 
     return this;
   } // method
 
-  squeeze_whitespace() {
-    this.value = this.value.map(x => x.replaceAll(/\s/, ' '))
-
+  update(f: (x: any) => any) {
+    this.value = this.value.map(y => f(y));
     return this;
   } // method
 
-  split(s: string = '\n') {
-    return new Columns(this.value.map(x => x.split(s)));
+  squeeze_whitespace() {
+    this.update(squeezews);
+    return this;
   } // method
 
-  cut(s: string, ...cols: Array<number | Slice_Args>): Columns {
+  cut_columns(s: string | RegExp, ...cols: Array<number | Slice_Spec>): Columns {
     const result = this.value.reduce((prev, curr) => {
-      const pieces = curr.split(s);
-      let   entry = [] as string[];
-      for (const i of cols) {
-        if (typeof i === "number") {
-          entry.push(pieces[i] || "");
-          continue;
-        }
-        entry = entry.concat(pieces.slice(...(i.args)));
-      } // for
-      prev.push(entry);
+      const pieces = curr.trim().split(s);
+      if (cols.length === 0)
+        prev.push(pieces);
+      else
+        prev.push(
+          arrange_columns(pieces, cols)
+        );
       return prev;
     }, [] as string[][]);
 
     return columns(result);
   } // method
 
+  map<T>(f: (s: string) => T): T[] {
+    return this.value.map(s => f(s));
+  } // method
+
+  compact() {
+    const new_row = [];
+    for (const c of this.value) {
+      if (typeof c === "undefined" || c === null)
+        continue;
+      new_row.push(c)
+    }
+    this.value = new_row;
+    return this;
+  } // method
+
+  map_promise_all(f: (x: any) => Promise<any>) {
+    return Promise.all(
+      this.value.map(x => f(x))
+    );
+  } // method
+
+  promise_all() {
+    return Promise.all(this.value);
+  } // method
 } // class
 
 export class Columns {
-  value: string[][];
-  constructor(c: string[][]) {
+  value: any[][];
+
+  constructor(c: any[][]) {
     this.value = c;
   }
+
+  get row_count() { return this.value.length; }
+  get column_count() { return this.value.reduce((max, row) => { return (row.length < max) ? max : row.length; }, 0); }
+  get cell_count() { return this.value.reduce((prev, curr) => { return prev + curr.length; }, 0); }
+  get area() { return this.row_count * this.column_count; }
+
+  update_cells(f: (x: any) => any) {
+    this.update_rows(
+      row => row.map(c => f(c))
+    );
+    return this;
+  } // method
+
+  update_rows(f: (x: any[]) => any[]) {
+    this.value = this.value.map(
+      row => f(row)
+    );
+    return this;
+  } // method
+
+  squeeze_whitespace() {
+    return this.update_cells(x => apply_if_string(squeezews));
+  } // method
+
+  split_whitespace() {
+    return this.update_rows(row => row.map(apply_if_string(splitws)).flat());
+  } // method
+
+  map_rows(f: (x: any[]) => any): any[] {
+    return this.value.map( row => f(row));
+  } // method
+
+  map_cells(f: (x: any) => any): any[][] {
+    return this.value.map(
+      row => row.map(c => f(c))
+    );
+  } // method
+
+  compact() {
+    const fin = [];
+    for (const row of this.value) {
+      const new_row = [];
+      for (const c of row) {
+        if (typeof c === "undefined" || c === null)
+          continue;
+        new_row.push(c)
+      }
+      if (new_row.length > 0)
+        fin.push(new_row);
+    }
+    this.value = fin;
+    return this;
+  } // method
+
 } // export class

@@ -9,11 +9,16 @@ function length_not_zero(x: String | Array<any>) {
   return x.length != 0;
 } // function
 
+export function squeeze_whitespace(s: string) {
+  return s.trim().replaceAll(WHITESPACE_PATTERN, ' ');
+} // function
+
 export function split_whitespace(x: string) {
   // The .split method call will not create any null values in the
   // returned array. So no need to filter out null values.
   // We just need to filter out empty strings.
   return x
+  .trim()
   .split(WHITESPACE_PATTERN)
   .map(trim)
   .filter(length_not_zero);

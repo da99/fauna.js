@@ -1,6 +1,29 @@
 
 export type Conditional = (x: any) => boolean;
 
+export const begin_dot_slash = /^\.+\/+/;
+export const end_slash = /\/+$/;
+
+export function remove_pattern(r: RegExp) {
+  return function (s: string) {
+    return s.replace(r, '');
+  };
+} // export function
+
+export function UPCASE(s: string) {
+  return s.toUpperCase();
+} // export function
+
+export function path_to_filename(replace: string) {
+  return function (s: string) {
+    return s
+    .replace(begin_dot_slash, '')
+    .replace(end_slash, '')
+    .replaceAll(/[^a-z0-9\.\-\_]+/g, replace)
+    .replaceAll(/\.+/g, '.');
+  };
+} // export function
+
 export function if_string(f: Function) {
   return function (x: any) {
     if (typeof x === "string")

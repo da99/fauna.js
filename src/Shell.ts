@@ -35,7 +35,7 @@ export async function run_cmd_args(cmd: string, args: string | string[]) {
   if (typeof args === "string")
     args = args.trim().split(/\s+/);
   const result = await throw_on_fail(run([cmd].concat(args), "piped", "quiet"));
-  return row(result.stdout.split('\n'));
+  return row(result.stdout.trim().split('\n'));
 } // export async
 
 export async function fd(args: string | string[]) {
@@ -45,7 +45,6 @@ export async function fd(args: string | string[]) {
 export async function find(args: string | string[]) {
   return await run_cmd_args("find", args);
 } // export async
-
 
 export class Row<T> {
   readonly raw: T[];
@@ -117,6 +116,10 @@ export class Columns<T> {
     return this.map_rows(row => rearrange(row, spec)) ;
   } // method
 
+  to_row<X>(f: (x: T[]) => X): Row<X> {
+    return row(this.raw.map(r => f(r)));
+  }
+
   // =============================================================================
   // Filter:
   // =============================================================================
@@ -157,6 +160,19 @@ export class Columns<T> {
         row => row.map(c => f(c))
       )
     );
+  } // method
+
+  map_column(i: number, f: (x: T) => any) {
+    if (i < 0)
+      throw new Error(`Invalid value for column index: ${Deno.inspect(i)}`);
+    const new_raw = this.raw.map(r => {
+      if (i > r.length )
+        return r;
+      const new_row = r.slice();
+      new_row[i] = f(r[i]);
+      return new_row;
+    });
+    return columns(new_raw);
   } // method
 
   map_rows<X>(f: (x: T[]) => X[]): Columns<X> {

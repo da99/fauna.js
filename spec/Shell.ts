@@ -178,7 +178,9 @@ describe("Columns#remove_rows");
 // =============================================================================
 
 it("removes empty rows", function () {
-  const x = columns<null | number | undefined>( [ [1, 2, null], [undefined], [], [null, undefined] ]);
+  const x = columns<null | number | undefined>(
+    [ [1, 2, null], [undefined], [], [null, undefined] ]
+  );
 
   const actual = x
   .remove_cells(is_null_or_undefined)
@@ -186,3 +188,17 @@ it("removes empty rows", function () {
 
   equals(actual.raw, [ [1, 2] ]);
 });
+
+// =============================================================================
+describe("Columns#map_column");
+// =============================================================================
+
+it("operates on the value of the specified column", function () {
+  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+
+  const actual = x
+  .map_column(2, x => x + 10);
+
+  equals(actual.raw, [ [1, 2, 13], [4,5,16], [7,8,19] ]);
+});
+

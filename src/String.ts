@@ -13,6 +13,10 @@ export function squeeze_whitespace(s: string) {
   return s.trim().replaceAll(WHITESPACE_PATTERN, ' ');
 } // function
 
+export function split_lines(s: string) {
+  return s.trim().split('\n');
+} // export function
+
 export function split_whitespace(x: string) {
   // The .split method call will not create any null values in the
   // returned array. So no need to filter out null values.

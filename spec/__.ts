@@ -11,20 +11,31 @@ await ensureDir("tmp/spec");
 
 const cmd = Deno.args[0] || "full";
 
-import "./CLI.ts";
 import "./FaunaDB.ts";
+import {slow} from "./FaunaDB.migrate.ts";
+import "./CLI.ts";
+import "./Array.ts";
+import "./Function.ts";
 import "./Process.ts";
 import "./Spec.ts";
 import "./String.ts";
 import "./Text_File.ts";
 import "./File_Manifest.ts";
 import "./Shell.ts";
-import {slow} from "./FaunaDB.migrate.ts";
 
-if (cmd === "full") { slow(); }
+if (cmd === "full") {  }
 
-if (cmd === "full")
-  await finish();
-else
-  await finish(cmd);
-
+switch (cmd) {
+  case "full": {
+    slow();
+    await finish();
+    break;
+  }
+  case "quick": {
+    await finish();
+    break;
+  }
+  default: {
+    await finish(cmd);
+  }
+} // switch

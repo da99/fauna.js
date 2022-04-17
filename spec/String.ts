@@ -1,5 +1,4 @@
-import { describe, it } from "../src/Spec.ts";
-import { assertEquals as EQUALS } from "https://deno.land/std/testing/asserts.ts";
+import { describe, it, equals } from "../src/Spec.ts";
 import {
   split_whitespace,
   each_block,
@@ -8,16 +7,31 @@ import {
 } from "../src/String.ts";
 
 // # =============================================================================
-describe("String split_whitespace");
+describe("split_whitespace");
 
 it("removes whitespace from beginning, middle, and end", function () {
   const str = "  a  \r\n \t b    c ";
   const actual = split_whitespace(str);
-  EQUALS(actual, "a b c".split(" "));
+  equals(actual, "a b c".split(" "));
 }); // it
 
+it("splits the value", () => {
+  const actual = split_whitespace("e n d");
+  equals(actual, ["e", "n", "d"]);
+});
+
+it("splits the value, ignoreding whitespace at the beginning/end.", () => {
+  const actual = split_whitespace("  e n d  \t ");
+  equals(actual, ["e", "n", "d"]);
+});
+
+it("returns a Rows instance", () => {
+  const actual = split_whitespace("e n d");
+  equals(actual.constructor, Array);
+});
+
 // # =============================================================================
-describe("String each_block");
+describe("each_block");
 
 it("gets the body of the inner block", () => {
   const actual = each_block(`
@@ -27,7 +41,7 @@ it("gets the body of the inner block", () => {
   c
   < end
   `, "> start", "< end");
-  EQUALS("a b c", split_join(actual.join(" ")))
+  equals("a b c", split_join(actual.join(" ")))
 }); // it
 
 it("ignores whitespace of the surrounding substrings.", () => {
@@ -35,7 +49,7 @@ it("ignores whitespace of the surrounding substrings.", () => {
   >   > start
   1 2 3  < < end
   `, "> > start", "<  <  end");
-  EQUALS("1 2 3", actual.join(" ").trim());
+  equals("1 2 3", actual.join(" ").trim());
 }); //it
 
 it("calls the callback for each block", () => {
@@ -44,18 +58,18 @@ it("calls the callback for each block", () => {
   >   > start 1 2 3  < < end
   >   > start 4 5 6  < < end
   `, "> > start", "<  <  end", (block: string) => actual.push(block));
-  EQUALS("1 2 3 4 5 6", split_join(actual.join(" ")));
+  equals("1 2 3 4 5 6", split_join(actual.join(" ")));
 });
 
 it("doesn't grab the surrounding whitespace of the inner block", () => {
   const actual: Array<string> = [];
   each_block(`>> start \n 1 2 3 \n << end`, ">> start", "<< end", (block: string) => actual.push(block));
-  EQUALS("1 2 3", actual.join(" "));
+  equals("1 2 3", actual.join(" "));
 });
 
 
 // # =============================================================================
-describe("String insert_after_line");
+describe("insert_after_line");
 
 it("inserts content after last line found with substring", () => {
   const body = `
@@ -71,6 +85,6 @@ it("inserts content after last line found with substring", () => {
 hello();
      await finish();
   `;
-  EQUALS(insert_after_line_contains("hello();", "import", body), expected);
+  equals(insert_after_line_contains("hello();", "import", body), expected);
 });
 

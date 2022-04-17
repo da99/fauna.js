@@ -108,7 +108,7 @@ export async function finish(match? : string) {
     }
 
     if (x.it && x.async_f) {
-      const is_match = !match || !!(`${last_desc}${x.it}`.match(match));
+      const is_match = !match || !!(`${last_filename} ${last_desc} ${x.it}`.match(match));
       if (!is_match)
         continue;
       const res = Deno.resources();
@@ -126,7 +126,7 @@ export async function finish(match? : string) {
         prompt(GREEN(`${CHECK_MARK}\n`));
         EQUALS(res, Deno.resources());
         if (LAST_FAIL_VERSION === version) {
-          Deno.remove(LAST_FAIL_FILE);
+          await Deno.remove(LAST_FAIL_FILE);
           break;
         }
       } catch(e) {
@@ -142,9 +142,10 @@ export async function finish(match? : string) {
   if (!at_least_one_it_ran) {
     // We assume the test name change. Delete last.fail
     try {
-      await Deno.remove(LAST_FAIL_FILE);
+      await Deno.remove(LAST_FAIL_FILE)
     } catch (e) {
-      console.error(e.message);
+      // ignore
+      // console.error(e.message);
     }
     console.error(YELLOW("=========== No tests ran. ============="));
   }

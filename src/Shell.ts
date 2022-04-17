@@ -1,59 +1,25 @@
 
-import * as path from "https://deno.land/std/path/mod.ts";
-import {run} from "./Process.ts";
-import type {Result} from "./Process.ts";
+// import * as path from "https://deno.land/std/path/mod.ts";
+// import type {Result} from "./Process.ts";
+
+import {run, throw_on_fail} from "./Process.ts";
 import {
-  split_whitespace as  splitws,
-  squeeze_whitespace as squeezews
+  split_whitespace,
+  split_lines,
 } from "./String.ts";
+import {rearrange} from "./Array.ts";
+import type {Slice_Spec, Arrange_Spec} from "./Array.ts";
 
 
-  //   .filter_column(1, (x) => x.match(/^[a-zA-Z0-9\.\-\_]+$/))
-  //   .map_column(1, (x)=> x.toUpperCase())
-
-export function apply_if_string(f: (x: string) => any) {
-  return((x: any) => (typeof x === "string") ? f(x as string) : x);
+export function row<T>(x: T[]): Row<T> {
+  return new Row(x);
 } // export function
 
-export interface Slice_Spec {
-  begin: number,
-  end:   number,
-  type:  "head" | "tail" | "slice";
-} // export interface
-
-export function head(n: number): Slice_Spec {
-  if (n < 1)
-    throw new Error(`Invalid value for head(${Deno.inspect(n)})`);
-  return({ begin: 0, end: n, type: "head" });
+export function columns<T>(x: T[][]): Columns<T> {
+  return new Columns(x);
 } // export function
 
-export function tail(n: number): Slice_Spec {
-  if (n < 1)
-    throw new Error(`Invalid value for tail(${Deno.inspect(n)})`);
-  return({ begin: 0, end: n, type: "tail" });
-} // export function
-
-export function slice(n: number, quantity: number): Slice_Spec {
-  if (n < 0 || quantity < 0)
-    throw new Error(`Invalid number for slice(${Deno.inspect(n)}, ${Deno.inspect(quantity)})`);
-  return({
-    begin: n,
-    end: quantity,
-    type: "slice"
-  });
-} // export function
-
-export function range(n: number, end: number): Slice_Spec {
-  if (n < 0 || end <= end)
-    throw new Error(`Invalid number for slice(${Deno.inspect(n)}, ${Deno.inspect(end)})`);
-  return({
-    begin: n,
-    end: end - n,
-    type: "slice"
-  });
-} // export function
-
-export function merge_columns(...arrs: any[][]) {
+export function arrays_to_columns(...arrs: Array<any[]>) {
   const col_count = arrs.map(x => x.length).reduce((prev, curr) => {
     return (curr > prev) ? curr : prev;
   }, 0);
@@ -70,191 +36,138 @@ export function merge_columns(...arrs: any[][]) {
   return columns(cols);
 } // export function
 
-export function rows(x: any) {
-  if (typeof x === 'string')
-    return new Rows(x.split('\n'));
-  return new Rows(x)
-} // export function
+export async function run_cmd_args(cmd: string, args: string | string[]) {
+  if (typeof args === "string")
+    args = split_whitespace(args);
+  const result = await throw_on_fail(run([cmd].concat(args), "piped", "quiet"));
+  return row(split_lines(result.stdout));
+} // export async
 
-export function columns(x: any[][]) {
-  return new Columns(x)
-} // export function
+export async function fd(args: string | string[]) {
+  return await run_cmd_args("fd", args);
+} // export async
 
-export async function fd(cmd: string | string[]) {
-  if (typeof cmd === "string")
-    cmd = splitws(cmd);
-  const result = await run(["fd"].concat(cmd), "piped", "quiet");
-  return rows(result.stdout);
-} // async find
+export async function find(args: string | string[]) {
+  return await run_cmd_args("find", args);
+} // export async
 
-export async function find(cmd: string | string[]) {
-  if (typeof cmd === "string")
-    cmd = splitws(cmd);
-  const result = await run(["find"].concat(cmd), "piped", "quiet");
-  return rows(result.stdout);
-} // async find
 
-export function split_whitespace(s: string) {
-  return rows(splitws(s));
-} // export function
+export class Row<T> {
+  readonly raw: T[];
+  // result?:      Result;
 
-export function arrange_columns<T>(arr: T[], spec: Array<number | Slice_Spec>): T[] {
-  let new_arr: T[] = [];
-  for (const i of spec) {
-    if (typeof i === "number") {
-      const v = arr[i];
-      if (typeof v !== "undefined")
-        new_arr.push(v);
-      continue;
-    }
-    switch (i.type) {
-      case "head": {
-        new_arr = new_arr.concat(arr.slice(i.begin, i.end));
-        break;
-      }
-      case "tail": {
-        new_arr = new_arr.concat(arr.slice(arr.length - i.end))
-        break;
-      }
-      case "slice": {
-        new_arr = new_arr.concat(arr.slice(i.begin, i.end))
-        break;
-      }
-      default: {
-        throw new Error(`Not implemented: ${i.type} for arrange_columns`)
-      }
-    }
-  } // for
-
-  return new_arr;
-} // export function
-
-export class Rows {
-  value:        string[];
-  result?:      Result;
-  column_count: number = 0;
-
-  constructor(l: string[]) {
-    this.value = l;
+  constructor(l: T[]) {
+    this.raw = l;
   }
 
-  get length() { return this.value.length; }
+  get length() { return this.raw.length; }
 
-  replace_all(pattern: RegExp | string, target: string) {
-    this.value = this.value.map(x => x.replaceAll(pattern, target));
-
-    return this;
-  } // method
-
-  update(f: (x: any) => any) {
-    this.value = this.value.map(y => f(y));
-    return this;
-  } // method
-
-  squeeze_whitespace() {
-    this.update(squeezews);
-    return this;
-  } // method
-
-  cut_columns(s: string | RegExp, ...cols: Array<number | Slice_Spec>): Columns {
-    const result = this.value.reduce((prev, curr) => {
+  cut(s: string | RegExp, ...cols: Array<number | Slice_Spec>) {
+    // }: Columns<T[]> {
+    const result = this.raw.reduce((prev, curr) => {
+      if (typeof curr !== "string") {
+        prev.push([curr]);
+        return prev;
+      }
       const pieces = curr.trim().split(s);
       if (cols.length === 0)
         prev.push(pieces);
       else
         prev.push(
-          arrange_columns(pieces, cols)
+          rearrange(pieces, cols)
         );
       return prev;
-    }, [] as string[][]);
+    }, [] as Array<Array<T | string>>);
 
     return columns(result);
   } // method
 
-  map<T>(f: (s: string) => T): T[] {
-    return this.value.map(s => f(s));
-  } // method
-
-  compact() {
-    const new_row = [];
-    for (const c of this.value) {
-      if (typeof c === "undefined" || c === null)
-        continue;
-      new_row.push(c)
-    }
-    this.value = new_row;
-    return this;
-  } // method
-
-  map_promise_all(f: (x: any) => Promise<any>) {
-    return Promise.all(
-      this.value.map(x => f(x))
+  map(...funcs: Function[]): Row<any> {
+    return row(
+      this.raw.map(
+        x => funcs.reduce(
+          (prev, curr) => curr(prev),
+          x
+        )
+      )
     );
+  } // method
+
+  filter(f: (x: T) => boolean): Row<T> {
+    return row(this.raw.filter(x => f(x)));
+  } // method
+
+  remove(f: (x: T) => boolean): Row<T> {
+    return row(this.raw.filter(x => !f(x)));
   } // method
 
   promise_all() {
-    return Promise.all(this.value);
+    return Promise.all(this.raw);
   } // method
 } // class
 
-export class Columns {
-  value: any[][];
+export class Columns<T> {
+  raw: T[][];
 
-  constructor(c: any[][]) {
-    this.value = c;
+  constructor(c: T[][]) {
+    this.raw = c;
   }
 
-  get row_count() { return this.value.length; }
-  get column_count() { return this.value.reduce((max, row) => { return (row.length < max) ? max : row.length; }, 0); }
-  get cell_count() { return this.value.reduce((prev, curr) => { return prev + curr.length; }, 0); }
+  get row_count() { return this.raw.length; }
+  get column_count() { return this.raw.reduce((max, row) => { return (row.length < max) ? max : row.length; }, 0); }
+  get cell_count() { return this.raw.reduce((prev, curr) => { return prev + curr.length; }, 0); }
   get area() { return this.row_count * this.column_count; }
 
-  update_cells(f: (x: any) => any) {
-    this.update_rows(
-      row => row.map(c => f(c))
-    );
-    return this;
+  arrange(...spec: Arrange_Spec): Columns<T> {
+    return this.map_rows(row => rearrange(row, spec)) ;
   } // method
 
-  update_rows(f: (x: any[]) => any[]) {
-    this.value = this.value.map(
-      row => f(row)
-    );
-    return this;
-  } // method
+  // =============================================================================
+  // Filter:
+  // =============================================================================
 
-  squeeze_whitespace() {
-    return this.update_cells(x => apply_if_string(squeezews));
-  } // method
-
-  split_whitespace() {
-    return this.update_rows(row => row.map(apply_if_string(splitws)).flat());
-  } // method
-
-  map_rows(f: (x: any[]) => any): any[] {
-    return this.value.map( row => f(row));
-  } // method
-
-  map_cells(f: (x: any) => any): any[][] {
-    return this.value.map(
-      row => row.map(c => f(c))
+  filter_cells(f: (x: T) => boolean): Columns<T> {
+    return columns(
+      this.raw.map(
+        row => row.filter(c => f(c))
+      )
     );
   } // method
 
-  compact() {
-    const fin = [];
-    for (const row of this.value) {
-      const new_row = [];
-      for (const c of row) {
-        if (typeof c === "undefined" || c === null)
-          continue;
-        new_row.push(c)
-      }
-      if (new_row.length > 0)
-        fin.push(new_row);
-    }
-    this.value = fin;
-    return this;
+  filter_rows(f: (x: T[]) => boolean): Columns<T> {
+    return columns(
+      this.raw.filter(row => f(row))
+    );
+  } // method
+
+  // =============================================================================
+  // Remove:
+  // =============================================================================
+
+  remove_cells(f: (x: T) => boolean): Columns<T> {
+    return this.filter_cells(x => !f(x));
+  } // method
+
+  remove_rows(f: (x: T[]) => boolean): Columns<T> {
+    return this.filter_rows(x => !f(x));
+  } // method
+
+  // =============================================================================
+  // Map:
+  // =============================================================================
+
+  map_cells<X>(f: (x: T) => X): Columns<X> {
+    return columns(
+      this.raw.map(
+        row => row.map(c => f(c))
+      )
+    );
+  } // method
+
+  map_rows<X>(f: (x: T[]) => X[]): Columns<X> {
+    return columns(
+      this.raw.map(row => f(row))
+    );
   } // method
 
 } // export class

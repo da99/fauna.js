@@ -21,6 +21,22 @@ export function is_length_0(x: {length: number}) : boolean {
   return(x.length === 0);
 } // export function
 
+export function is_null(x: any) : boolean {
+  return(x === null);
+} // export function
+
+export function is_true(x: any) : boolean {
+  return(x === true);
+} // export function
+
+export function is_false(x: any) : boolean {
+  return(x === false);
+} // export function
+
+export function is_boolean(x: any) : boolean {
+  return(typeof x === "boolean");
+} // export function
+
 export function is_string(x: any) : boolean {
   return(typeof x === "string");
 } // export function

@@ -3,13 +3,8 @@
 // import type {Result} from "./Process.ts";
 
 import {run, throw_on_fail} from "./Process.ts";
-import {
-  split_whitespace,
-  split_lines,
-} from "./String.ts";
 import {rearrange} from "./Array.ts";
 import type {Slice_Spec, Arrange_Spec} from "./Array.ts";
-
 
 export function row<T>(x: T[]): Row<T> {
   return new Row(x);
@@ -38,9 +33,9 @@ export function arrays_to_columns(...arrs: Array<any[]>) {
 
 export async function run_cmd_args(cmd: string, args: string | string[]) {
   if (typeof args === "string")
-    args = split_whitespace(args);
+    args = args.trim().split(/\s+/);
   const result = await throw_on_fail(run([cmd].concat(args), "piped", "quiet"));
-  return row(split_lines(result.stdout));
+  return row(result.stdout.split('\n'));
 } // export async
 
 export async function fd(args: string | string[]) {

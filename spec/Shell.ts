@@ -158,8 +158,7 @@ it("removes empty rows", function () {
   .filter_cells(not(is_null_or_undefined))
   .filter_rows(not(is_length_0));
 
-  const expect = [ [1, 2] ];
-  equals(actual.raw, expect);
+  equals(actual.raw, [ [1, 2] ]);
 });
 
 // =============================================================================
@@ -168,9 +167,10 @@ describe("Columns#remove_cells");
 
 it("removes nulls and undefines in each cell", function () {
   const x = columns( [ [1, 2, null], [3, null, 4, undefined], [null, 5, 6] ]);
-  const actual = x.remove_cells(is_null_or_undefined);
-  const expect = [ [1, 2], [3, 4], [5, 6] ];
-  equals(actual.raw, expect);
+  equals(
+    x.remove_cells(is_null_or_undefined).raw,
+    [ [1, 2], [3, 4], [5, 6] ]
+  );
 });
 
 // =============================================================================
@@ -184,6 +184,5 @@ it("removes empty rows", function () {
   .remove_cells(is_null_or_undefined)
   .remove_rows(is_length_0);
 
-  const expect = [ [1, 2] ];
-  equals(actual.raw, expect);
+  equals(actual.raw, [ [1, 2] ]);
 });

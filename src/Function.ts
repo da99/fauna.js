@@ -10,8 +10,12 @@ export function remove_pattern(r: RegExp) {
   };
 } // export function
 
-export function UPCASE(s: string) {
+export function UP_CASE(s: string) {
   return s.toUpperCase();
+} // export function
+
+export function lower_case(s: string) {
+  return s.toLowerCase();
 } // export function
 
 export function path_to_filename(replace: string) {
@@ -101,3 +105,11 @@ export function or(...funcs: Conditional[]) : Conditional {
     return false;
   };
 } // export function
+
+export function env_or_throw(k: string): string {
+  const x: string | undefined = Deno.env.get(k);
+  if (!x)
+    throw new Error(`environment variable not found: ${Deno.inspect(k)}`);
+  return x;
+} // export function
+

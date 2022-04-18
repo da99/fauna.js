@@ -43,22 +43,41 @@ function ensure_valid_dir() {
 } // function
 
 if (match("ls files", "Be sure to 'cd' into the Public directory you want to upload.")) {
-  (await fd(`--max-depth 4 --type f --size -15m --exec sha256sum {} ;`))
-  .cut('  ')
-  .map_column(0, UP_CASE)
-  .map_column(1, remove_pattern(begin_dot_slash))
-  .arrange(1,0,1)
-  .map_column(2, path_to_filename('.'))
-  .raw
-  .map((r: string[]) => `${r[0]} ${r[1]}.${r[2]}`)
-  .sort()
-  .forEach(x => console.log(x));
+  const files = await local_files();
+  files.forEach(x => console.log(x));
 } // if
 
 if (match(`ls remote files <dirname>`)) {
   const [dirname] = values();
+  const files = await remote_files(dirname as string);
+  for (const f of files) {
+    console.log(`${f.Path} ${f.ObjectName}`);
+  };
+} // if
+
+if (match(`ls files to upload to <dirname>`)) {
+  const [_dirname] = values();
+  const dirname = _dirname as string;
+  const remote = await remote_files(dirname);
+} // if
+
+not_found();
+
+export async function local_files() {
+  return (await fd(`--max-depth 4 --type f --size -15m --exec sha256sum {} ;`))
+  .cut('  ')
+  .column(0, UP_CASE)
+  .column(1, remove_pattern(begin_dot_slash))
+  .arrange(1,0,1)
+  .column(2, path_to_filename('.'))
+  .raw
+  .map((r: string[]) => `${r[0]} ${r[1]}.${r[2]}`)
+  .sort()
+} // export async function
+
+export function remote_files(dirname: string): Promise<Bunny_File[]> {
   const url = `${env_or_throw("BUNNY_URL")}/${dirname}/`;
-  await fetch(url, {
+  return fetch(url, {
     method: "GET",
     headers: {
       "Accept": '*/*',
@@ -71,14 +90,8 @@ if (match(`ls remote files <dirname>`)) {
       const files: Bunny_File[] = x;
       if (files.length === 0)
         console.error(`No files found for: ${url}`);
-      for (const f of files) {
-        console.log(`${f.Path} ${f.ObjectName}`);
-      };
       return files;
     }
-    console.error(`${url} ${Deno.inspect(x, {colors: true})}`);
+    throw new Error(`${url} ${Deno.inspect(x, {colors: true})}`);
   });
-} // if
-
-
-not_found();
+} // export async

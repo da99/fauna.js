@@ -113,7 +113,7 @@ export class Columns<T> {
   get area() { return this.row_count * this.column_count; }
 
   arrange(...spec: Arrange_Spec): Columns<T> {
-    return this.map_rows(row => rearrange(row, spec)) ;
+    return this.rows(row => rearrange(row, spec)) ;
   } // method
 
   to_row<X>(f: (x: T[]) => X): Row<X> {
@@ -154,7 +154,7 @@ export class Columns<T> {
   // Map:
   // =============================================================================
 
-  map_cells<X>(f: (x: T) => X): Columns<X> {
+  cells<X>(f: (x: T) => X): Columns<X> {
     return columns(
       this.raw.map(
         row => row.map(c => f(c))
@@ -162,7 +162,7 @@ export class Columns<T> {
     );
   } // method
 
-  map_column(i: number, f: (x: T) => any) {
+  column(i: number, f: (x: T) => any) {
     if (i < 0)
       throw new Error(`Invalid value for column index: ${Deno.inspect(i)}`);
     const new_raw = this.raw.map(r => {
@@ -175,7 +175,7 @@ export class Columns<T> {
     return columns(new_raw);
   } // method
 
-  map_rows<X>(f: (x: T[]) => X[]): Columns<X> {
+  rows<X>(f: (x: T[]) => X[]): Columns<X> {
     return columns(
       this.raw.map(row => f(row))
     );

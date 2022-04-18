@@ -190,15 +190,26 @@ it("removes empty rows", function () {
 });
 
 // =============================================================================
-describe("Columns#map_column");
+describe("Columns#column");
 // =============================================================================
 
 it("operates on the value of the specified column", function () {
   const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
 
   const actual = x
-  .map_column(2, x => x + 10);
+  .column(2, x => x + 10);
 
   equals(actual.raw, [ [1, 2, 13], [4,5,16], [7,8,19] ]);
 });
 
+it("throws an Error if value is less than 0", function () {
+  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+  let actual = {message: ""};
+  try {
+    x.column(-1, x => x + 10);
+  } catch (e) {
+    actual = e;
+  }
+
+  equals(actual.message.indexOf("Invalid value for column index"), 0, actual.message);
+});

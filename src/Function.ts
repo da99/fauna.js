@@ -52,6 +52,14 @@ export function if_number(f: Function) {
   }
 } // export function
 
+export function is_any(arr: any[], f: (x: any) => boolean) : boolean {
+  for (const x of arr) {
+    if (f(x))
+      return true;
+  }
+  return false;
+} // export function
+
 export function is_length_0(x: {length: number}) : boolean {
   return(x.length === 0);
 } // export function
@@ -149,12 +157,37 @@ export function pipe_function(...funcs : Array<(x: any) => any>) {
   };
 } // export function
 
+export function count_up_to(n: number, max: number): number[] {
+  const fin: number[] = [];
+  if (max === 0 || max < 1)
+    throw new Error(`Invalid max number for: count_up_to(${n}, ${max})`);
+  if (n < 1)
+    throw new Error(`Invalid number for: count_up_to(${n}, ${max})`);
+  for (let i = 0; i < n && i < max; i++) {
+    fin.push(i);
+  }
+  return fin;
+} // export function
+
 export function count(n: number): number[] {
   const fin: number[] = [];
   if (n < 1)
     throw new Error(`Invalid number for: count(${Deno.inspect(n)})`);
   for (let i = 0; i < n; i++) {
     fin.push(i);
+  }
+  return fin;
+} // export function
+
+export function tail_count(n: number, end_count: number): number[] {
+  const fin: number[] = [];
+  const max_index = end_count - 1;
+  if (n < 1)
+    throw new Error(`Invalid number for: tail_count(${n}, ${end_count})`);
+  if (end_count < 1)
+    throw new Error(`Invalid end number for: tail_count(${n}, ${end_count})`);
+  for (let i = 0; i < n && (max_index - i) > -1; ++i) {
+    fin.unshift(max_index - i);
   }
   return fin;
 } // export function
@@ -197,9 +230,9 @@ export function is_all_equal(arr: any[]) {
 export function zip(...arrs: Array<any[]>) {
   const lengths = arrs.map(x => x.length)
   if (lengths.length === 0)
-    throw new Error(`No arrays available to be zipped.`);
+    throw new Error(`No arrays available to be joined.`);
   if (!is_all_equal(lengths))
-    throw new Error(`Arrays can't be combined/zipped. Different lengths.`);
+    throw new Error(`Arrays can't be join. Different lengths.`);
   if (lengths[0] === 0)
     throw new Error(`Empty arrays can't be combined/zipped: zip(${Deno.inspect(arrs).replaceAll(/^\[|\]$/g, '')})`);
   const col_count = lengths[0];

@@ -1,7 +1,7 @@
 import { describe, it, equals } from "../src/Spec.ts";
 import {
-  row, columns,
-  Row, Columns,
+  lines, columns,
+  Lines, Columns,
   fd, find,
 } from "../src/Shell.ts";
 
@@ -9,7 +9,8 @@ import {
   is_number,
   is_length_0,
   is_null_or_undefined,
-  not, UP_CASE
+  not, UP_CASE,
+  pipe_function
 } from "../src/Function.ts";
 
 // =============================================================================
@@ -18,7 +19,7 @@ describe("fd");
 
 it("returns a row", async () => {
   const actual = (await fd(`.ts$ src --max-depth 1`))
-  equals(actual.constructor, Row);
+  equals(actual.constructor, Lines);
 })
 
 it("turns the output into values in the row", async () => {
@@ -29,46 +30,43 @@ it("turns the output into values in the row", async () => {
 // =============================================================================
 describe("find");
 // =============================================================================
-it("returns a row", async () => {
+it("returns Lines", async () => {
   const actual = (await find(`src -maxdepth 1 -name *.ts`)).constructor
-  equals(actual, Row);
+  equals(actual, Lines);
 })
 
 // =============================================================================
-describe("Rows#filter");
+describe("Lines#filter");
 // =============================================================================
 
-it("removes nulls and undefineds", function () {
-  const actual = row([1, null, 2, undefined, 3]).filter(not(is_null_or_undefined));
-  const expect = [1, 2, 3];
+it("removes values if callback returns true", function () {
+  const actual = lines("a b c".split(' ')).filter(s => s !== 'a');
+  const expect = ["b", "c"];
 
   equals(actual.raw, expect);
 });
 
 // =============================================================================
-describe("Rows#remove");
+describe("Lines#remove");
 // =============================================================================
 
 it("removes values if condition is true", function () {
-  const actual = row([1, null, 2, undefined, 3]).remove(is_null_or_undefined);
-  const expect = [1, 2, 3];
-
-  equals(actual.raw, expect);
+  const actual = lines("a b c".split(' ')).remove(s => s === "b");
+  equals(actual.raw, ["a", "c"]);
 });
 
 it("keeps values if condition is false", function () {
-  const actual = row([1, null, 2, undefined, 3]).remove(is_number);
-  equals(actual.raw, [null, undefined]);
+  const actual = lines("d e f".split(' ')).remove(s => s === "z");
+  equals(actual.raw, ['d', 'e', 'f']);
 });
 
 // =============================================================================
-describe("Rows#promise_all");
+describe("Lines#promise_all");
 // =============================================================================
 
 it("returns a Promise", async function () {
-  const actual = row("1 2 3".split(' '))
-  .map(parseInt, (s: number) => Promise.resolve(s))
-  .promise_all()
+  const actual = lines("1\n2\n3")
+  .promise_all(pipe_function(parseInt, (x: number) => Promise.resolve(x)))
   ;
   const expect = [1, 2, 3];
 
@@ -77,98 +75,62 @@ it("returns a Promise", async function () {
 
 
 it("returns a Promise.all", async function () {
-  const actual = row("4 5 6".split(' ')).map((x: string) => Promise.resolve(parseInt(x))).promise_all();
+  const actual = lines("4\n5\n6").promise_all((x: string) => Promise.resolve(parseInt(x)));
   const expect = [4, 5, 6];
 
   equals((await actual), expect);
 });
 
 // =============================================================================
-describe("Rows#cut");
+describe("Lines#split");
 // =============================================================================
 
 it("returns Columns", () => {
   const x = "a-1 b-2 c-3 d-4".split(' ');
-  const actual = row(x).cut('-');
+  const actual = lines(x).split('-');
   equals(actual.constructor, Columns)
 });
 
-it("cuts each value into another array", function () {
+it("splits each value into another array", function () {
   const x = "a-1 b-2 c-3 d-4".split(' ');
-  const actual = row(x).cut('-');
+  const actual = lines(x).split('-');
   const expect = [["a", "1"], ["b", "2"], ["c", "3"], ["d", "4"]];
 
   equals(actual.raw, expect);
 });
 
-it("re-arranges columns", function () {
-  const x = "a-1 b-2 c-3 d-4".split(' ');
-  const actual = row(x).cut('-', 1, 0);
-  const expect = [
-    ["1", "a"],
-    ["2", "b"],
-    ["3", "c"],
-    ["4", "d"]
-  ];
-
-  equals(actual.raw, expect);
-});
 
 // =============================================================================
 // Columns:
 // =============================================================================
 
 // =============================================================================
-describe("Columns#filter_cells");
-// =============================================================================
-
-it("removes nulls and undefines in each cell", function () {
-  const x = columns( [ [1, 2, null], [3, null, 4, undefined], [null, 5, 6] ]);
-  const actual = x.filter_cells(not(is_null_or_undefined));
-  const expect = [ [1, 2], [3, 4], [5, 6] ];
-  equals(actual.raw, expect);
-});
-
-// =============================================================================
 describe("Columns#filter_rows");
 // =============================================================================
 
-it("removes empty rows", function () {
-  const x = columns< null | number | undefined>( [ [1, 2, null], [undefined], [], [null, undefined] ]);
+it("keeps rows when callback returns true", function () {
+  const x = columns( [ [1, 2, 3], ["a", "b", "c"], [4,5,6] ]);
 
-  const actual = x
-  .filter_cells(not(is_null_or_undefined))
-  .filter_rows(not(is_length_0));
+  const actual = x.filter_rows(x=> typeof x[0] !== 'string');
 
-  equals(actual.raw, [ [1, 2] ]);
+  equals(actual.raw, [ [1,2,3], [4,5,6] ]);
 });
 
-// =============================================================================
-describe("Columns#remove_cells");
-// =============================================================================
-
-it("removes nulls and undefines in each cell", function () {
-  const x = columns( [ [1, 2, null], [3, null, 4, undefined], [null, 5, 6] ]);
-  equals(
-    x.remove_cells(is_null_or_undefined).raw,
-    [ [1, 2], [3, 4], [5, 6] ]
-  );
-});
 
 // =============================================================================
 describe("Columns#remove_rows");
 // =============================================================================
 
-it("removes empty rows", function () {
-  const x = columns<null | number | undefined>(
-    [ [1, 2, null], [undefined], [], [null, undefined] ]
-  );
+it("removes rows if callback returns true", function () {
+  const x = columns([
+    [1, 2, null],
+    [3,4,5],
+    [5,6,7]
+  ]);
 
-  const actual = x
-  .remove_cells(is_null_or_undefined)
-  .remove_rows(is_length_0);
+  const actual = x.remove_rows(row => row.includes(null));
 
-  equals(actual.raw, [ [1, 2] ]);
+  equals(actual.raw, [ [3,4,5], [5,6,7] ]);
 });
 
 // =============================================================================

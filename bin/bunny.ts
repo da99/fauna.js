@@ -44,7 +44,7 @@ function ensure_valid_dir() {
 
 if (match("ls files", "Be sure to 'cd' into the Public directory you want to upload.")) {
   const files = await local_files();
-  files.forEach(x => console.log(x));
+  files.forEach((x: string) => console.log(x));
 } // if
 
 if (match(`ls remote files <dirname>`)) {
@@ -65,7 +65,7 @@ not_found();
 
 export async function local_files() {
   return (await fd(`--max-depth 4 --type f --size -15m --exec sha256sum {} ;`))
-  .cut('  ')
+  .split('  ')
   .column(0, UP_CASE)
   .column(1, remove_pattern(begin_dot_slash))
   .arrange(1,0,1)

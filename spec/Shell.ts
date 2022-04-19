@@ -1,4 +1,4 @@
-import { describe, it, equals } from "../src/Spec.ts";
+import { describe, it, equals, matches } from "../src/Spec.ts";
 import {
   lines, columns,
   Lines, Columns,
@@ -6,10 +6,7 @@ import {
 } from "../src/Shell.ts";
 
 import {
-  is_number,
-  is_length_0,
-  is_null_or_undefined,
-  not, UP_CASE,
+  UP_CASE,
   pipe_function
 } from "../src/Function.ts";
 
@@ -163,8 +160,132 @@ describe("Columns#cell");
 // =============================================================================
 
 it("alters the first value of the first row.", function () {
-  const c = columns([["a", 2, 3], ["b",5,6], ["c",8,9]]);
-  c.cell("first", UP_CASE);
-  equals(c.raw[0][0], "a");
+  const c2 = columns([["a", 2, 3], ["b",5,6], ["c",8,9]]).cell("first", UP_CASE);
+  equals(c2.raw[0][0], "A");
 });
 
+it("alters the last value of the last row.", function () {
+  const c2 = columns([["a", 2, 3], ["b",5,6], ["c",8,"last"]]).cell("first", UP_CASE);
+  equals(c2.raw[2][2], "last");
+});
+
+
+// =============================================================================
+describe("Columns#push_value");
+// =============================================================================
+
+it("can insert the same value as a top row.", function () {
+  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_value("top", "a");
+  equals(c2.raw, ["a a a".split(' '), [1, 2, 3], [4,5,6], [7,8,9]]);
+});
+
+it("can insert the same value as a bottom row.", function () {
+  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_value("bottom", "a");
+  equals(c2.raw, [[1, 2, 3], [4,5,6], [7,8,9], "a a a".split(' ') ]);
+});
+
+it("can insert the same value as a column to the right.", function () {
+  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_value("right", "a");
+  equals(c2.raw, [[1, 2, 3, "a"], [4,5,6, "a"], [7,8,9, "a"] ]);
+});
+
+it("can insert the same value as a column to the left.", function () {
+  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_value("left", 0);
+  equals(c2.raw, [[0, 1, 2, 3], [0, 4,5,6], [0, 7,8,9] ]);
+});
+
+// =============================================================================
+describe("Columns#push_function");
+// =============================================================================
+
+it("can insert the returned value as a top row.", function () {
+  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]])
+  .push_function("top", (info) => `${info.count} ${info.first} ${info.last}`);
+  equals(c2.raw, [["0 true false", "1 false false", "2 false true"], [1, 2, 3], [4,5,6], [7,8,9]]);
+});
+
+it("can insert the same returned value as a bottom row.", function () {
+  let vals = "a b c".split(' ');
+  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_function("bottom", () => vals.pop());
+  equals(c2.raw, [[1, 2, 3], [4,5,6], [7,8,9], "c b a".split(' ') ]);
+});
+
+it("can insert the same returned value as a column to the right.", function () {
+  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_function("right", () => 0);
+  equals(c2.raw, [[1, 2, 3, 0], [4,5,6, 0], [7,8,9, 0] ]);
+});
+
+it("can insert the same returned value as a column to the left.", function () {
+  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_function("left", () => "start");
+  equals(c2.raw, [["start", 1, 2, 3], ["start", 4,5,6], ["start", 7,8,9] ]);
+});
+
+// =============================================================================
+describe("Columns#push_column");
+// =============================================================================
+
+it("can insert columns: top.", function () {
+  const c1 = columns([[1, 2, 3], [4,5,6]]);
+  const c2 = columns([[7,8,9]]);
+  const c3 = c2.push_columns("top", c1);
+  equals(c3.raw, [
+    [1,2,3],
+    [4,5,6],
+    [7,8,9]
+  ]);
+});
+
+it("can insert columns: bottom.", function () {
+  const c1 = columns([[1, 2, 3], [4,5,6]]);
+  const c2 = columns([[7,8,9]]);
+  const c3 = c2.push_columns("bottom", c1);
+  equals(c3.raw, [
+    [7,8,9],
+    [1,2,3],
+    [4,5,6],
+  ]);
+});
+
+it("can insert columns: right.", function () {
+  const c1 = columns([
+    [1,2,3],
+    [4,5,6]
+  ]);
+  const c2 = columns([
+    [7,8,9],
+    [10,11,12]
+  ]);
+  const c3 = c2.push_columns("right", c1);
+  equals(c3.raw, [
+    [7,8,9, 1,2,3],
+    [10,11,12, 4,5,6]
+  ]);
+});
+
+it("can insert columns: left.", function () {
+  const c1 = columns([
+    [1,2,3],
+    [4,5,6]
+  ]);
+  const c2 = columns([
+    [7,8,9],
+    [10,11,12]
+  ]);
+  const c3 = c2.push_columns("left", c1);
+  equals(c3.raw, [
+    [1,2,3, 7,8,9],
+    [4,5,6, 10,11,12]
+  ]);
+});
+
+it("throws an error if the row counts are unequal.", function () {
+  const c1 = columns([ [1,2,3], [4,5,6] ]);
+  const c2 = columns([ [7,8,9] ]);
+  let msg = "no error thrown";
+  try {
+    c1.push_columns("left", c2);
+  } catch (e) {
+    msg = e.message;
+  }
+  matches(msg, /row count mis-match/i, msg);
+});

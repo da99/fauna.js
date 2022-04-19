@@ -12,6 +12,12 @@ import {
 } from "./Function.ts";
 import type {Arrange_Spec} from "./Array.ts";
 
+export interface Loop_Info {
+  count: number;
+  first: boolean;
+  last:  boolean;
+};
+
 export async function shell(cmd: string, args: string | string[]) {
   if (typeof args === "string")
     args = args.trim().split(/\s+/);
@@ -234,7 +240,7 @@ export class Columns {
   // Push:
   // =============================================================================
 
-  push_string(pos: "top" | "bottom" | "left" | "right", new_s: string) : Columns {
+  push_value(pos: "top" | "bottom" | "left" | "right", new_s: any) : Columns {
     switch (pos) {
       case "top": {
         const new_raw = this.raw.slice();
@@ -273,35 +279,45 @@ export class Columns {
 
   } // method
 
-  push_function(pos: "top" | "bottom" | "left" | "right", f: () => any) {
+  push_function(pos: "top" | "bottom" | "left" | "right", f: (count: Loop_Info) => any) {
     switch (pos) {
       case "top": {
         const new_raw = this.raw.slice();
-        new_raw.unshift( count(this.column_count).map(_x => f()) );
+        const col_count = this.column_count;
+        new_raw.unshift( count(this.column_count).map(count => {
+          return f({count, first: count === 0, last: count === (col_count - 1) });
+        }) );
         return columns(new_raw);
       } // case
 
       case "bottom": {
         const new_raw = this.raw.slice();
-        new_raw.push( count(this.column_count).map(_x => f()) );
+        const col_count = this.column_count;
+        new_raw.push(
+          count(col_count).map(count => {
+            return f({count, first: count === 0, last: count === (col_count - 1) });
+          })
+        );
         return columns(new_raw);
       } // case
 
       case "left": {
+        const row_count = this.row_count;
         return columns(
-          this.raw.map(row => {
+          this.raw.map((row, count) => {
             const new_row = row.slice();
-            new_row.unshift(f());
+            new_row.unshift(f({count, first: count === 0, last: count === (row_count - 1)}));
             return new_row;
           })
         );
       } // case
 
       case "right": {
+        const row_count = this.row_count;
         return columns(
-          this.raw.map(row => {
+          this.raw.map((row, count) => {
             const new_row = row.slice();
-            new_row.push(f());
+            new_row.push(f({count, first: count === 0, last: count === (row_count - 1)}));
             return new_row;
           })
         );

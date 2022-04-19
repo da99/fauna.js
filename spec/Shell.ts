@@ -2,33 +2,15 @@ import { describe, it, equals } from "../src/Spec.ts";
 import {
   row, columns,
   Row, Columns,
-  fd, find, arrays_to_columns,
+  fd, find,
 } from "../src/Shell.ts";
 
 import {
   is_number,
   is_length_0,
   is_null_or_undefined,
-  not,
+  not, UP_CASE
 } from "../src/Function.ts";
-
-// =============================================================================
-describe("arrays_to_columns");
-// =============================================================================
-
-it("combines arrays into columns", () => {
-  const actual = arrays_to_columns(
-    [1,2,3], "a b c".split(' '), ["n","b","c"]
-  );
-  equals(actual.raw, [[1, "a", "n"],[2, "b", "b"],[3, "c", "c"]]);
-});
-
-it("combines arrays with unequal lengths", () => {
-  const actual = arrays_to_columns(
-    [1,2], "a b c".split(' '), [false]
-  );
-  equals(actual.raw, [[1, "a", false],[2, "b"],["c"]]);
-});
 
 // =============================================================================
 describe("fd");
@@ -213,3 +195,14 @@ it("throws an Error if value is less than 0", function () {
 
   equals(actual.message.indexOf("Invalid value for column index"), 0, actual.message);
 });
+
+// =============================================================================
+describe("Columns#cell");
+// =============================================================================
+
+it("alters the first value of the first row.", function () {
+  const c = columns([["a", 2, 3], ["b",5,6], ["c",8,9]]);
+  c.cell("first", UP_CASE);
+  equals(c.raw[0][0], "a");
+});
+

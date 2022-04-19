@@ -1,7 +1,7 @@
 
 import caller from 'https://raw.githubusercontent.com/apiel/caller/master/caller.ts';
 import { Text_File } from "../src/FS.ts";
-import { assertEquals as EQUALS } from "https://deno.land/std/testing/asserts.ts";
+import { assertMatch as matches, assertEquals as EQUALS } from "https://deno.land/std/testing/asserts.ts";
 import { deepEqual } from "https://deno.land/x/cotton/src/utils/deepequal.ts";
 import { bold as BOLD, blue as BLUE, green as GREEN, red as RED, bgBlue, yellow as YELLOW, white  } from "https://deno.land/std/fmt/colors.ts";
 import { ensureDirSync } from "https://deno.land/std/fs/mod.ts";
@@ -17,6 +17,7 @@ interface Print_Stack_Record  {
   async_f? : Asyn_Function;
 }
 
+export { matches };
 
 // # =============================================================================
 const CHECK_MARK = "✓";

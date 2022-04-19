@@ -2,7 +2,9 @@
 
 // import * as path from "https://deno.land/std/path/mod.ts";
 import {meta_url, match, values, not_found} from "../src/CLI.ts";
-import {fd} from "../src/Shell.ts";
+import {content_type} from "../src/Function.ts";
+import {fd, columns} from "../src/Shell.ts";
+import { readerFromStreamReader } from "https://deno.land/std/io/mod.ts";
 import {
   UP_CASE,
   remove_pattern,
@@ -18,6 +20,12 @@ export interface Bunny_Response {
   HttpCode: 200 | 201 | 400 | 404;
   Message: "Object Not Found";
 }
+
+export interface Local_File {
+  local_path: string;
+  remote_path: string;
+};
+
 export interface Bunny_File {
   "Guid":            string;
   "StorageZoneName": string;
@@ -44,10 +52,10 @@ function ensure_valid_dir() {
 
 if (match("ls files", "Be sure to 'cd' into the Public directory you want to upload.")) {
   const files = await local_files();
-  files.forEach((x: string) => console.log(x));
+  files.forEach((x: Local_File) => console.log(`${x.local_path} ${x.remote_path}`));
 } // if
 
-if (match(`ls remote files <dirname>`)) {
+if (match(`ls remote files in <remote_dirname>`)) {
   const [dirname] = values();
   const files = await remote_files(dirname as string);
   for (const f of files) {
@@ -55,15 +63,42 @@ if (match(`ls remote files <dirname>`)) {
   };
 } // if
 
-if (match(`ls files to upload to <dirname>`)) {
-  const [_dirname] = values();
-  const dirname = _dirname as string;
-  const remote = await remote_files(dirname);
+if (match(`ls files to upload to <remote_dirname>`)) {
+  const [dirname] = values() as string[];
+  (await uploadable_local_files(dirname)).forEach(lf => {
+    console.log(`${lf.local_path} ${lf.remote_path}`);
+  })
+} // if
+
+if (match(`upload files to <remote_dirname>`)) {
+  const [dirname] = values() as string[];
+  const results: Promise<Response>[] = [];
+  const files: Local_File[] = [];
+  for (const lf of (await uploadable_local_files(dirname))) {
+    const url = bunny_url(dirname);
+    const f = fetch(url, {
+      method: "PUT",
+      headers: {
+        "Accept": '*/*',
+        "AccessKey": env_or_throw("BUNNY_KEY"),
+        "Content-Type": content_type(lf.local_path),
+        "Content-Length": (await Deno.stat(lf.local_path)).size.toString(),
+      }
+    }); // fetch
+    files.push(lf);
+    results.push(f);
+  } // for
+  const responses = (await Promise.all(results));
+  columns(files.map(x => [x])).push_columns("right",columns(responses.map(x=>[x])));
 } // if
 
 not_found();
 
-export async function local_files() {
+function bunny_url(dirname: string) {
+  return `${env_or_throw("BUNNY_URL")}/${dirname}/`;;
+} // function
+
+export async function local_files(): Promise<Local_File[]> {
   return (await fd(`--max-depth 4 --type f --size -15m --exec sha256sum {} ;`))
   .split('  ')
   .column(0, UP_CASE)
@@ -71,7 +106,7 @@ export async function local_files() {
   .arrange(1,0,1)
   .column(2, path_to_filename('.'))
   .raw
-  .map((r: string[]) => `${r[0]} ${r[1]}.${r[2]}`)
+  .map((r: string[]) => ({local_path: r[0], remote_path: `${r[1]}.${r[2]}`}))
   .sort()
 } // export async function
 
@@ -94,4 +129,11 @@ export function remote_files(dirname: string): Promise<Bunny_File[]> {
     }
     throw new Error(`${url} ${Deno.inspect(x, {colors: true})}`);
   });
+} // export async
+
+export async function uploadable_local_files(dirname: string): Promise<Local_File[]> {
+  const remote    = await remote_files(dirname);
+  const local     = await local_files();
+  const remote_paths = remote.map(bf => bf.ObjectName);
+  return local.filter(lf => !remote_paths.includes(lf.remote_path));
 } // export async

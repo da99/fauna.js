@@ -1,4 +1,7 @@
 
+import {contentType} from "https://deno.land/x/media_types/mod.ts";
+import * as path from "https://deno.land/std/path/mod.ts";
+
 export type Conditional = (x: any) => boolean;
 
 export const begin_dot_slash = /^\.+\/+/;
@@ -246,3 +249,6 @@ export function zip(...arrs: Array<any[]>) {
   return cols;
 } // export function
 
+export function content_type(filename: string): string {
+  return contentType(path.basename(filename)) || "application/octet-stream";
+} // export function

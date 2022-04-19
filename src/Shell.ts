@@ -123,10 +123,8 @@ export class Columns {
   // Head/Tail:
   // =============================================================================
 
-  head(i: number, t: "row"): Columns ;
-  head(i: number, t: "column"): Columns;
   head(i: number, t: "row" | "column") {
-    if (i < 1)
+    if (i === 0)
       throw new Error(`Invalid quantity for head(${i}, ${t})`);
 
     switch (`${i} ${t}`) {
@@ -136,29 +134,29 @@ export class Columns {
     } // switch
 
     switch (t) {
-      // case "cell": {
-      //   throw new Error(`Quantity higher than 1 is not allowed: head(${i}, cell).`);
-      // } // case
-
       case "row": {
+        if (i < 0)
+          i = this.raw.length + i;
         return columns(this.raw.slice(0, i));
       } // case
 
       case "column": {
-        return this.arrange(...(count_up_to(i, this.column_count)));
+        const col_count = this.column_count;
+        if (i < 0)
+          i = col_count + i;
+        return this.arrange(...(count_up_to(i, col_count)));
       } // case
     } // switch
   } // method
 
   tail(i: number, t: "row" | "column"): Columns {
-    if (i < 1)
+    if (i === 0)
       throw new Error(`Invalid quantity for tail(${i}, ${t})`);
-
-    switch (`${i} ${t}`) {
-      // case "1 cell": { return cell(this.raw[this.raw.length - 1].reverse()[0]); }
-      case "1 row": { return columns([this.raw[this.raw.length - 1]]); }
-      case "1 column": { return this.arrange(0); }
-    } // switch
+    // switch (`${i} ${t}`) {
+    //   // case "1 cell": { return cell(this.raw[this.raw.length - 1].reverse()[0]); }
+    //   case "1 row": { return columns([this.raw[this.raw.length - 1]]); }
+    //   case "1 column": { return this.arrange(this.column_count - 1); }
+    // } // switch
 
     switch (t) {
       // case "cell": {
@@ -166,15 +164,18 @@ export class Columns {
       // } // case
 
       case "row": {
+        if (i < 0)
+          i = this.raw.length + i;
         return columns(this.raw.reverse().slice(0, i).reverse());
       } // case
 
       case "column": {
         const col_count = this.column_count;
+        if (i < 0)
+          i = col_count + i;
         if (i > col_count)
           throw new Error(`${i} columns requested, but only ${col_count} exist.`);
-        // return this.arrange(...(tail_indexes(this.raw[0], i)));
-        return this.arrange(...(tail_count(i, this.column_count)));
+        return this.arrange(...(tail_count(i, col_count)));
       } // case
     } // switch
   } // method

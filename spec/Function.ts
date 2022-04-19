@@ -4,7 +4,8 @@ import {
   not, or, and,
   is_number, is_string, is_null,
   is_true, is_false, is_boolean,
-  head_indexes, tail_indexes, is_all_equal
+  head_indexes, tail_indexes, is_all_equal,
+  tail_count
 } from "../src/Function.ts";
 
 // =============================================================================
@@ -186,3 +187,12 @@ it("throws an error if array is empty", function () {
   equals(msg.match(/empty array/i), ["Empty array"], msg);
 });
 
+
+// =============================================================================
+describe("tail_count");
+// =============================================================================
+
+it('returns the numbers leading up to :end_count', function () {
+  const actual = tail_count(5, 10);
+  equals(actual, [5,6,7,8,9]);
+});

@@ -289,3 +289,114 @@ it("throws an error if the row counts are unequal.", function () {
   }
   matches(msg, /row count mis-match/i, msg);
 });
+
+
+// =============================================================================
+describe("Columns#head")
+// =============================================================================
+
+it("returns the number of specified columns from the left side", function () {
+  const c1 = columns([
+    [1,2,3],
+    [4,5,6],
+    [7,8,9]
+  ]);
+  const c2 = c1.head(1, "column");
+  equals(c2.raw, [[1],[4],[7]]);
+});
+
+it("returns the number of specified rows from the top side", function () {
+  const c1 = columns([
+    [1,2,3],
+    [4,5,6],
+    [7,8,9]
+  ]);
+  const c2 = c1.head(2, "row");
+  equals(c2.raw, [
+    [1,2,3],
+    [4,5,6]
+  ]);
+});
+
+it("returns all but the last negative n columns: head(-1, 'column')", function () {
+  const c1 = columns([
+    [1,2,3],
+    [4,5,6],
+    [7,8,9]
+  ]);
+  const c2 = c1.head(-1, "column");
+  equals(c2.raw, [
+    [1,2],
+    [4,5],
+    [7,8]
+  ]);
+});
+
+it("returns all but the last negative n rows: head(-1, 'row')", function () {
+  const c1 = columns([
+    [1,2,3],
+    [4,5,6],
+    [7,8,9],
+    ["a", "b", "c"]
+  ]);
+  const c2 = c1.head(-2, "row");
+  equals(c2.raw, [
+    [1,2,3],
+    [4,5,6],
+  ]);
+});
+
+// =============================================================================
+describe("Columns#tail")
+// =============================================================================
+
+it("returns the number of specified columns from the right side", function () {
+  const c1 = columns([
+    [1,2,3],
+    [4,5,6],
+    [7,8,9]
+  ]);
+  const c2 = c1.tail(1, "column");
+  equals(c2.raw, [[3],[6],[9]]);
+});
+
+it("returns the number of specified rows from the bottom side", function () {
+  const c1 = columns([
+    [1,2,3],
+    [4,5,6],
+    [7,8,9]
+  ]);
+  const c2 = c1.tail(2, "row");
+  equals(c2.raw, [
+    [4,5,6],
+    [7,8,9]
+  ]);
+});
+
+it("returns all but the last negative n columns: tail(-1, 'column')", function () {
+  const c1 = columns([
+    [1,2,3,4],
+    [4,5,6,7],
+    [7,8,9,10]
+  ]);
+  const c2 = c1.tail(-2, "column");
+  equals(c2.raw, [
+    [3,4],
+    [6,7],
+    [9,10]
+  ]);
+});
+
+it("returns all but the last negative n rows: tail(-1, 'row')", function () {
+  const c1 = columns([
+    [1,2,3],
+    [4,5,6],
+    [7,8,9],
+    ["a", "b", "c"]
+  ]);
+  const c2 = c1.tail(-2, "row");
+  equals(c2.raw, [
+    [7,8,9],
+    ["a", "b", "c"]
+  ]);
+});

@@ -463,6 +463,6 @@ it('returns a row without the specified quantity from the right: middle(0,2, "co
     [4,],
     [7,],
     [10],
-    [14],
+    [13],
   ]);
 });

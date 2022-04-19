@@ -131,16 +131,57 @@ it("removes rows if callback returns true", function () {
 });
 
 // =============================================================================
+describe("Columns#row");
+// =============================================================================
+
+it("operates on the values of the specified row", function () {
+  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+  const actual = x.row(2, x => x + 10);
+  equals(actual.raw, [ [1, 2, 3], [4,5,6], [17,18,19] ]);
+});
+
+it("operates on the values of the 'last' row", function () {
+  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+  const actual = x.row('last', x => x * 10);
+  equals(actual.raw, [ [1, 2, 3], [4,5,6], [70,80,90] ]);
+});
+
+it("throws an Error if value is less than 0", function () {
+  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+  let actual = {message: ""};
+  try {
+    x.row(-1, x => x + 10);
+  } catch (e) {
+    actual = e;
+  }
+  matches(actual.message, /Invalid value for row index/, actual.message);
+});
+
+it("throws an Error if value is greater than row count.", function () {
+  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+  let actual = {message: ""};
+  try {
+    x.row(10, x => x + 10);
+  } catch (e) {
+    actual = e;
+  }
+  matches(actual.message, /exceeds max row index/, actual.message);
+});
+
+// =============================================================================
 describe("Columns#column");
 // =============================================================================
 
-it("operates on the value of the specified column", function () {
+it("operates on the values of the specified column", function () {
   const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
-
-  const actual = x
-  .column(2, x => x + 10);
-
+  const actual = x.column(2, x => x + 10);
   equals(actual.raw, [ [1, 2, 13], [4,5,16], [7,8,19] ]);
+});
+
+it("operates on the values of the 'last' column", function () {
+  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+  const actual = x.column('last', x => x * 10);
+  equals(actual.raw, [ [1, 2, 30], [4,5,60], [7,8,90] ]);
 });
 
 it("throws an Error if value is less than 0", function () {
@@ -151,8 +192,7 @@ it("throws an Error if value is less than 0", function () {
   } catch (e) {
     actual = e;
   }
-
-  equals(actual.message.indexOf("Invalid value for column index"), 0, actual.message);
+  matches(actual.message, /Invalid value for column index/, actual.message);
 });
 
 // =============================================================================
@@ -165,8 +205,17 @@ it("alters the first value of the first row.", function () {
 });
 
 it("alters the last value of the last row.", function () {
-  const c2 = columns([["a", 2, 3], ["b",5,6], ["c",8,"last"]]).cell("first", UP_CASE);
-  equals(c2.raw[2][2], "last");
+  const c2 = columns([["a", 2, 3], ["b",5,6], ["c",8,"last"]]).cell("last", UP_CASE);
+  equals(c2.raw[2][2], "LAST");
+});
+
+it("alters the first value of the last row: bottom first", function () {
+  const c2 = columns([
+    ["d", 2, "c"],
+    ["e",5,6],
+    ["f",8,9]
+  ]).cell("bottom first", UP_CASE);
+  equals(c2.raw[2][0], "F");
 });
 
 

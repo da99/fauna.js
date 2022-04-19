@@ -197,7 +197,7 @@ export class Columns {
   // Map:
   // =============================================================================
 
-  cell(raw_i: "first" | "last", ...funcs: Array<(x: any) => any>) {
+  cell(raw_i: "first" | "last" | "top last" | "bottom first", ...funcs: Array<(x: any) => any>) {
     const arr = this.raw;
     if (arr.length === 0 || arr[0].length === 0)
       return this;
@@ -218,10 +218,30 @@ export class Columns {
         row[last_cell_index] = pipe_function(...funcs)(old_cell);
         return columns(this.raw.slice(0, last_row_index).concat([row]));
       } // case last
+
+      case "top last": {
+        const row        = arr[0].slice();
+        const last_index = row.length - 1;
+        row[last_index]  = pipe_function(...funcs)(row[last_index]);
+        return columns([row].concat(this.raw.slice(1)));
+      } // case first
+
+      case "bottom first": {
+        const last_row_index = this.raw.length - 1;
+        const new_row        = this.raw[last_row_index].slice();
+        new_row[0]           = pipe_function(...funcs)(new_row[0]);
+        return columns(this.raw.slice(0, last_row_index).concat([new_row]));
+      } // case first
     } // switch
   } // method
 
-  column(i: number, ...funcs: Array<(x: string) => string>) {
+  column(n: number | "last", ...funcs: Array<(x: any) => any>) {
+    let i = 0;
+    if (n === "last")
+      i = this.column_count - 1;
+    else
+      i = n;
+
     const f = pipe_function(...funcs);
     if (i < 0)
       throw new Error(`Invalid value for column index: ${Deno.inspect(i)}`);
@@ -248,6 +268,23 @@ export class Columns {
     return columns(
       this.raw.map(row => f(row))
     );
+  } // method
+
+  row(n: number | "last", ...funcs: Array<(x: any) => any>) {
+    let i = 0;
+    if (n === "last")
+      i = this.row_count - 1;
+    else
+      i = n;
+
+    const f = pipe_function(...funcs);
+    if (i < 0)
+      throw new Error(`Invalid value for row index: ${Deno.inspect(i)}`);
+    if (i > this.row_count - 1)
+      throw new Error(`Index value exceeds max row index: ${Deno.inspect(i)} > ${this.column_count - 1}`);
+    const new_raw = this.raw.slice();
+    new_raw[i] = new_raw[i].slice().map(x => f(x));
+    return columns(new_raw);
   } // method
 
   // =============================================================================

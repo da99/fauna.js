@@ -318,33 +318,33 @@ it("returns the number of specified rows from the top side", function () {
   ]);
 });
 
-it("returns all but the last negative n columns: head(-1, 'column')", function () {
-  const c1 = columns([
-    [1,2,3],
-    [4,5,6],
-    [7,8,9]
-  ]);
-  const c2 = c1.head(-1, "column");
-  equals(c2.raw, [
-    [1,2],
-    [4,5],
-    [7,8]
-  ]);
-});
+// it("returns all but the last negative n columns: head(-1, 'column')", function () {
+//   const c1 = columns([
+//     [1,2,3],
+//     [4,5,6],
+//     [7,8,9]
+//   ]);
+//   const c2 = c1.head(-1, "column");
+//   equals(c2.raw, [
+//     [1,2],
+//     [4,5],
+//     [7,8]
+//   ]);
+// });
 
-it("returns all but the last negative n rows: head(-1, 'row')", function () {
-  const c1 = columns([
-    [1,2,3],
-    [4,5,6],
-    [7,8,9],
-    ["a", "b", "c"]
-  ]);
-  const c2 = c1.head(-2, "row");
-  equals(c2.raw, [
-    [1,2,3],
-    [4,5,6],
-  ]);
-});
+// it("returns all but the last negative n rows: head(-1, 'row')", function () {
+//   const c1 = columns([
+//     [1,2,3],
+//     [4,5,6],
+//     [7,8,9],
+//     ["a", "b", "c"]
+//   ]);
+//   const c2 = c1.head(-2, "row");
+//   equals(c2.raw, [
+//     [1,2,3],
+//     [4,5,6],
+//   ]);
+// });
 
 // =============================================================================
 describe("Columns#tail")
@@ -373,30 +373,96 @@ it("returns the number of specified rows from the bottom side", function () {
   ]);
 });
 
-it("returns all but the last negative n columns: tail(-1, 'column')", function () {
-  const c1 = columns([
-    [1,2,3,4],
-    [4,5,6,7],
-    [7,8,9,10]
-  ]);
-  const c2 = c1.tail(-2, "column");
-  equals(c2.raw, [
-    [3,4],
-    [6,7],
-    [9,10]
-  ]);
-});
+// it("returns all but the last negative n columns: tail(-1, 'column')", function () {
+//   const c1 = columns([
+//     [1,2,3,4],
+//     [4,5,6,7],
+//     [7,8,9,10]
+//   ]);
+//   const c2 = c1.tail(-2, "column");
+//   equals(c2.raw, [
+//     [3,4],
+//     [6,7],
+//     [9,10]
+//   ]);
+// });
 
-it("returns all but the last negative n rows: tail(-1, 'row')", function () {
+// it("returns all but the last negative n rows: tail(-1, 'row')", function () {
+//   const c1 = columns([
+//     [1,2,3],
+//     [4,5,6],
+//     [7,8,9],
+//     ["a", "b", "c"]
+//   ]);
+//   const c2 = c1.tail(-2, "row");
+//   equals(c2.raw, [
+//     [7,8,9],
+//     ["a", "b", "c"]
+//   ]);
+// });
+
+// =============================================================================
+describe("Columns#middle")
+// =============================================================================
+
+it('returns a row without the specified quantity from the top: middle(2,0, "row")', function () {
   const c1 = columns([
     [1,2,3],
     [4,5,6],
     [7,8,9],
     ["a", "b", "c"]
   ]);
-  const c2 = c1.tail(-2, "row");
+  const c2 = c1.middle(2,0, "row");
   equals(c2.raw, [
     [7,8,9],
     ["a", "b", "c"]
+  ]);
+});
+
+it('returns a row without the specified quantity from the bottom: middle(2,2, "row")', function () {
+  const c1 = columns([
+    [1,2,3],
+    [4,5,6],
+    [7,8,9],
+    [10,11,12],
+    [13,14,15],
+  ]);
+  const c2 = c1.middle(2,2, "row");
+  equals(c2.raw, [
+    [7,8,9],
+  ]);
+});
+
+it('returns Columns without the specified quantity from the left: middle(2,0, "column")', function () {
+  const c1 = columns([
+    [1,2,3],
+    [4,5,6],
+    [7,8,9],
+    ["a", "b", "c"]
+  ]);
+  const c2 = c1.middle(2,0, "column");
+  equals(c2.raw, [
+    [3],
+    [6],
+    [9],
+    ["c"]
+  ]);
+});
+
+it('returns a row without the specified quantity from the right: middle(0,2, "column")', function () {
+  const c1 = columns([
+    [1,2,3],
+    [4,5,6],
+    [7,8,9],
+    [10,11,12],
+    [13,14,15],
+  ]);
+  const c2 = c1.middle(0,2, "column");
+  equals(c2.raw, [
+    [1,],
+    [4,],
+    [7,],
+    [10],
+    [14],
   ]);
 });

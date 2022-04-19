@@ -120,18 +120,12 @@ export class Columns {
   } // method
 
   // =============================================================================
-  // Head/Tail:
+  // Head/Middle/Tail:
   // =============================================================================
 
   head(i: number, t: "row" | "column") {
-    if (i === 0)
+    if (i < 1)
       throw new Error(`Invalid quantity for head(${i}, ${t})`);
-
-    switch (`${i} ${t}`) {
-      case "1 cell": { return this.raw[0][0]; }
-      case "1 row": { return columns([this.raw[0]]); }
-      case "1 column": { return this.arrange(0); }
-    } // switch
 
     switch (t) {
       case "row": {
@@ -149,8 +143,27 @@ export class Columns {
     } // switch
   } // method
 
+  middle(start: number, end: number, t: "row" | "column") {
+    if (start < 0)
+      throw new Error(`Invalid start for middle(${start}, ${end}, ${t})`);
+    if (end < 0)
+      throw new Error(`Invalid end for middle(${start}, ${end}, ${t})`);
+
+    switch (t) {
+      case "row": {
+        const row_count = this.row_count;
+        return columns(this.raw.slice(start, row_count - end));
+      } // case
+
+      case "column": {
+        const col_count = this.column_count;
+        return this.arrange(...(tail_count(col_count - start - end, col_count - end)));
+      } // case
+    } // switch
+  } // method
+
   tail(i: number, t: "row" | "column"): Columns {
-    if (i === 0)
+    if (i < 1)
       throw new Error(`Invalid quantity for tail(${i}, ${t})`);
     // switch (`${i} ${t}`) {
     //   // case "1 cell": { return cell(this.raw[this.raw.length - 1].reverse()[0]); }

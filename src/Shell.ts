@@ -574,6 +574,8 @@ export function column_indexes(n: number, arr: any[][]): number[][] {
     if (n < row.length)
       fin.push([row_i, n])
   } // for
+  if (fin.length === 0)
+    throw new Error(`Column index out of range: column_indexes(${n}, column_counts === ${Deno.inspect(arr.map(x=>x.length))})`);
   return fin;
 } // export function
 
@@ -584,7 +586,7 @@ export function row_indexes(n: number, arr: any[][]): number[][] {
     throw new Error(`Invalid row index: row_indexes(${n}, arr)`);
   const fin: number[][] = [];
   if (n >= arr.length)
-    return fin;
+    throw new Error(`Row index out of range: row_indexes(${n}, arr.length === ${arr.length})`);
   let col_i = -1;
   for (const _col of arr[n]) {
     ++col_i;

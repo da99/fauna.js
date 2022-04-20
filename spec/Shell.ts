@@ -724,12 +724,11 @@ it(`returns the indexes for: column_indexes(1, arr)`, function () {
   );
 });
 
-it(`returns an empty array if column index is higher than last column index: column_indexes(column_count, arr)`, function () {
+it(`throws an Error if column index is higher than last column index: column_indexes(col_count, arr)`, function () {
   const arr = five_x_five();
-  equals(
-    Deno.inspect(column_indexes(5, arr)),
-    Deno.inspect([])
-  );
+  let msg = "no error thrown";
+  try { column_indexes(5, arr) } catch (e) { msg = e.message; }
+  matches(msg, /Column index out of range/, msg);
 });
 
 // =============================================================================
@@ -747,10 +746,9 @@ it(`returns the indexes for: row_indexes(1, arr)`, function () {
   );
 });
 
-it(`returns an empty array if row index is higher than last row index: row_indexes(row_count, arr)`, function () {
+it(`throws an Error if row index is higher than last row index: row_indexes(row_count, arr)`, function () {
   const arr = five_x_five();
-  equals(
-    Deno.inspect(row_indexes(5, arr)),
-    Deno.inspect([])
-  );
+  let msg = "no error thrown";
+  try { row_indexes(5, arr) } catch (e) { msg = e.message; }
+  matches(msg, /Row index out of range/, msg);
 });

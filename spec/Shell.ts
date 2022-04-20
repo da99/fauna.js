@@ -3,7 +3,8 @@ import {
   lines, columns,
   Lines, Columns,
   fd, find,
-  human_position_to_indexes
+  human_position_to_indexes,
+  column_indexes, row_indexes
 } from "../src/Shell.ts";
 
 import {
@@ -701,5 +702,55 @@ it(`returns the indexes for: borderless`, function () {
   equals(
     Deno.inspect(human_position_to_indexes("borderless", arr)),
     Deno.inspect(expect)
+  );
+});
+
+// =============================================================================
+describe(`column_indexes`);
+// =============================================================================
+
+it(`returns the indexes for: column_indexes(1, arr)`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [
+    [0,1],
+    [1,1],
+    [2,1],
+    [3,1],
+    [4,1]
+  ];
+  equals(
+    Deno.inspect(column_indexes(1, arr)),
+    Deno.inspect(expect)
+  );
+});
+
+it(`returns an empty array if column index is higher than last column index: column_indexes(column_count, arr)`, function () {
+  const arr = five_x_five();
+  equals(
+    Deno.inspect(column_indexes(5, arr)),
+    Deno.inspect([])
+  );
+});
+
+// =============================================================================
+describe(`row_indexes`);
+// =============================================================================
+
+it(`returns the indexes for: row_indexes(1, arr)`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [
+    [1,0], [1,1], [1,2], [1,3], [1,4]
+  ];
+  equals(
+    Deno.inspect(row_indexes(1, arr)),
+    Deno.inspect(expect)
+  );
+});
+
+it(`returns an empty array if row index is higher than last row index: row_indexes(row_count, arr)`, function () {
+  const arr = five_x_five();
+  equals(
+    Deno.inspect(row_indexes(5, arr)),
+    Deno.inspect([])
   );
 });

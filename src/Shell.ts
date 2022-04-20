@@ -561,3 +561,34 @@ export function human_position_to_indexes(pos: Human_Position, arr: any[][]): nu
 
   } // switch
 } // export function
+
+export function column_indexes(n: number, arr: any[][]): number[][] {
+  if (arr.length === 0)
+    return [];
+  if (n < 0)
+    throw new Error(`Invalid column index: column_indexes(${n}, arr)`);
+  const fin: number[][] = [];
+  let row_i = -1;
+  for (const row of arr) {
+    ++row_i;
+    if (n < row.length)
+      fin.push([row_i, n])
+  } // for
+  return fin;
+} // export function
+
+export function row_indexes(n: number, arr: any[][]): number[][] {
+  if (arr.length === 0)
+    return [];
+  if (n < 0)
+    throw new Error(`Invalid row index: row_indexes(${n}, arr)`);
+  const fin: number[][] = [];
+  if (n >= arr.length)
+    return fin;
+  let col_i = -1;
+  for (const _col of arr[n]) {
+    ++col_i;
+    fin.push([n, col_i])
+  } // for
+  return fin;
+} // export function

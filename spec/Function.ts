@@ -28,13 +28,24 @@ it("throws an Error if number is less than 1", () => {
 });
 
 // =============================================================================
-describe("range");
+describe("count_start_end");
 // =============================================================================
 
-it("returns an Array inclusive from start to end: count_start_end(5, 10)", function () {
+it("returns an Array from start and including end: count_start_end(5, 10)", function () {
   const actual = count_start_end(5, 10);
   equals(actual, [5,6,7,8,9,10]);
 })
+
+it("returns an Array counting down if end is higher than start: count_start_end(10, 1)", function () {
+  const actual = count_start_end(10, 1);
+  equals(actual, [1,2,3,4,5,6,7,8,9,10].reverse());
+})
+
+it("returns an Array counting down if start is positive, end is negative: count_start_end(1, -1)", function () {
+  const actual = count_start_end(1,-1);
+  equals(actual, [1,0,-1]);
+})
+
 // =============================================================================
 describe("join");
 // =============================================================================

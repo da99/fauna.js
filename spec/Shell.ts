@@ -691,7 +691,7 @@ it(`returns the indexes for: right column middle`, function () {
   );
 });
 
-it(`returns the indexes for: inner area`, function () {
+it(`returns the indexes for: borderless`, function () {
   const arr = five_x_five();
   const expect: number[][] = [
     [1,1], [1,2], [1,3],
@@ -699,7 +699,7 @@ it(`returns the indexes for: inner area`, function () {
     [3,1], [3,2], [3,3],
   ];
   equals(
-    Deno.inspect(human_position_to_indexes("inner area", arr)),
+    Deno.inspect(human_position_to_indexes("borderless", arr)),
     Deno.inspect(expect)
   );
 });

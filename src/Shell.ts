@@ -427,7 +427,7 @@ export type Human_Position =
   "first cell" | "last cell" | "top last cell" | "bottom first cell" |
   "top row middle" | "bottom row middle"  |
   "left column middle" | "right column middle" |
-  "inner area";
+  "borderless";
 export function human_position_to_indexes(pos: Human_Position, arr: any[][]): number[][] {
   if (arr.length === 0)
     return [];
@@ -543,7 +543,7 @@ export function human_position_to_indexes(pos: Human_Position, arr: any[][]): nu
       return fin;
     } // case
 
-    case "inner area": {
+    case "borderless": {
       let fin: number[][] = [];
       let i = -1;
       const last_row_index = arr.length - 1;

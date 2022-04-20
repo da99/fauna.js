@@ -12,6 +12,14 @@ import {
 } from "./Function.ts";
 import type {Arrange_Spec} from "./Array.ts";
 
+export type Human_Position =
+  "top row" | "bottom row" | "middle rows" |
+  "first column" | "last column" | "middle columns" |
+  "first cell" | "last cell" | "top last cell" | "bottom first cell" |
+  "top row middle" | "bottom row middle"  |
+  "left column middle" | "right column middle" |
+  "borderless";
+
 export interface Loop_Info {
   count: number;
   first: boolean;
@@ -59,13 +67,6 @@ export class Lines {
     );
   } // method
 
-  map(...funcs: Array<(x: string) => string>): Lines {
-    const f = pipe_function(...funcs);
-    return lines(
-      this.raw.map(s => f(s))
-    );
-  } // method
-
   filter(f: (s: string) => boolean): Lines {
     return lines(this.raw.filter(s => f(s)));
   } // method
@@ -92,6 +93,10 @@ export class Columns {
   get column_count() { return max(map_length(this.raw)); }
   get cell_count() { return sum(this.raw.map(x => x.length)); }
   get area() { return this.row_count * this.column_count; }
+
+  clone() {
+    return this.raw.slice().map(x => x.slice());
+  } // method
 
   // =============================================================================
   // Filter:
@@ -197,42 +202,27 @@ export class Columns {
   // Map:
   // =============================================================================
 
-  cell(raw_i: "first" | "last" | "top last" | "bottom first", ...funcs: Array<(x: any) => any>) {
-    const arr = this.raw;
-    if (arr.length === 0 || arr[0].length === 0)
-      return this;
+  map(pos: Human_Position | "values", ...funcs: Array<(x: any) => any>): Columns {
+    if (pos === "values") {
+      const f = pipe_function(...funcs);
+      const fin: any[][] = [];
+      for (const old_row of this.raw)
+        fin.push(old_row.map(f));
+      return columns(fin);
+    } // if
 
-    switch (raw_i) {
-      case "first": {
-        const row      = arr[0].slice();
-        const old_cell = row[0];
-        row[0]         = pipe_function(...funcs)(old_cell);
-        return columns([row].concat(this.raw.slice(1)));
-      } // case first
+    const indexes = human_position_to_indexes(pos, this.raw);
+    if (indexes.length === 0) {
+      throw new Error(`No values found in Columns for: ${Deno.inspect(pos)}`);
+    } // if
 
-      case "last": {
-        const last_cell_index = this.column_count - 1;
-        const last_row_index  = this.raw.length - 1;
-        const row      = this.raw[last_row_index].slice();
-        const old_cell = row[last_cell_index];
-        row[last_cell_index] = pipe_function(...funcs)(old_cell);
-        return columns(this.raw.slice(0, last_row_index).concat([row]));
-      } // case last
+    const new_arr = this.clone();
+    const f = pipe_function(...funcs);
+    for (const [r,c] of indexes) {
+      new_arr[r][c] = f(new_arr[r][c]);
+    } // for
 
-      case "top last": {
-        const row        = arr[0].slice();
-        const last_index = row.length - 1;
-        row[last_index]  = pipe_function(...funcs)(row[last_index]);
-        return columns([row].concat(this.raw.slice(1)));
-      } // case first
-
-      case "bottom first": {
-        const last_row_index = this.raw.length - 1;
-        const new_row        = this.raw[last_row_index].slice();
-        new_row[0]           = pipe_function(...funcs)(new_row[0]);
-        return columns(this.raw.slice(0, last_row_index).concat([new_row]));
-      } // case first
-    } // switch
+    return columns(new_arr);
   } // method
 
   column(n: number | "last", ...funcs: Array<(x: any) => any>) {
@@ -253,14 +243,6 @@ export class Columns {
       return new_row;
     });
     return columns(new_raw);
-  } // method
-
-  map(...funcs: Array<(x: string) => string>) {
-    const f = pipe_function(...funcs);
-    const fin: any[][] = [];
-    for (const old_row of this.raw)
-      fin.push(old_row.map(f));
-    return columns(fin);
   } // method
 
   rows(...funcs: Array<(x: string[]) => string[]>): Columns {
@@ -421,13 +403,6 @@ export class Columns {
   } // method
 } // export class
 
-export type Human_Position =
-  "top row" | "bottom row" | "middle rows" |
-  "first column" | "last column" | "middle columns" |
-  "first cell" | "last cell" | "top last cell" | "bottom first cell" |
-  "top row middle" | "bottom row middle"  |
-  "left column middle" | "right column middle" |
-  "borderless";
 export function human_position_to_indexes(pos: Human_Position, arr: any[][]): number[][] {
   if (arr.length === 0)
     return [];

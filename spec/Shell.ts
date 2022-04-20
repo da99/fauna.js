@@ -199,25 +199,25 @@ it("throws an Error if value is less than 0", function () {
 });
 
 // =============================================================================
-describe("Columns#cell");
+describe("Columns#map");
 // =============================================================================
 
-it("alters the first value of the first row.", function () {
-  const c2 = columns([["a", 2, 3], ["b",5,6], ["c",8,9]]).cell("first", UP_CASE);
+it("alters the first value of the first row: map('first cell', ...)", function () {
+  const c2 = columns([["a", 2, 3], ["b",5,6], ["c",8,9]]).map("first cell", UP_CASE);
   equals(c2.raw[0][0], "A");
 });
 
-it("alters the last value of the last row.", function () {
-  const c2 = columns([["a", 2, 3], ["b",5,6], ["c",8,"last"]]).cell("last", UP_CASE);
+it("alters the last value of the last row: map('last cell', ...)", function () {
+  const c2 = columns([["a", 2, 3], ["b",5,6], ["c",8,"last"]]).map("last cell", UP_CASE);
   equals(c2.raw[2][2], "LAST");
 });
 
-it("alters the first value of the last row: bottom first", function () {
+it("alters the first value of the last row: map('bottom first cell', ...)", function () {
   const c2 = columns([
     ["d", 2, "c"],
     ["e",5,6],
     ["f",8,9]
-  ]).cell("bottom first", UP_CASE);
+  ]).map("bottom first cell", UP_CASE);
   equals(c2.raw[2][0], "F");
 });
 

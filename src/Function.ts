@@ -7,12 +7,6 @@ export type Conditional = (x: any) => boolean;
 export const begin_dot_slash = /^\.+\/+/;
 export const end_slash = /\/+$/;
 
-export function remove_pattern(r: RegExp) {
-  return function (s: string) {
-    return s.replace(r, '');
-  };
-} // export function
-
 export function UP_CASE(s: string) {
   return s.toUpperCase();
 } // export function
@@ -21,46 +15,12 @@ export function lower_case(s: string) {
   return s.toLowerCase();
 } // export function
 
-export function path_to_filename(replace: string) {
-  return function (s: string) {
-    return s
-    .replace(begin_dot_slash, '')
-    .replace(end_slash, '')
-    .replaceAll(/[^a-z0-9\.\-\_]+/g, replace)
-    .replaceAll(/\.+/g, '.');
-  };
-} // export function
-
-export function if_string(f: Function) {
-  return function (x: any) {
-    if (typeof x === "string")
-      return f(x);
-    return x;
-  }
-} // export function
-
 export function map_length(arr: any[][]) {
   return arr.map(x => x.length);
 } // export function
 
 export function sum(arr: number[]) {
   return arr.reduce((p,c) => p + c, 0);
-} // export function
-
-export function if_number(f: Function) {
-  return function (x: any) {
-    if (typeof x === "number")
-      return f(x);
-    return x;
-  }
-} // export function
-
-export function is_any(arr: any[], f: (x: any) => boolean) : boolean {
-  for (const x of arr) {
-    if (f(x))
-      return true;
-  }
-  return false;
 } // export function
 
 export function is_length_0(x: {length: number}) : boolean {
@@ -95,36 +55,6 @@ export function is_null_or_undefined(x: any) : boolean {
   return(x === null || typeof x === "undefined");
 } // export function
 
-export function not(...funcs: Conditional[]) : Conditional {
-  return function (x: any) {
-    for (const f of funcs) {
-      if (f(x))
-        return false;
-    }
-    return true;
-  };
-} // export function
-
-export function and(...funcs: Conditional[]) : Conditional {
-  return function (x: any) {
-    for (const f of funcs) {
-      if (!f(x))
-        return false;
-    }
-    return true;
-  };
-} // export function
-
-export function or(...funcs: Conditional[]) : Conditional {
-  return function (x: any) {
-    for (const f of funcs) {
-      if (f(x))
-        return true;
-    }
-    return false;
-  };
-} // export function
-
 export function env_or_throw(k: string): string {
   const x: string | undefined = Deno.env.get(k);
   if (!x)
@@ -151,32 +81,22 @@ export function throw_if_null<T>(x: null | T, msg: string): T {
   return x;
 } // export function
 
-export function pipe_function(...funcs : Array<(x: any) => any>) {
-  return function (x: any) {
-    return funcs.reduce(
-      (prev, curr) => curr(prev),
-      x
-    );
-  };
-} // export function
-
-export function count_up_to(n: number, max: number): number[] {
-  const fin: number[] = [];
-  if (max === 0 || max < 1)
-    throw new Error(`Invalid max number for: count_up_to(${n}, ${max})`);
-  if (n < 1)
-    throw new Error(`Invalid number for: count_up_to(${n}, ${max})`);
-  for (let i = 0; i < n && i < max; i++) {
-    fin.push(i);
-  }
-  return fin;
-} // export function
-
 export function count(n: number): number[] {
   const fin: number[] = [];
   if (n < 1)
     throw new Error(`Invalid number for: count(${Deno.inspect(n)})`);
   for (let i = 0; i < n; i++) {
+    fin.push(i);
+  }
+  return fin;
+} // export function
+
+export function count_start_end(start: number, end: number): number[] {
+  if (start > end)
+    return count_start_end(end, start).reverse();
+
+  const fin: number[] = [];
+  for (let i = start; i <= end; ++i) {
     fin.push(i);
   }
   return fin;
@@ -251,4 +171,95 @@ export function zip(...arrs: Array<any[]>) {
 
 export function content_type(filename: string): string {
   return contentType(path.basename(filename)) || "application/octet-stream";
+} // export function
+
+// =============================================================================
+// Create functions:
+// =============================================================================
+
+export function pipe_function(...funcs : Array<(x: any) => any>) {
+  const f_length = funcs.length;
+  switch (f_length) {
+    case 0: { throw new Error(`No functions provided for: pipe_function(...${Deno.inspect(funcs)})`); } // case
+    case 1: { return funcs[0]; }
+  } // switch
+
+  return function (x: any) {
+    return funcs.reduce(
+      (prev, curr) => curr(prev),
+      x
+    );
+  };
+} // export function
+
+export function or(...funcs: Conditional[]) : Conditional {
+  return function (x: any) {
+    for (const f of funcs) {
+      if (f(x))
+        return true;
+    }
+    return false;
+  };
+} // export function
+
+export function and(...funcs: Conditional[]) : Conditional {
+  return function (x: any) {
+    for (const f of funcs) {
+      if (!f(x))
+        return false;
+    }
+    return true;
+  };
+} // export function
+
+export function not(...funcs: Conditional[]) : Conditional {
+  return function (x: any) {
+    for (const f of funcs) {
+      if (f(x))
+        return false;
+    }
+    return true;
+  };
+} // export function
+
+export function if_number(f: Function) {
+  return function (x: any) {
+    if (typeof x === "number")
+      return f(x);
+    return x;
+  }
+} // export function
+
+export function if_string(f: Function) {
+  return function (x: any) {
+    if (typeof x === "string")
+      return f(x);
+    return x;
+  }
+} // export function
+
+export function path_to_filename(replace: string) {
+  return function (s: string) {
+    return s
+    .replace(begin_dot_slash, '')
+    .replace(end_slash, '')
+    .replaceAll(/[^a-z0-9\.\-\_]+/g, replace)
+    .replaceAll(/\.+/g, '.');
+  };
+} // export function
+
+export function remove_pattern(r: RegExp) {
+  return function (s: string) {
+    return s.replace(r, '');
+  };
+} // export function
+
+export function is_any(f: (x: any) => boolean) : (x: any[]) => boolean {
+  return function (arr: any[]) {
+    for (const x of arr) {
+      if (f(x))
+        return true;
+    }
+    return false;
+  };
 } // export function

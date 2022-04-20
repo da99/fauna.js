@@ -1,11 +1,11 @@
 import { describe, it, equals, matches } from "../src/Spec.ts";
 import {
-  count, zip,
+  zip,
   not, or, and,
   is_number, is_string, is_null,
   is_true, is_false, is_boolean,
   head_indexes, tail_indexes, is_all_equal,
-  tail_count
+  count, tail_count, count_start_end
 } from "../src/Function.ts";
 
 // =============================================================================
@@ -27,6 +27,14 @@ it("throws an Error if number is less than 1", () => {
   matches(msg, /invalid number/i, msg);
 });
 
+// =============================================================================
+describe("range");
+// =============================================================================
+
+it("returns an Array inclusive from start to end: count_start_end(5, 10)", function () {
+  const actual = count_start_end(5, 10);
+  equals(actual, [5,6,7,8,9,10]);
+})
 // =============================================================================
 describe("join");
 // =============================================================================

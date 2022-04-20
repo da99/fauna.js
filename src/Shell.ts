@@ -5,10 +5,11 @@
 import {run, throw_on_fail} from "./Process.ts";
 import {rearrange} from "./Array.ts";
 import {
+  not,
   sum, map_length, count,
   pipe_function, max,
   is_length_0, is_any,
-  count_up_to, tail_count
+  tail_count
 } from "./Function.ts";
 import type {Arrange_Spec} from "./Array.ts";
 
@@ -45,7 +46,7 @@ export function lines(x: string | string[]) {
   return new Lines(x);
 } // export function
 
-export function columns(x: any[][]): Columns {
+export function columns(x: any[] | any[][]): Columns {
   return new Columns(x);
 } // export function
 
@@ -83,8 +84,10 @@ export class Lines {
 export class Columns {
   raw: any[][];
 
-  constructor(arr: any[][]) {
-    if (arr.length === 0 || is_any(arr, is_length_0))
+  constructor(arr: any[] | any[][]) {
+    if ( is_any(not(Array.isArray))(arr) )
+      arr = arr.map(x => [x]);
+    if (arr.length === 0 || is_any(is_length_0)(arr))
       throw new Error(`Columns may not be empty: ${Deno.inspect(arr)}`);
     this.raw = arr;
   } // constructor
@@ -143,7 +146,7 @@ export class Columns {
         const col_count = this.column_count;
         if (i < 0)
           i = col_count + i;
-        return this.arrange(...(count_up_to(i, col_count)));
+        return this.middle(0, this.column_count - i, "column");
       } // case
     } // switch
   } // method

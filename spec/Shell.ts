@@ -637,3 +637,69 @@ it(`returns the index for: top last cell`, function () {
     Deno.inspect(expect)
   );
 });
+
+it(`returns the index for: bottom first cell`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [ [4,0] ];
+  equals(
+    Deno.inspect(human_position_to_indexes("bottom first cell", arr)),
+    Deno.inspect(expect)
+  );
+});
+
+it(`returns the indexes for: top row middle`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [ [0,1], [0,2], [0,3] ];
+  equals(
+    Deno.inspect(human_position_to_indexes("top row middle", arr)),
+    Deno.inspect(expect)
+  );
+});
+
+it(`returns the indexes for: bottom row middle`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [ [4,1], [4,2], [4,3] ];
+  equals(
+    Deno.inspect(human_position_to_indexes("bottom row middle", arr)),
+    Deno.inspect(expect)
+  );
+});
+
+it(`returns the indexes for: left column middle`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [
+    [1,0],
+    [2,0],
+    [3,0]
+  ];
+  equals(
+    Deno.inspect(human_position_to_indexes("left column middle", arr)),
+    Deno.inspect(expect)
+  );
+});
+
+it(`returns the indexes for: right column middle`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [
+    [1,4],
+    [2,4],
+    [3,4]
+  ];
+  equals(
+    Deno.inspect(human_position_to_indexes("right column middle", arr)),
+    Deno.inspect(expect)
+  );
+});
+
+it(`returns the indexes for: inner area`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [
+    [1,1], [1,2], [1,3],
+    [2,1], [2,2], [2,3],
+    [3,1], [3,2], [3,3],
+  ];
+  equals(
+    Deno.inspect(human_position_to_indexes("inner area", arr)),
+    Deno.inspect(expect)
+  );
+});

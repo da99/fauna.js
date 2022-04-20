@@ -425,7 +425,8 @@ export type Human_Position =
   "top row" | "bottom row" | "middle rows" |
   "first column" | "last column" | "middle columns" |
   "first cell" | "last cell" | "top last cell" | "bottom first cell" |
-  "top row middle" | "left column middle" | "right column middle" | "bottom row middle" |
+  "top row middle" | "bottom row middle"  |
+  "left column middle" | "right column middle" |
   "inner area";
 export function human_position_to_indexes(pos: Human_Position, arr: any[][]): number[][] {
   if (arr.length === 0)
@@ -471,18 +472,92 @@ export function human_position_to_indexes(pos: Human_Position, arr: any[][]): nu
       }).flat();
     } // case
 
-    case "first cell": { return [[0,0]]; } // case
+    case "first cell": {
+      if (arr[0].length === 0)
+        return [];
+      return [[0,0]];
+    } // case
 
     case "last cell": {
       const last_row = arr[arr.length - 1];
+      if (last_row.length === 0)
+        return [];
       const last_cell_index = last_row.length - 1;
       return [[arr.length - 1, last_cell_index]];
     } // case
 
     case "top last cell": {
       const top_row = arr[0];
+      if (top_row.length === 0)
+        return [];
       return [[0, top_row.length - 1]]
     } // case
+
+    case "bottom first cell": {
+      const bottom_row = arr[arr.length - 1];
+      if (bottom_row.length === 0)
+        return [];
+      return [[arr.length - 1, 0]]
+    } // case
+
+    case "top row middle": {
+      const row = arr[0];
+      if (row.length < 3)
+        return [];
+      const new_row = row.slice(1,row.length - 1);
+      return new_row.map((_x, i) => [0, i+1]);
+    } // case
+
+    case "bottom row middle": {
+      const row_index = arr.length - 1;
+      const row = arr[row_index];
+      if (row.length < 3)
+        return [];
+      const new_row = row.slice(1,row.length - 1);
+      return new_row.map((_x, i) => [row_index, i+1]);
+    } // case
+
+    case "left column middle": {
+      const fin: number[][] = [];
+      let i = -1;
+      const last_index = arr.length - 1;
+      for (const _row of arr) {
+        ++i;
+        if (i === 0 || i === last_index )
+          continue;
+        fin.push([i, 0]);
+      } // for
+      return fin;
+    } // case
+
+    case "right column middle": {
+      const fin: number[][] = [];
+      let i = -1;
+      const last_index = arr.length - 1;
+      for (const row of arr) {
+        ++i;
+        if (i === 0 || i === last_index )
+          continue;
+        fin.push([i, row.length - 1]);
+      } // for
+      return fin;
+    } // case
+
+    case "inner area": {
+      let fin: number[][] = [];
+      let i = -1;
+      const last_row_index = arr.length - 1;
+      for (const row of arr) {
+        ++i;
+        if (i === 0 || i >= last_row_index)
+          continue;
+        const slice = row.slice(1, row.length - 1);
+        if (slice.length === 0)
+          return [];
+        slice.forEach((_x, col_i) => fin.push([i, col_i + 1]));
+      } // for
+      return fin;
+    } // case
+
   } // switch
-  throw new Error(`Invalid values: human_position_to_indexes(${pos}, arr)`);
 } // export function

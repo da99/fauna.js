@@ -540,7 +540,7 @@ function five_x_five() {
 it(`returns the indexes for: top row`, function () {
   const arr = five_x_five();
   const expect: number[][] = [
-    [0,0], [1,0], [2,0],[3,0], [4,0]
+    [0,0], [0,1], [0,2],[0,3], [0,4]
   ];
   equals(human_position_to_indexes("top row", arr), expect);
 });
@@ -548,7 +548,7 @@ it(`returns the indexes for: top row`, function () {
 it(`returns the indexes for: bottom row`, function () {
   const arr = five_x_five();
   const expect: number[][] = [
-    [0,4], [1,4], [2,4],[3,4], [4,4]
+    [4,0], [4,1], [4,2],[4,3], [4,4]
   ];
   equals(human_position_to_indexes("bottom row", arr), expect);
 });
@@ -556,13 +556,13 @@ it(`returns the indexes for: bottom row`, function () {
 it(`returns the indexes for: middle rows`, function () {
   const arr = five_x_five();
   const expect: number[][] = [
-    [0,1], [1,1], [2,1],[3,1], [4,1],
-    [0,2], [1,2], [2,2],[3,2], [4,2],
-    [0,3], [1,3], [2,3],[3,3], [4,3],
+    [1,0], [1,1], [1,2],[1,3], [1,4],
+    [2,0], [2,1], [2,2],[2,3], [2,4],
+    [3,0], [3,1], [3,2],[3,3], [3,4],
   ];
   equals(
-    human_position_to_indexes("middle rows", arr).toString(),
-    expect.toString()
+    Deno.inspect(human_position_to_indexes("middle rows", arr)),
+    Deno.inspect(expect)
   );
 });
 
@@ -570,28 +570,70 @@ it(`returns the indexes for: first column`, function () {
   const arr = five_x_five();
   const expect: number[][] = [
     [0,0],
-    [0,1],
-    [0,2],
-    [0,3],
-    [0,4],
+    [1,0],
+    [2,0],
+    [3,0],
+    [4,0],
   ];
   equals(
-    human_position_to_indexes("first column", arr).toString(),
-    expect.toString()
+    Deno.inspect(human_position_to_indexes("first column", arr)),
+    Deno.inspect(expect)
   );
 });
 
 it(`returns the indexes for: last column`, function () {
   const arr = five_x_five();
   const expect: number[][] = [
-    [4,0],
-    [4,1],
-    [4,2],
-    [4,3],
+    [0,4],
+    [1,4],
+    [2,4],
+    [3,4],
     [4,4],
   ];
   equals(
-    human_position_to_indexes("last column", arr).toString(),
-    expect.toString()
+    Deno.inspect(human_position_to_indexes("last column", arr)),
+    Deno.inspect(expect)
+  );
+});
+
+it(`returns the indexes for: middle columns`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [
+    [0,1], [0,2],[0,3],
+    [1,1], [1,2],[1,3],
+    [2,1], [2,2],[2,3],
+    [3,1], [3,2],[3,3],
+    [4,1], [4,2],[4,3],
+  ];
+  equals(
+    Deno.inspect(human_position_to_indexes("middle columns", arr)),
+    Deno.inspect(expect)
+  );
+});
+
+it(`returns the index for: first cell`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [ [0,0] ];
+  equals(
+    Deno.inspect(human_position_to_indexes("first cell", arr)),
+    Deno.inspect(expect)
+  );
+});
+
+it(`returns the index for: last cell`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [ [4,4] ];
+  equals(
+    Deno.inspect(human_position_to_indexes("last cell", arr)),
+    Deno.inspect(expect)
+  );
+});
+
+it(`returns the index for: top last cell`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [ [0,4] ];
+  equals(
+    Deno.inspect(human_position_to_indexes("top last cell", arr)),
+    Deno.inspect(expect)
   );
 });

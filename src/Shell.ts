@@ -434,8 +434,7 @@ export function human_position_to_indexes(pos: Human_Position, arr: any[][]): nu
   switch (pos) {
 
     case "top row": {
-      const row = arr[0];
-      return row.map((_x: any, i: number) => [i, 0]);
+      return arr[0].map((_x: any, i: number) => [0, i]);
     } // case
 
     case "bottom row": {
@@ -443,7 +442,7 @@ export function human_position_to_indexes(pos: Human_Position, arr: any[][]): nu
         return [];
       const last_row_index = arr.length - 1;
       const row = arr[last_row_index];
-      return row.map((_x: any, i: number) => [i, last_row_index]);
+      return row.map((_x: any, i: number) => [last_row_index, i]);
     } // case
 
     case "middle rows": {
@@ -451,18 +450,39 @@ export function human_position_to_indexes(pos: Human_Position, arr: any[][]): nu
         return [];
       const slice = arr.slice(1, arr.length - 1);
       return slice.map((row, row_i) => {
-        return row.map((_x, col_i) => [col_i, row_i + 1])
+        return row.map((_x, col_i) => [row_i + 1, col_i])
       }).flat();
     } // case
 
     case "first column": {
-      return arr.map((_row, i) => [0,i]);
+      return arr.map((_row, i) => [i, 0]);
     } // case
 
     case "last column": {
-      return arr.map((row, i) => [row.length - 1,i]);
+      return arr.map((row, i) => [i, row.length - 1]);
     } // case
 
+    case "middle columns": {
+      if (arr[0].length < 3)
+        return [];
+      const end_x = arr[0].length - 1;
+      return arr.map((row, y) => {
+        return row.slice(1, end_x).map((_x, col_i)=>[y, col_i+1])
+      }).flat();
+    } // case
+
+    case "first cell": { return [[0,0]]; } // case
+
+    case "last cell": {
+      const last_row = arr[arr.length - 1];
+      const last_cell_index = last_row.length - 1;
+      return [[arr.length - 1, last_cell_index]];
+    } // case
+
+    case "top last cell": {
+      const top_row = arr[0];
+      return [[0, top_row.length - 1]]
+    } // case
   } // switch
   throw new Error(`Invalid values: human_position_to_indexes(${pos}, arr)`);
 } // export function

@@ -3,11 +3,13 @@ import {
   lines, columns,
   Lines, Columns,
   fd, find,
+  human_position_to_indexes
 } from "../src/Shell.ts";
 
 import {
   UP_CASE,
-  pipe_function
+  pipe_function,
+  count, tail_count
 } from "../src/Function.ts";
 
 // =============================================================================
@@ -514,4 +516,82 @@ it('returns a row without the specified quantity from the right: middle(0,2, "co
     [10],
     [13],
   ]);
+});
+
+
+// =============================================================================
+describe(`human_position_to_indexes(any[][], string)`);
+// =============================================================================
+
+function new_arr(row: number, column: number) {
+  return count(row).map((r: number, i: number) => tail_count(column, column * (1+i)));
+}
+
+function five_x_five() {
+  return [
+    [0,1,2,3,4],
+    [5,6,7,8,9],
+    [10,11,12,13,14],
+    [15,16,17,18,19],
+    [20,21,22,23,24],
+  ];
+} // function
+
+it(`returns the indexes for: top row`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [
+    [0,0], [1,0], [2,0],[3,0], [4,0]
+  ];
+  equals(human_position_to_indexes("top row", arr), expect);
+});
+
+it(`returns the indexes for: bottom row`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [
+    [0,4], [1,4], [2,4],[3,4], [4,4]
+  ];
+  equals(human_position_to_indexes("bottom row", arr), expect);
+});
+
+it(`returns the indexes for: middle rows`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [
+    [0,1], [1,1], [2,1],[3,1], [4,1],
+    [0,2], [1,2], [2,2],[3,2], [4,2],
+    [0,3], [1,3], [2,3],[3,3], [4,3],
+  ];
+  equals(
+    human_position_to_indexes("middle rows", arr).toString(),
+    expect.toString()
+  );
+});
+
+it(`returns the indexes for: first column`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [
+    [0,0],
+    [0,1],
+    [0,2],
+    [0,3],
+    [0,4],
+  ];
+  equals(
+    human_position_to_indexes("first column", arr).toString(),
+    expect.toString()
+  );
+});
+
+it(`returns the indexes for: last column`, function () {
+  const arr = five_x_five();
+  const expect: number[][] = [
+    [4,0],
+    [4,1],
+    [4,2],
+    [4,3],
+    [4,4],
+  ];
+  equals(
+    human_position_to_indexes("last column", arr).toString(),
+    expect.toString()
+  );
 });

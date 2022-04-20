@@ -420,3 +420,49 @@ export class Columns {
     } // switch
   } // method
 } // export class
+
+export type Human_Position =
+  "top row" | "bottom row" | "middle rows" |
+  "first column" | "last column" | "middle columns" |
+  "first cell" | "last cell" | "top last cell" | "bottom first cell" |
+  "top row middle" | "left column middle" | "right column middle" | "bottom row middle" |
+  "inner area";
+export function human_position_to_indexes(pos: Human_Position, arr: any[][]): number[][] {
+  if (arr.length === 0)
+    return [];
+
+  switch (pos) {
+
+    case "top row": {
+      const row = arr[0];
+      return row.map((_x: any, i: number) => [i, 0]);
+    } // case
+
+    case "bottom row": {
+      if (arr.length < 2)
+        return [];
+      const last_row_index = arr.length - 1;
+      const row = arr[last_row_index];
+      return row.map((_x: any, i: number) => [i, last_row_index]);
+    } // case
+
+    case "middle rows": {
+      if (arr.length < 3)
+        return [];
+      const slice = arr.slice(1, arr.length - 1);
+      return slice.map((row, row_i) => {
+        return row.map((_x, col_i) => [col_i, row_i + 1])
+      }).flat();
+    } // case
+
+    case "first column": {
+      return arr.map((_row, i) => [0,i]);
+    } // case
+
+    case "last column": {
+      return arr.map((row, i) => [row.length - 1,i]);
+    } // case
+
+  } // switch
+  throw new Error(`Invalid values: human_position_to_indexes(${pos}, arr)`);
+} // export function

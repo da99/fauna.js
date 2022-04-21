@@ -24,6 +24,7 @@ export interface Bunny_Response {
 export interface Local_File {
   local_path: string;
   remote_path: string;
+  size: number
 };
 
 export interface Bunny_File {
@@ -52,7 +53,9 @@ function ensure_valid_dir() {
 
 if (match("ls files", "Be sure to 'cd' into the Public directory you want to upload.")) {
   const files = await local_files();
-  files.forEach((x: Local_File) => console.log(`${x.local_path} ${x.remote_path}`));
+  for (const f of files) {
+    console.log(`${Math.round(f.size / 1024)}KB ${f.local_path} ${f.remote_path}`)
+  } // for
 } // if
 
 if (match(`ls remote files in <remote_dirname>`)) {
@@ -89,7 +92,7 @@ if (match(`upload files to <remote_dirname>`)) {
     results.push(f);
   } // for
   const responses = (await Promise.all(results));
-  columns(files.map(x => [x])).push_columns("right",columns(responses.map(x=>[x])));
+  columns(files).push_columns("right",columns(responses));
 } // if
 
 not_found();
@@ -99,15 +102,25 @@ function bunny_url(dirname: string) {
 } // function
 
 export async function local_files(): Promise<Local_File[]> {
-  return (await fd(`--max-depth 4 --type f --size -15m --exec sha256sum {} ;`))
+  const local_sha_filename = (await fd(`--max-depth 4 --type f --size -15m --exec sha256sum {} ;`))
   .split('  ')
   .column(0, UP_CASE)
   .column(1, remove_pattern(begin_dot_slash))
   .arrange(1,0,1)
-  .column(2, path_to_filename('.'))
-  .raw
-  .map((r: string[]) => ({local_path: r[0], remote_path: `${r[1]}.${r[2]}`}))
-  .sort()
+  .column('last', path_to_filename('.'));
+
+  const stat = await Promise.all(
+    local_sha_filename.column("first")
+    .raw
+    .map(r => Deno.stat(r[0]))
+  );
+
+  return local_sha_filename.push_columns("right", columns(stat)).
+    raw.map(row => ({
+    local_path: row[0],
+    remote_path: `${row[1]}.${row[2]}`,
+    size: row[3].size
+  })).sort();
 } // export async function
 
 export function remote_files(dirname: string): Promise<Bunny_File[]> {

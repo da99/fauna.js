@@ -228,6 +228,11 @@ export class Columns {
     return columns(new_arr);
   } // method
 
+  raw_column(pos: "first" | "last" | number) {
+    return column_indexes(pos, this.raw)
+    .map(rc => this.raw[rc[0]][rc[1]]);
+  };
+
   column(n: number | "last", ...funcs: Array<(x: any) => any>) {
     let i = 0;
     if (n === "last")
@@ -540,11 +545,20 @@ export function human_position_to_indexes(pos: Human_Position, arr: any[][]): nu
   } // switch
 } // export function
 
-export function column_indexes(n: number, arr: any[][]): number[][] {
+export function column_indexes(pos: number | "first" | "last", arr: any[][]): number[][] {
+  let n = 0;
   if (arr.length === 0)
     return [];
+
+  if (typeof pos === "number")
+    n = pos;
+
+  if (pos === "last")
+    n = arr[0].length - 1;
+
   if (n < 0)
     throw new Error(`Invalid column index: column_indexes(${n}, arr)`);
+
   const fin: number[][] = [];
   let row_i = -1;
   for (const row of arr) {

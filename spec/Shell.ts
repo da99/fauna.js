@@ -13,6 +13,18 @@ import {
   count, tail_count
 } from "../src/Function.ts";
 
+function five_x_five(x: "a" | 0 = 0) {
+  if (x === "a")
+    return count(5).map(_x => "a b c d e".split(' '));
+  return [
+    [0,1,2,3,4],
+    [5,6,7,8,9],
+    [10,11,12,13,14],
+    [15,16,17,18,19],
+    [20,21,22,23,24],
+  ];
+} // function
+
 // =============================================================================
 describe("fd");
 // =============================================================================
@@ -521,15 +533,41 @@ it('returns a row without the specified quantity from the right: middle(0,2, "co
   ]);
   const c2 = c1.middle(0,2, "column");
   equals(c2.raw, [
-    [1,],
-    [4,],
-    [7,],
+    [1],
+    [4],
+    [7],
     [10],
     [13],
   ]);
 });
 
+// =============================================================================
+describe("Columns#raw_column")
+// =============================================================================
 
+it('returns an Array with the values of the specified column', function () {
+  const arr = columns(five_x_five("a"));
+  equals(
+    arr.raw_column(1),
+    count(5).map(x => 'b')
+  )
+});
+
+it('returns an Array with the values of: raw_column("first")', function () {
+  const arr = columns(five_x_five("a"));
+  equals(
+    arr.raw_column('first'),
+    count(5).map(x => 'a')
+  )
+});
+
+it('returns an Array with the values of: raw_column("last")', function () {
+  const arr = columns(five_x_five("a"));
+  equals(
+    arr.raw_column('last'),
+    count(5).map(x => 'e')
+  )
+})
 // =============================================================================
 describe(`human_position_to_indexes(any[][], string)`);
 // =============================================================================
@@ -537,16 +575,6 @@ describe(`human_position_to_indexes(any[][], string)`);
 function new_arr(row: number, column: number) {
   return count(row).map((r: number, i: number) => tail_count(column, column * (1+i)));
 }
-
-function five_x_five() {
-  return [
-    [0,1,2,3,4],
-    [5,6,7,8,9],
-    [10,11,12,13,14],
-    [15,16,17,18,19],
-    [20,21,22,23,24],
-  ];
-} // function
 
 it(`returns the indexes for: top row`, function () {
   const arr = five_x_five();
@@ -731,6 +759,22 @@ it(`returns the indexes for: column_indexes(1, arr)`, function () {
   equals(
     Deno.inspect(column_indexes(1, arr)),
     Deno.inspect(expect)
+  );
+});
+
+it(`returns the indexes for: column_indexes('first', arr)`, function () {
+  const arr = five_x_five();
+  equals(
+    column_indexes("first", arr),
+    column_indexes(0, arr),
+  );
+});
+
+it(`returns the indexes for: column_indexes('last', arr)`, function () {
+  const arr = five_x_five();
+  equals(
+    column_indexes("last", arr),
+    column_indexes(4,arr)
   );
 });
 

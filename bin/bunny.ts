@@ -2,9 +2,11 @@
 
 // import * as path from "https://deno.land/std/path/mod.ts";
 import {meta_url, match, values, not_found} from "../src/CLI.ts";
-import {content_type} from "../src/Function.ts";
+import { green, red, yellow, bold } from "https://deno.land/std/fmt/colors.ts";
+import {content_type, human_bytes, MB, sort_by_key} from "../src/Function.ts";
 import {fd, columns} from "../src/Shell.ts";
-import { readerFromStreamReader } from "https://deno.land/std/io/mod.ts";
+import { readableStreamFromReader } from "https://deno.land/std/streams/conversion.ts";
+import * as path from "https://deno.land/std/path/mod.ts";
 import {
   UP_CASE,
   remove_pattern,
@@ -24,7 +26,16 @@ export interface Bunny_Response {
 export interface Local_File {
   local_path: string;
   remote_path: string;
-  size: number
+  sha256: string;
+  bytes: number;
+  content_type: string;
+};
+
+export interface Upload_Result {
+  local_file: Local_File;
+  ok: boolean;
+  response: Response;
+  bunny: Bunny_Response;
 };
 
 export interface Bunny_File {
@@ -38,8 +49,132 @@ export interface Bunny_File {
   "ServerId":        number;
   "UserId":          string;
   "DateCreated":     string;
-  "StorageZoneId":   number
+  "StorageZoneId":   number;
+  "Checksum":        string;
 };
+
+// =============================================================================
+// IF MATCH:
+// =============================================================================
+
+if (match("ls local files verbose")) {
+  const files = await local_files();
+  for (const f of files) {
+    verbose_log_file(f.local_path, f);
+  } // for
+} // if
+
+if (match("ls local files", "Be sure to 'cd' into the Public directory you want to upload.")) {
+  const files = await local_files();
+  for (const f of files) {
+    if (f.bytes > MB)
+      console.log(`${human_bytes(f.bytes)} ${f.local_path} ${f.remote_path} ${f.content_type}`)
+    else
+      console.log(`${f.local_path} ${f.remote_path} ${f.content_type}`)
+  } // for
+} // if
+
+if (match(`ls remote files in <remote_dirname> verbose`)) {
+  const [dirname] = values() as string[];
+  const files     = await remote_files(dirname);
+
+  if (files.length === 0)
+    console.error(`${yellow('===')} No files found for: ${bold(dirname)}`);
+
+  for (const f of files) {
+    verbose_log_file(f.ObjectName, f);
+  } // for
+} // if
+
+if (match(`ls remote files in <remote_dirname>`)) {
+  const [dirname] = values() as string[];
+  const files     = await remote_files(dirname);
+
+  if (files.length === 0)
+    console.error(`${yellow('===')} No files found for: ${bold(dirname)}`);
+
+  for (const f of files) {
+    if (f.Length > MB)
+      console.log(`${f.ObjectName} ${bold(human_bytes(f.Length))}`);
+    else
+      console.log(`${f.ObjectName}`);
+  } // for
+} // if
+
+if (match(`ls files to upload to <remote_dirname> verbose`)) {
+  const [dirname] = values() as string[];
+  (await uploadable_local_files(dirname)).forEach(lf => {
+    verbose_log_local_file(lf);
+  })
+} // if
+
+if (match(`ls files to upload to <remote_dirname>`)) {
+  const [dirname] = values() as string[];
+  for (const lf of (await uploadable_local_files(dirname))) {
+    console.log(`${bold(lf.local_path)} ${lf.remote_path}`);
+  } // for
+} // if
+
+if (match(`upload files to <remote_dirname>`)) {
+  const [dirname]                    = values() as string[];
+  const url   = bunny_url(dirname);
+  console.error(`=== URL: ${yellow(url)}`);
+  const results = await upload_files(dirname);
+  for (const success of results) {
+    if (!success.ok)
+      continue;
+    console.log(`${green("✓")} ${success.local_file.local_path} ${bold(success.bunny.HttpCode.toString())} ${success.bunny.Message}`)
+  } // for
+
+  for (const fail of results) {
+    if (fail.ok)
+      continue;
+    console.log(`${red("✗")} ${fail.local_file.local_path} ${red(fail.bunny.HttpCode.toString())} ${bold(fail.bunny.Message)}`)
+  } // for
+} // if
+
+if (match('ls old remote files in <dirname>')) {
+  const [dirname] = values() as string[];
+  const old_bunnys = await old_files(dirname);
+  for (const bf of old_bunnys) {
+    if (bf.Length > MB)
+      console.log(`${bf.ObjectName} ${bold(human_bytes(bf.Length))}`);
+    else
+      console.log(`${bf.ObjectName}`);
+  } // for
+  if (old_bunnys.length === 0)
+    console.error(`=== ${yellow(`No old remote files`)} in ${bold(dirname)}.`);
+} // if
+
+if (match('ls old remote files in <dirname> long')) {
+  const [dirname] = values() as string[];
+  const old_bunnys = await old_files(dirname);
+  for (const bf of old_bunnys) {
+    console.log(`${yellow(bf.ObjectName)}`)
+    for (const [k,v] of Object.entries(bf)) {
+      console.log(`  ${bold(k)}: ${v}`);
+      switch (k) {
+        case "Length": {
+          console.log(`  ${bold("human bytes")}: ${human_bytes(v)}`);
+        } // case
+      } // switch
+    } // for
+  } // for
+  if (old_bunnys.length === 0)
+    console.error(`=== ${yellow(`No old remote files`)} in ${bold(dirname)}.`);
+} // if
+
+// =============================================================================
+not_found();
+// =============================================================================
+
+// =============================================================================
+// Functions:
+// =============================================================================
+
+function bunny_url(dirname: string) {
+  return `${env_or_throw("BUNNY_URL")}/${dirname}/`;;
+} // function
 
 function ensure_valid_dir() {
   try {
@@ -51,58 +186,17 @@ function ensure_valid_dir() {
   return true;
 } // function
 
-if (match("ls files", "Be sure to 'cd' into the Public directory you want to upload.")) {
-  const files = await local_files();
-  for (const f of files) {
-    console.log(`${Math.round(f.size / 1024)}KB ${f.local_path} ${f.remote_path}`)
-  } // for
-} // if
-
-if (match(`ls remote files in <remote_dirname>`)) {
-  const [dirname] = values();
-  const files = await remote_files(dirname as string);
-  for (const f of files) {
-    console.log(`${f.Path} ${f.ObjectName}`);
-  };
-} // if
-
-if (match(`ls files to upload to <remote_dirname>`)) {
-  const [dirname] = values() as string[];
-  (await uploadable_local_files(dirname)).forEach(lf => {
-    console.log(`${lf.local_path} ${lf.remote_path}`);
-  })
-} // if
-
-if (match(`upload files to <remote_dirname>`)) {
-  const [dirname] = values() as string[];
-  const results: Promise<Response>[] = [];
-  const files: Local_File[] = [];
-  for (const lf of (await uploadable_local_files(dirname))) {
-    const url = bunny_url(dirname);
-    const f = fetch(url, {
-      method: "PUT",
-      headers: {
-        "Accept": '*/*',
-        "AccessKey": env_or_throw("BUNNY_KEY"),
-        "Content-Type": content_type(lf.local_path),
-        "Content-Length": (await Deno.stat(lf.local_path)).size.toString(),
-      }
-    }); // fetch
-    files.push(lf);
-    results.push(f);
-  } // for
-  const responses = (await Promise.all(results));
-  columns(files).push_columns("right",columns(responses));
-} // if
-
-not_found();
-
-function bunny_url(dirname: string) {
-  return `${env_or_throw("BUNNY_URL")}/${dirname}/`;;
-} // function
+export async function uploadable_local_files(dirname: string): Promise<Local_File[]> {
+  const remote    = await remote_files(dirname);
+  const local     = await local_files();
+  const remote_paths = remote.map(bf => bf.ObjectName);
+  return local.filter(lf => !remote_paths.includes(lf.remote_path));
+} // export async
 
 export async function local_files(): Promise<Local_File[]> {
-  const local_sha_filename = (await fd(`--max-depth 4 --type f --size -15m --exec sha256sum {} ;`))
+  ensure_valid_dir();
+
+  const local_sha_filename = (await fd(`--max-depth 4 --type f --size -15m --exclude *.ts --exec sha256sum {} ;`))
   .split('  ')
   .column(0, UP_CASE)
   .column(1, remove_pattern(begin_dot_slash))
@@ -110,43 +204,114 @@ export async function local_files(): Promise<Local_File[]> {
   .column('last', path_to_filename('.'));
 
   const stat = await Promise.all(
-    local_sha_filename.column("first")
-    .raw
-    .map(r => Deno.stat(r[0]))
+    local_sha_filename.raw_column("first")
+    .map(r => Deno.stat(r))
   );
 
-  return local_sha_filename.push_columns("right", columns(stat)).
-    raw.map(row => ({
-    local_path: row[0],
+  const file_table = local_sha_filename.push_columns("right", columns(stat));
+
+  return file_table.raw.map(row => ({
+    local_path:  row[0],
     remote_path: `${row[1]}.${row[2]}`,
-    size: row[3].size
-  })).sort();
+    sha256:      row[1],
+    bytes:       row[3].size,
+    content_type: content_type(row[0]),
+  })).sort(sort_by_key("local_path"));
 } // export async function
 
-export function remote_files(dirname: string): Promise<Bunny_File[]> {
-  const url = `${env_or_throw("BUNNY_URL")}/${dirname}/`;
-  return fetch(url, {
+export async function remote_files(dirname: string): Promise<Bunny_File[]> {
+  ensure_valid_dir();
+
+  const url = path.join(bunny_url(dirname));
+
+  const resp = await fetch(url, {
     method: "GET",
     headers: {
       "Accept": '*/*',
       "AccessKey": env_or_throw("BUNNY_KEY")
     }
-  })
-  .then(resp => resp.json())
-  .then((x: Bunny_Response | Bunny_File[]) => {
-    if ("length" in x) {
-      const files: Bunny_File[] = x;
-      if (files.length === 0)
-        console.error(`No files found for: ${url}`);
-      return files;
-    }
-    throw new Error(`${url} ${Deno.inspect(x, {colors: true})}`);
   });
-} // export async
 
-export async function uploadable_local_files(dirname: string): Promise<Local_File[]> {
-  const remote    = await remote_files(dirname);
-  const local     = await local_files();
-  const remote_paths = remote.map(bf => bf.ObjectName);
-  return local.filter(lf => !remote_paths.includes(lf.remote_path));
-} // export async
+  const json: Bunny_Response | Bunny_File[] = await resp.json();
+
+  if ("length" in json) {
+    const remotes: Bunny_File[] = json;
+    remotes.sort(sort_by_key("Checksum"));
+    return remotes;
+  }
+
+  throw new Error(`${url} ${Deno.inspect(json, {colors: true})}`);
+} // export async function
+
+export async function upload_files(dirname: string): Promise<Upload_Result[]> {
+  const url       = bunny_url(dirname);
+  const BUNNY_KEY = env_or_throw("BUNNY_KEY");
+  const files     = (await uploadable_local_files(dirname));
+
+  const deno_files = await Promise.all(
+    files.map(lf => Deno.open(lf.local_path))
+  );
+
+  const streams = deno_files.map(f => readableStreamFromReader(f));
+
+  const fetches = files.map((lf, i) => {
+    return fetch(path.join(url, lf.remote_path), {
+      method: "PUT",
+      headers: {
+        "Accept":         '*/*',
+        "Checksum":       lf.sha256,
+        "AccessKey":      BUNNY_KEY,
+        "Content-Type":   lf.content_type,
+        "ContentType":   lf.content_type,
+        "Content-Length": lf.bytes.toString(),
+      },
+      body: streams[i]
+    });
+  });
+
+  const responses                = await Promise.all(fetches);
+  const bunnys: Bunny_Response[] = await Promise.all(responses.map(r => r.json()));
+
+  return files.map((lf, i) => ({
+    local_file: lf,
+    ok: responses[i].ok,
+    response: responses[i],
+    bunny: bunnys[i]
+  }));
+} // export async function
+
+export async function old_files(dirname: string): Promise<Bunny_File[]> {
+  const remotes     = await remote_files(dirname);
+  const locals      = await local_files();
+  const local_shas  = locals.map(x => x.sha256);
+  return remotes.filter(x => {
+    return !local_shas.includes(x.ObjectName.split('.')[0]);
+  });
+} // export async function
+
+export function verbose_log_local_file(f: Local_File) {
+    console.log(`${yellow(f.local_path)}`)
+    for (const [k,v] of Object.entries(f)) {
+      console.log(`  ${bold(k)}: ${Deno.inspect(v)}`)
+      switch (k) {
+        case "bytes": {
+          console.log(`  ${bold("human_bytes")}: ${human_bytes(v as number)}`)
+        }
+      } // switch
+    } // for k,v
+    console.log("================================================================================");
+} // export function
+
+export function verbose_log_file(title: string, f: Bunny_File | Local_File) {
+    console.log(`${yellow(title)}`)
+    for (const [k,v] of Object.entries(f)) {
+      console.log(`  ${bold(k)}: ${Deno.inspect(v)}`)
+      switch (k) {
+        case "Length":
+        case "bytes": {
+          console.log(`  ${bold("human_bytes")}: ${human_bytes(v as number)}`)
+        }
+      } // switch
+    } // for k,v
+    console.log("================================================================================");
+} // export function

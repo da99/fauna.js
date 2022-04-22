@@ -6,6 +6,16 @@ export type Conditional = (x: any) => boolean;
 
 export const begin_dot_slash = /^\.+\/+/;
 export const end_slash = /\/+$/;
+export const MB = 1024 * 1024;
+
+export function human_bytes(n: number): string {
+  const bytes = n;
+  if (bytes < 1024)
+    return `${n} B`;
+  if (bytes < MB)
+    return `${Math.round(bytes/1024)} KB`;
+  return `${Math.round(bytes/MB)} MB`;
+} // export function
 
 export function UP_CASE(s: string) {
   return s.toUpperCase();
@@ -262,4 +272,28 @@ export function is_any(f: (x: any) => boolean) : (x: any[]) => boolean {
     }
     return false;
   };
+} // export function
+
+export function group_by(k: string) {
+  return function <T>(arr: Array<Record<string, T>>): Record<string, Record<string, T>> {
+    const o = {} as Record<string, Record<string, T>>;
+    for (const kv of arr) {
+      o['' + kv[k]] = kv;
+    } // for
+    return o;
+  };
+} // export function
+
+export function sort_by_key(k: string) {
+  return function (a: Record<string, any>, b: Record<string, any>): number {
+    let ak = a[k];
+    let bk = b[k];
+    if (typeof ak !== "number")
+      ak = '' + ak;
+    if (typeof bk !== "number")
+      bk = '' + bk;
+    if (ak === bk)
+      return 0
+    return (ak < bk) ? -1 : 1;
+  } // return;
 } // export function

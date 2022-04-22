@@ -198,7 +198,7 @@ not_found();
 
 export async function project_name() {
   const name = (await shell("git", "remote get-url origin"))
-  .raw.slice(0,1).join('').trim().replace(/\.git$/, '').split('/').pop();
+  .raw_string.replace(/\.git$/, '').split('/').pop();
   if (typeof name === "string" && name.length > 0)
     return name;
   throw new Error(`No project name could be found.`);

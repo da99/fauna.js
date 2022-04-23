@@ -4,6 +4,7 @@ import * as path from "https://deno.land/std/path/mod.ts";
 import { bold, green, yellow, blue } from "https://deno.land/std/fmt/colors.ts";
 import { flatten_cmd, split_whitespace } from "./String.ts";
 
+export const IS_VERBOSE = Deno.args.filter(x => x === "-v" || x === "--verbose").length > 0;
 // const WHITESPACE = /(\s+)/;
 
 // function standard_keys(raw : string) {

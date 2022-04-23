@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-run=fd,find,git --allow-net=storage.bunnycdn.com --allow-env --allow-read=./ --allow-write=./
 
 // import * as path from "https://deno.land/std/path/mod.ts";
-import {meta_url, match, not_found, inspect} from "../src/CLI.ts";
+import {meta_url, match, not_found, inspect, IS_VERBOSE} from "../src/CLI.ts";
 import { green, red, yellow, bold } from "https://deno.land/std/fmt/colors.ts";
 import {content_type, human_bytes, MB, sort_by_key, count} from "../src/Function.ts";
 import {fd, columns, shell, shell_ignore_errors} from "../src/Shell.ts";
@@ -19,7 +19,6 @@ meta_url(import.meta.url);
 
 export type CONFIG_OPTIONS    = "PROJECT_NAME" | "BUNNY_DIR" | "BUNNY_URL" | "BUNNY_KEY" | "VERBOSE";
 export const FILE_TS          = ".FILES.ts";
-export const IS_VERBOSE       = (Deno.env.get('VERBOSE') || "").trim().toUpperCase().length > 0;
 export const GIT_PROJECT_NAME = (await shell_ignore_errors("git", "remote get-url origin"))
   .default_non_empty_string(null, (x: string) => x.replace(/\.git$/, '').split('/').pop());
 
@@ -80,20 +79,13 @@ if (match(`project name`)) {
   console.log(name);
 } // if
 
-if (match("files . -v")) {
+if (match("files . [-v]", "Be sure to 'cd' into the Public directory you want to upload.")) {
   const files = await local_files();
   for (const f of files) {
-    verbose_log_file(f.local_path, f);
-  } // for
-} // if
-
-if (match("files .", "Be sure to 'cd' into the Public directory you want to upload.")) {
-  const files = await local_files();
-  for (const f of files) {
-    if (f.bytes > MB)
-      console.log(`${human_bytes(f.bytes)} ${f.local_path} ${f.remote_path} ${f.content_type}`)
+    if (IS_VERBOSE)
+      verbose_log_local_file(f);
     else
-      console.log(`${f.local_path} ${f.remote_path} ${f.content_type}`)
+      log_local_file(f);
   } // for
 } // if
 
@@ -368,6 +360,13 @@ export async function old_files(): Promise<Bunny_File[]> {
     return !local_shas.includes(x.ObjectName.split('.')[0]);
   });
 } // export async function
+
+export function log_local_file(f: Local_File) {
+  if (f.bytes > MB)
+    console.log(`${human_bytes(f.bytes)} ${f.local_path} ${f.remote_path} ${f.content_type}`)
+  else
+    console.log(`${f.local_path} ${f.remote_path} ${f.content_type}`)
+} // export function
 
 export function verbose_log_local_file(f: Local_File) {
     console.log(`${yellow(f.local_path)}`)

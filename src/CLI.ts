@@ -11,7 +11,7 @@ import { flatten_cmd, split_whitespace } from "./String.ts";
 // }
 
 export function verbose(f: (...args: any[]) => any, ...args: any[]) {
-  console.error(`${yellow(f.name)}(${args.map(x => blue(Deno.inspect(x))).join(", ")})`);
+  console.error(`${yellow(f.name)}(${args.map(x => blue(inspect(x))).join(", ")})`);
   return f.apply(null, args);
 } // export function
 

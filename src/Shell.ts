@@ -34,6 +34,13 @@ export async function shell(cmd: string, args: string | string[]) {
   return lines(result.stdout);
 } // export async
 
+export async function shell_ignore_errors(cmd: string, args: string | string[]) {
+  if (typeof args === "string")
+    args = args.trim().split(/\s+/);
+  const result = await run([cmd].concat(args), "piped", "quiet");
+  return lines(result.stdout);
+} // export async
+
 export async function fd(args: string | string[]) {
   return await shell("fd", args);
 } // export async
@@ -61,6 +68,9 @@ export class Lines {
   }
 
   get length() { return this.raw.length; }
+  get trimmed_lines () {
+    return this.raw.map(x => x.trim()).filter(x => x.length > 0);
+  } // get
 
   /*
     Use this when you expect one line that is not empty.
@@ -75,6 +85,13 @@ export class Lines {
       throw new Error(`No output for: Lines#raw_string ${Deno.inspect(this.raw)}`);
     throw new Error(`More than one line for: Lines#raw_string ${Deno.inspect(this.raw)}`);
   } // get
+
+  default_non_empty_string(d: any, f: (x: string) => any) {
+    const trimmed = this.trimmed_lines;
+    if (trimmed.length === 0)
+      return d;
+    return f(trimmed.join('\n'));
+  } // method
 
   split(pattern: string | RegExp): Columns {
     return columns(

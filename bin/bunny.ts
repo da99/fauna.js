@@ -1,10 +1,10 @@
-#!/usr/bin/env -S deno run --allow-run=fd,find,git --allow-net=storage.bunnycdn.com --allow-env=BUNNY_URL,BUNNY_KEY --allow-read=./ --allow-write=./
+#!/usr/bin/env -S deno run --allow-run=fd,find,git --allow-net=storage.bunnycdn.com --allow-env --allow-read=./ --allow-write=./
 
 // import * as path from "https://deno.land/std/path/mod.ts";
-import {meta_url, match, values, not_found} from "../src/CLI.ts";
+import {meta_url, match, not_found, inspect} from "../src/CLI.ts";
 import { green, red, yellow, bold } from "https://deno.land/std/fmt/colors.ts";
 import {content_type, human_bytes, MB, sort_by_key, count} from "../src/Function.ts";
-import {fd, columns, shell} from "../src/Shell.ts";
+import {fd, columns, shell, shell_ignore_errors} from "../src/Shell.ts";
 import { readableStreamFromReader } from "https://deno.land/std/streams/conversion.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 import {
@@ -17,7 +17,12 @@ import {
 
 meta_url(import.meta.url);
 
-export const FILE_TS = ".FILES.ts";
+export type CONFIG_OPTIONS    = "PROJECT_NAME" | "BUNNY_DIR" | "BUNNY_URL" | "BUNNY_KEY" | "VERBOSE";
+export const FILE_TS          = ".FILES.ts";
+export const IS_VERBOSE       = (Deno.env.get('VERBOSE') || "").trim().toUpperCase().length > 0;
+export const GIT_PROJECT_NAME = (await shell_ignore_errors("git", "remote get-url origin"))
+  .default_non_empty_string(null, (x: string) => x.replace(/\.git$/, '').split('/').pop());
+
 export interface Bunny_Response {
   HttpCode: 200 | 201 | 400 | 404;
   Message: "Object Not Found";
@@ -58,6 +63,14 @@ export interface Delete_Status extends Bunny_File {
   json: Bunny_Response;
 };
 
+export interface Exported_File {
+  path:         string;
+  url:          string;
+  sha256:       string;
+  content_type: string;
+  bytes:        number;
+};
+
 // =============================================================================
 // IF MATCH:
 // =============================================================================
@@ -85,11 +98,10 @@ if (match("files .", "Be sure to 'cd' into the Public directory you want to uplo
 } // if
 
 if (match(`files remote -v`)) {
-  const dirname = await project_name();
-  const files   = await remote_files(dirname);
+  const files   = await remote_files();
 
   if (files.length === 0)
-    console.error(`${yellow('===')} No files found for: ${bold(dirname)}`);
+    console.error(`${yellow('===')} No files found for: ${bold(config("BUNNY_DIR"))}`);
 
   for (const f of files) {
     verbose_log_file(f.ObjectName, f);
@@ -98,7 +110,7 @@ if (match(`files remote -v`)) {
 
 if (match(`files remote`)) {
   const dirname = await project_name();
-  const files   = await remote_files(dirname);
+  const files   = await remote_files();
 
   if (files.length === 0)
     console.error(`${yellow('===')} No files found for: ${bold(dirname)}`);
@@ -112,25 +124,21 @@ if (match(`files remote`)) {
 } // if
 
 if (match(`files to upload -v`)) {
-  const dirname = await project_name();
-
-  (await uploadable_local_files(dirname)).forEach(lf => {
+  for (const lf of (await uploadable_local_files())) {
     verbose_log_local_file(lf);
-  })
+  } // for
 } // if
 
 if (match(`files to upload`)) {
-  const dirname = await project_name();
-  for (const lf of (await uploadable_local_files(dirname))) {
+  for (const lf of (await uploadable_local_files())) {
     console.log(`${bold(lf.local_path)} ${lf.remote_path}`);
   } // for
 } // if
 
 if (match(`upload files`)) {
-  const dirname = await project_name();
-  const url   = bunny_url(dirname);
+  const url   = config("UPLOAD_PATH");
   console.error(`=== URL: ${yellow(url)}`);
-  const results = await upload_files(dirname);
+  const results = await upload_files();
   for (const success of results) {
     if (!success.ok)
       continue;
@@ -146,7 +154,7 @@ if (match(`upload files`)) {
 
 if (match('old remote files -v')) {
   const dirname = await project_name();
-  const old_bunnys = await old_files(dirname);
+  const old_bunnys = await old_files();
   for (const bf of old_bunnys) {
     console.log(`${yellow(bf.ObjectName)}`)
     for (const [k,v] of Object.entries(bf)) {
@@ -164,7 +172,7 @@ if (match('old remote files -v')) {
 
 if (match('old remote files')) {
   const dirname = await project_name();
-  const old_bunnys = await old_files(dirname);
+  const old_bunnys = await old_files();
   for (const bf of old_bunnys) {
     if (bf.Length > MB)
       console.log(`${bf.ObjectName} ${bold(human_bytes(bf.Length))}`);
@@ -176,21 +184,64 @@ if (match('old remote files')) {
 } // if
 
 if (match('delete old remote files')) {
-  const dirname = await project_name();
-  const old = await delete_old_files(dirname);
+  const old = await delete_old_files();
   if (old.length === 0)
     console.error(`=== ${yellow("Nothing to delete.")}`);
   for (const dstat of old) {
     if (dstat.ok)
-      console.log(`${green("✓")} ${bold(dstat.ObjectName)} ${Deno.inspect(dstat.json, {colors: true})}`)
+      console.log(`${green("✓")} ${bold(dstat.ObjectName)} ${inspect(dstat.json)}`)
     else
-      console.log(`${red("✗")} ${yellow(dstat.ObjectName)} ${Deno.inspect(dstat.json, {colors: true})}`)
+      console.log(`${red("✗")} ${yellow(dstat.ObjectName)} ${inspect(dstat.json)}`)
   } // for
 } // if
 
 // =============================================================================
 not_found();
 // =============================================================================
+
+// =============================================================================
+// config():
+// =============================================================================
+
+export function config(k: "UPLOAD_PATH" | CONFIG_OPTIONS): string {
+  switch (k) {
+    case "PROJECT_NAME": {
+      const raw = (Deno.env.get("PROJECT_NAME") || GIT_PROJECT_NAME || "").trim()
+      if (raw.length === 0)
+        throw new Error(`PROJECT_NAME could not be found.`)
+      return raw;
+    } // case
+
+    case "UPLOAD_PATH": {
+      return path.join(config("BUNNY_URL"), config("BUNNY_DIR"))
+    } // case
+
+    case "BUNNY_DIR": {
+      let raw = "unknown";
+      try {
+        raw = Deno.env.get(k) || config("PROJECT_NAME");
+      } catch (e) {
+        throw new Error(`BUNNY_DIR could not be found.`);
+      }
+      return raw;
+    } // case
+
+    // Use IS_VERBOSE (boolean) instead.
+    // This is just here for type checking.
+    case "VERBOSE": {
+      return (IS_VERBOSE) ? "YES" : "";
+    } // case
+
+    default: {
+      const raw = (Deno.env.get(k) || "").trim();
+      if (raw.length === 0) {
+        throw new Error(`Configuration value not found for: ${k} ${inspect(Deno.env.get(k))}`);
+      }
+    } // default
+
+  } // switch
+  return "";
+} // export async functon
 
 // =============================================================================
 // Functions:
@@ -204,10 +255,6 @@ export async function project_name() {
   throw new Error(`No project name could be found.`);
 } // export async function
 
-function bunny_url(dirname: string) {
-  return `${env_or_throw("BUNNY_URL")}/${dirname}/`;;
-} // function
-
 function ensure_valid_dir() {
   try {
     Deno.readFileSync(FILE_TS)
@@ -218,8 +265,8 @@ function ensure_valid_dir() {
   return true;
 } // function
 
-export async function uploadable_local_files(dirname: string): Promise<Local_File[]> {
-  const remote    = await remote_files(dirname);
+export async function uploadable_local_files(): Promise<Local_File[]> {
+  const remote    = await remote_files();
   const local     = await local_files();
   const remote_paths = remote.map(bf => bf.ObjectName);
   return local.filter(lf => !remote_paths.includes(lf.remote_path));
@@ -251,12 +298,13 @@ export async function local_files(): Promise<Local_File[]> {
   })).sort(sort_by_key("local_path"));
 } // export async function
 
-export async function remote_files(dirname: string): Promise<Bunny_File[]> {
+export async function remote_files(): Promise<Bunny_File[]> {
   ensure_valid_dir();
 
-  const url = path.join(bunny_url(dirname));
+  const url = config("UPLOAD_PATH");
 
-  const resp = await fetch(url, {
+  const resp = await fetch(
+    url, {
     method: "GET",
     headers: {
       "Accept": '*/*',
@@ -272,13 +320,13 @@ export async function remote_files(dirname: string): Promise<Bunny_File[]> {
     return remotes;
   }
 
-  throw new Error(`${url} ${Deno.inspect(json, {colors: true})}`);
+  throw new Error(`${url} ${inspect(json)}`);
 } // export async function
 
-export async function upload_files(dirname: string): Promise<Upload_Result[]> {
-  const url       = bunny_url(dirname);
-  const BUNNY_KEY = env_or_throw("BUNNY_KEY");
-  const files     = (await uploadable_local_files(dirname));
+export async function upload_files(): Promise<Upload_Result[]> {
+  const url       = config("UPLOAD_PATH");
+  const BUNNY_KEY = config("BUNNY_KEY");
+  const files     = (await uploadable_local_files());
 
   const deno_files = await Promise.all(
     files.map(lf => Deno.open(lf.local_path))
@@ -312,8 +360,8 @@ export async function upload_files(dirname: string): Promise<Upload_Result[]> {
   }));
 } // export async function
 
-export async function old_files(dirname: string): Promise<Bunny_File[]> {
-  const remotes     = await remote_files(dirname);
+export async function old_files(): Promise<Bunny_File[]> {
+  const remotes     = await remote_files();
   const locals      = await local_files();
   const local_shas  = locals.map(x => x.sha256);
   return remotes.filter(x => {
@@ -324,7 +372,7 @@ export async function old_files(dirname: string): Promise<Bunny_File[]> {
 export function verbose_log_local_file(f: Local_File) {
     console.log(`${yellow(f.local_path)}`)
     for (const [k,v] of Object.entries(f)) {
-      console.log(`  ${bold(k)}: ${Deno.inspect(v)}`)
+      console.log(`  ${bold(k)}: ${inspect(v)}`)
       switch (k) {
         case "bytes": {
           console.log(`  ${bold("human_bytes")}: ${human_bytes(v as number)}`)
@@ -337,7 +385,7 @@ export function verbose_log_local_file(f: Local_File) {
 export function verbose_log_file(title: string, f: Bunny_File | Local_File) {
     console.log(`${yellow(title)}`)
     for (const [k,v] of Object.entries(f)) {
-      console.log(`  ${bold(k)}: ${Deno.inspect(v)}`)
+      console.log(`  ${bold(k)}: ${inspect(v)}`)
       switch (k) {
         case "Length":
         case "bytes": {
@@ -348,11 +396,11 @@ export function verbose_log_file(title: string, f: Bunny_File | Local_File) {
     console.log("================================================================================");
 } // export function
 
-export async function delete_old_files(dirname: string): Promise<Delete_Status[]> {
-  const old                    = await old_files(dirname);
+export async function delete_old_files(): Promise<Delete_Status[]> {
+  const old                    = await old_files();
   const stats: Delete_Status[] = [];
-  const PROJECT_URL            = bunny_url(dirname);
-  const BUNNY_KEY              = env_or_throw("BUNNY_KEY");
+  const PROJECT_URL            = config("UPLOAD_PATH");
+  const BUNNY_KEY              = config("BUNNY_KEY");
 
   if (old.length === 0)
     return stats;

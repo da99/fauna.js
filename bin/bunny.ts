@@ -1,7 +1,8 @@
-#!/usr/bin/env -S deno run --allow-run=fd,find,git --allow-net=storage.bunnycdn.com --allow-env --allow-read=./ --allow-write=./
+#!/usr/bin/env -S deno run --allow-run=fd,find,git,bat --allow-net=storage.bunnycdn.com --allow-env --allow-read=./ --allow-write=./
 
 // import * as path from "https://deno.land/std/path/mod.ts";
 import {meta_url, match, not_found, inspect, IS_VERBOSE} from "../src/CLI.ts";
+import {run} from "../src/Process.ts";
 import { green, red, yellow, bold } from "https://deno.land/std/fmt/colors.ts";
 import {content_type, human_bytes, MB, sort_by_key, count} from "../src/Function.ts";
 import {fd, columns, shell, shell_ignore_errors} from "../src/Shell.ts";
@@ -30,6 +31,7 @@ export interface Bunny_Response {
 export interface Local_File {
   local_path: string;
   remote_path: string;
+  url: string;
   sha256: string;
   bytes: number;
   content_type: string;
@@ -164,13 +166,29 @@ if (match('delete old remote files')) {
   } // for
 } // if
 
+if (match('export files [-v]')) {
+  const exports = await export_files();
+  const body = `export const FILES = ${JSON.stringify(exports)};`
+  Deno.writeTextFileSync(FILE_TS, body);
+  if (IS_VERBOSE)
+    run(`bat ${FILE_TS}`, "inherit", "verbose-fail");
+} // if
+
 // =============================================================================
 not_found();
 // =============================================================================
 
 // =============================================================================
-// config():
+// Configuration-related functions:
 // =============================================================================
+
+export async function project_name() {
+  const name = (await shell("git", "remote get-url origin"))
+  .raw_string.replace(/\.git$/, '').split('/').pop();
+  if (typeof name === "string" && name.length > 0)
+    return name;
+  throw new Error(`No project name could be found.`);
+} // export async function
 
 export function config(k: "UPLOAD_PATH" | CONFIG_OPTIONS): string {
   switch (k) {
@@ -213,16 +231,8 @@ export function config(k: "UPLOAD_PATH" | CONFIG_OPTIONS): string {
 } // export async functon
 
 // =============================================================================
-// Functions:
+// File Functions:
 // =============================================================================
-
-export async function project_name() {
-  const name = (await shell("git", "remote get-url origin"))
-  .raw_string.replace(/\.git$/, '').split('/').pop();
-  if (typeof name === "string" && name.length > 0)
-    return name;
-  throw new Error(`No project name could be found.`);
-} // export async function
 
 function ensure_valid_dir() {
   try {
@@ -259,10 +269,11 @@ export async function local_files(): Promise<Local_File[]> {
   const file_table = local_sha_filename.push_columns("right", columns(stat));
 
   return file_table.raw.map(row => ({
-    local_path:  row[0],
-    remote_path: `${row[1]}.${row[2]}`,
-    sha256:      row[1],
-    bytes:       row[3].size,
+    local_path:   row[0],
+    url:          path.join(config('UPLOAD_PATH'), `${row[1]}.${row[2]}`),
+    remote_path:  `${row[1]}.${row[2]}`,
+    sha256:       row[1],
+    bytes:        row[3].size,
     content_type: content_type(row[0]),
   })).sort(sort_by_key("local_path"));
 } // export async function
@@ -348,7 +359,7 @@ export async function upload_files(): Promise<Upload_Result[]> {
   const streams = deno_files.map(f => readableStreamFromReader(f));
 
   const fetches = files.map((lf, i) => {
-    return fetch(path.join(url, lf.remote_path), {
+    return fetch(lf.url, {
       method: "PUT",
       headers: {
         "Accept":         '*/*',
@@ -372,6 +383,25 @@ export async function upload_files(): Promise<Upload_Result[]> {
     bunny: bunnys[i]
   }));
 } // export async function
+
+export async function export_files(): Promise<Record<string, Exported_File>> {
+  const locals = await local_files();
+  const record: Record<string, Exported_File> = {};
+  for (const lf of locals) {
+    record[lf.local_path] = {
+      path:         lf.local_path,
+      url:          lf.url,
+      sha256:       lf.sha256,
+      content_type: lf.content_type,
+      bytes:        lf.bytes
+    };
+  } // for
+  return record;
+} // export async function
+
+// =============================================================================
+// Logging functions:
+// =============================================================================
 
 export function log_local_file(f: Local_File) {
   if (f.bytes > MB)
@@ -418,3 +448,4 @@ export function verbose_log_remote_file(bf: Bunny_File) {
       } // switch
     } // for
 } // export function
+

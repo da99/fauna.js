@@ -89,25 +89,19 @@ if (match("files . [-v]", "Be sure to 'cd' into the Public directory you want to
   } // for
 } // if
 
-if (match(`files remote -v`)) {
+
+if (match(`files remote [-v]`)) {
   const files   = await remote_files();
 
   if (files.length === 0)
-    console.error(`${yellow('===')} No files found for: ${bold(config("BUNNY_DIR"))}`);
+    console.error(`${yellow('===')} No files found for: ${bold(config(`BUNNY_DIR`))}`);
 
   for (const f of files) {
-    verbose_log_file(f.ObjectName, f);
-  } // for
-} // if
+    if (IS_VERBOSE) {
+      verbose_log_file(f.ObjectName, f);
+      continue;
+    }
 
-if (match(`files remote`)) {
-  const dirname = await project_name();
-  const files   = await remote_files();
-
-  if (files.length === 0)
-    console.error(`${yellow('===')} No files found for: ${bold(dirname)}`);
-
-  for (const f of files) {
     if (f.Length > MB)
       console.log(`${f.ObjectName} ${bold(human_bytes(f.Length))}`);
     else
@@ -115,16 +109,30 @@ if (match(`files remote`)) {
   } // for
 } // if
 
-if (match(`files to upload -v`)) {
+if (match(`files to upload [-v]`)) {
   for (const lf of (await uploadable_local_files())) {
-    verbose_log_local_file(lf);
+    if (IS_VERBOSE) {
+      verbose_log_local_file(lf);
+      continue;
+    }
+    console.log(`${bold(lf.local_path)} ${lf.remote_path}`);
   } // for
 } // if
 
-if (match(`files to upload`)) {
-  for (const lf of (await uploadable_local_files())) {
-    console.log(`${bold(lf.local_path)} ${lf.remote_path}`);
+if (match('old remote files [-v]')) {
+  const old_bunnys = await old_files();
+  for (const bf of old_bunnys) {
+    if (IS_VERBOSE) {
+    verbose_log_remote_file(bf);
+      continue;
+    }
+    if (bf.Length > MB)
+      console.log(`${bf.ObjectName} ${bold(human_bytes(bf.Length))}`);
+    else
+      console.log(`${bf.ObjectName}`);
   } // for
+  if (old_bunnys.length === 0)
+    console.error(`=== ${yellow(`No old remote files`)} in ${config('BUNNY_DIR')}.`);
 } // if
 
 if (match(`upload files`)) {
@@ -142,37 +150,6 @@ if (match(`upload files`)) {
       continue;
     console.log(`${red("✗")} ${fail.local_file.local_path} ${red(fail.bunny.HttpCode.toString())} ${bold(fail.bunny.Message)}`)
   } // for
-} // if
-
-if (match('old remote files -v')) {
-  const dirname = await project_name();
-  const old_bunnys = await old_files();
-  for (const bf of old_bunnys) {
-    console.log(`${yellow(bf.ObjectName)}`)
-    for (const [k,v] of Object.entries(bf)) {
-      console.log(`  ${bold(k)}: ${v}`);
-      switch (k) {
-        case "Length": {
-          console.log(`  ${bold("human bytes")}: ${human_bytes(v)}`);
-        } // case
-      } // switch
-    } // for
-  } // for
-  if (old_bunnys.length === 0)
-    console.error(`=== ${yellow(`No old remote files`)} in ${bold(dirname)}.`);
-} // if
-
-if (match('old remote files')) {
-  const dirname = await project_name();
-  const old_bunnys = await old_files();
-  for (const bf of old_bunnys) {
-    if (bf.Length > MB)
-      console.log(`${bf.ObjectName} ${bold(human_bytes(bf.Length))}`);
-    else
-      console.log(`${bf.ObjectName}`);
-  } // for
-  if (old_bunnys.length === 0)
-    console.error(`=== ${yellow(`No old remote files`)} in ${bold(dirname)}.`);
 } // if
 
 if (match('delete old remote files')) {
@@ -315,6 +292,50 @@ export async function remote_files(): Promise<Bunny_File[]> {
   throw new Error(`${url} ${inspect(json)}`);
 } // export async function
 
+export async function delete_old_files(): Promise<Delete_Status[]> {
+  const old                    = await old_files();
+  const stats: Delete_Status[] = [];
+  const PROJECT_URL            = config("UPLOAD_PATH");
+  const BUNNY_KEY              = config("BUNNY_KEY");
+
+  if (old.length === 0)
+    return stats;
+
+  const fetches = old.map(bf => {
+    return fetch(
+      new Request(
+        path.join(PROJECT_URL, bf.ObjectName),
+        {
+          method: 'DELETE',
+          headers: new Headers({
+            AccessKey: BUNNY_KEY,
+          })
+        }
+      )
+    ); // fetch
+  });
+
+  const resps = await Promise.all(fetches);
+  const json = await Promise.all(resps.map(x => x.json()));
+
+  for (const i of count(old.length)) {
+    stats.push(
+      Object.assign({}, old[i], {ok: resps[i].ok, json: json[i]})
+    );
+  } // for
+
+  return stats;
+} // export async function
+
+export async function old_files(): Promise<Bunny_File[]> {
+  const remotes     = await remote_files();
+  const locals      = await local_files();
+  const local_shas  = locals.map(x => x.sha256);
+  return remotes.filter(x => {
+    return !local_shas.includes(x.ObjectName.split('.')[0]);
+  });
+} // export async function
+
 export async function upload_files(): Promise<Upload_Result[]> {
   const url       = config("UPLOAD_PATH");
   const BUNNY_KEY = config("BUNNY_KEY");
@@ -352,15 +373,6 @@ export async function upload_files(): Promise<Upload_Result[]> {
   }));
 } // export async function
 
-export async function old_files(): Promise<Bunny_File[]> {
-  const remotes     = await remote_files();
-  const locals      = await local_files();
-  const local_shas  = locals.map(x => x.sha256);
-  return remotes.filter(x => {
-    return !local_shas.includes(x.ObjectName.split('.')[0]);
-  });
-} // export async function
-
 export function log_local_file(f: Local_File) {
   if (f.bytes > MB)
     console.log(`${human_bytes(f.bytes)} ${f.local_path} ${f.remote_path} ${f.content_type}`)
@@ -395,37 +407,14 @@ export function verbose_log_file(title: string, f: Bunny_File | Local_File) {
     console.log("================================================================================");
 } // export function
 
-export async function delete_old_files(): Promise<Delete_Status[]> {
-  const old                    = await old_files();
-  const stats: Delete_Status[] = [];
-  const PROJECT_URL            = config("UPLOAD_PATH");
-  const BUNNY_KEY              = config("BUNNY_KEY");
-
-  if (old.length === 0)
-    return stats;
-
-  const fetches = old.map(bf => {
-    return fetch(
-      new Request(
-        path.join(PROJECT_URL, bf.ObjectName),
-        {
-          method: 'DELETE',
-          headers: new Headers({
-            AccessKey: BUNNY_KEY,
-          })
-        }
-      )
-    ); // fetch
-  });
-
-  const resps = await Promise.all(fetches);
-  const json = await Promise.all(resps.map(x => x.json()));
-
-  for (const i of count(old.length)) {
-    stats.push(
-      Object.assign({}, old[i], {ok: resps[i].ok, json: json[i]})
-    );
-  } // for
-
-  return stats;
-} // export async function
+export function verbose_log_remote_file(bf: Bunny_File) {
+    console.log(`${yellow(bf.ObjectName)}`)
+    for (const [k,v] of Object.entries(bf)) {
+      console.log(`  ${bold(k)}: ${v}`);
+      switch (k) {
+        case "Length": {
+          console.log(`  ${bold("human bytes")}: ${human_bytes(v)}`);
+        } // case
+      } // switch
+    } // for
+} // export function

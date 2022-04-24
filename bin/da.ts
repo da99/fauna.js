@@ -1,10 +1,10 @@
 #!/usr/bin/env -S deno run --allow-run --allow-net --allow-read --allow-write=./
 
-import {meta_url, match, values, not_found} from "../src/CLI.ts";
+import {inspect,meta_url, match, values, not_found} from "../src/CLI.ts";
 import {pgrep_f, pstree_p, keep_alive, run, exit, exit_on_fail} from "../src/Process.ts";
 
 import {build_www, build_app} from "../src/Build_WWW.ts";
-// import { yellow, bold, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
+import { yellow, bold } from "https://deno.land/std/fmt/colors.ts";
 
 // import {Text_File, find_parent_file} from "../src/FS.ts";
 // import {exists, ensureDirSync} from "https://deno.land/std/fs/mod.ts";
@@ -16,7 +16,6 @@ import {start} from "./_.file_server.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 
 meta_url(import.meta.url);
-// const _this = about();
 
 if (match(".gitignore")) {
   await create_from_template("gitignore", ".gitignore");
@@ -51,9 +50,9 @@ if (match("<zsh|sh|ts> <relative/path/to/file>")) {
   create_from_template(`bin.${extension}`, fpath);
 } // if
 
-if (match("keep-alive <...args>")) {
+if (match("keep alive <...args>")) {
   const args = Deno.args.slice(1);
-  console.error(`=== ${Deno.args[0]} ${args.map(x => Deno.inspect(x)).join(" ")}`);
+  console.error(`=== ${bold(Deno.args[0])} ${yellow(args.map(x => inspect(x)).join(" "))}`);
   const cmds = args.map(x => split_whitespace(x));
   await keep_alive(...cmds);
 } // if
@@ -63,7 +62,7 @@ if (match("keep-alive <...args>")) {
 // # =============================================================================
 if (match(
   "file server start <json>",
-  Deno.inspect({"port": 5555, "public_dir": "dist/Public", "html":{}}, {colors: true})
+  inspect({"port": 5555, "public_dir": "dist/Public", "html":{}})
 )) {
   await start(JSON.parse((values()[0] as string).trim()));
 } // if
@@ -133,5 +132,10 @@ if (match("ls child pids <pattern>")) {
   ).flat().forEach(x => console.log(x));
 } // if
 
+
+// =============================================================================
+// Finish:
+// =============================================================================
 not_found();
+// =============================================================================
 

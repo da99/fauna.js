@@ -3,11 +3,6 @@ import {split_whitespace, flatten_cmd} from "../src/String.ts";
 import { bold, red, green, yellow, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
 // import { sleep } from "https://deno.land/x/sleep/mod.ts";
 
-export interface Keep_Alive {
-  cmd: Array<string>;
-  process: Deno.Process<Deno.RunOptions>;
-}
-
 export interface Result {
   cmd:     string[];
   status:  Deno.ProcessStatus;
@@ -17,6 +12,70 @@ export interface Result {
   success: boolean;
   code:    number;
 }
+
+class Keep_Alive_Process {
+  cmd:         string[];
+  cmd_string:  string;
+  is_finished: boolean;
+  should_keep_alive:     boolean;
+  process:     Deno.Process<Deno.RunOptions>;
+
+  constructor(raw_cmd: string | string[]) {
+    this.should_keep_alive = true;
+    this.is_finished = false;
+    if (typeof raw_cmd === "string")
+      raw_cmd = split_whitespace(raw_cmd);
+    this.cmd = raw_cmd;
+    this.cmd_string = raw_cmd.join(' ');
+    this.process = Deno.run({cmd: this.cmd});
+  } // constructor
+
+  get pid() {
+    return this.process.pid;
+  } // get
+
+  get rid() {
+    return this.process.rid;
+  } // get
+
+  async family_pids() {
+    return await pstree_p(this.pid);
+  } // async method
+
+  async status() {
+    const stat = await this.process.status();
+    if (Deno.resources()[this.process.rid])
+      this.process.close();
+    this.is_finished = true;
+    return stat;
+  } // async method
+
+  async keep_alive(): Promise<void> {
+    const kap = this;
+    while (kap.should_keep_alive) {
+      console.error(`\n=== ${kap.pid} ${yellow(kap.cmd_string)} ===`);
+      const status = await kap.status();
+      print_status(kap.cmd, kap.pid, status);
+      kap.restart();
+    }
+  } // async method
+
+  async kill(signal: "-TERM" | "-INT" = "-TERM"): Promise<void> {
+    const kap = this;
+    await run(`kill ${signal} ${kap.pid}`, "inherit", "verbose-exit")
+    if (Deno.resources()[kap.rid])
+      kap.process.close();
+  } // async method
+
+  restart() {
+    if (!this.is_finished) {
+      throw new Error(`Use "await status()" before calling restart();`);
+    }
+    this.process     = Deno.run({cmd: this.cmd});
+    this.is_finished = false;
+    return this;
+  } // method
+} // class
 
 export async function exit(pr: Promise<Result>) {
   const result = await pr;
@@ -92,39 +151,25 @@ export function print_status(cmd: string[], pid: number, r: Deno.ProcessStatus) 
 } // export function
 
 export async function keep_alive(...args: Array<string | string[]>) {
-
-  const processes: Array<Keep_Alive> = [];
+  const processes: Array<Keep_Alive_Process> = [];
 
   const promises: Array<Promise<void>> = args.map((cmd: string | string[]) => {
-    if (typeof cmd === "string")
-      cmd = split_whitespace(cmd);
-    const ka = {cmd, process: Deno.run({cmd})};
+    const ka = new Keep_Alive_Process(cmd);
     processes.push(ka);
-    return _keep_alive_process(ka);
+    return ka.keep_alive();
   });
 
   Deno.addSignalListener("SIGUSR1", async () => {
-    for (const proc of processes) {
-      await run(`kill -TERM ${proc.process.pid}`, "inherit", "verbose-exit")
-      if (Deno.resources()[proc.process.rid])
-        proc.process.close();
+    for (const kap of processes) {
+      await run(`kill -TERM ${kap.pid}`, "inherit", "verbose-exit")
+      if (Deno.resources()[kap.rid])
+        kap.process.close();
     } // for
   });
 
   await Promise.all(promises);
 
 } // export async
-
-async function _keep_alive_process(proc: Keep_Alive) {
-  while (true) {
-    console.error(`\n=== ${proc.process.pid} ${yellow(proc.cmd.join(" "))} ===`);
-    const status = await proc.process.status();
-    if (Deno.resources()[proc.process.rid])
-      proc.process.close();
-    print_status(proc.cmd, proc.process.pid, status);
-    proc.process = Deno.run({cmd: proc.cmd});
-  }
-} // async function
 
 export async function pgrep_f(pattern: string): Promise<number[]> {
   const io = await run(["pgrep", "-f", pattern], "piped", "quiet");

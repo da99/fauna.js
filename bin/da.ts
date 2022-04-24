@@ -50,10 +50,13 @@ if (match("<zsh|sh|ts> <relative/path/to/file>")) {
   create_from_template(`bin.${extension}`, fpath);
 } // if
 
-if (match("keep alive <...args>")) {
-  const args = Deno.args.slice(1);
-  console.error(`=== ${bold(Deno.args[0])} ${yellow(args.map(x => inspect(x)).join(" "))}`);
-  const cmds = args.map(x => split_whitespace(x));
+if (match("keep alive this: <...args>")) {
+  const [cmd] = values() as string[][];
+  await keep_alive(cmd);
+} // if
+
+if (match("keep alive these: <...args>")) {
+  const cmds = values() as string[][];
   await keep_alive(...cmds);
 } // if
 

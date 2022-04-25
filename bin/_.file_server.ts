@@ -1,9 +1,10 @@
 
-
 import { yellow, bold, green, red, bgRed, white } from "https://deno.land/std/fmt/colors.ts";
 import nunjucks from "https://deno.land/x/nunjucks/mod.js";
+import {content_type, human_bytes, MB, sort_by_key, count} from "../src/Function.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 import {throw_on_fail, run} from "../../da.ts/src/Process.ts";
+import {split_whitespace} from "../../da.ts/src/String.ts";
 import {
   Application,
   Router,
@@ -29,53 +30,27 @@ function _run(cmd: string) {
 
 const CONFIG = {
   "port": 5555,
-  "public_dir": "dist/Public",
-  "html": {}
+  "public_dir": "./",
+  "render_cmd": split_whitespace("../bin/__ render")
 };
 
-async function read_file(file_path: string) {
+async function read_file(file_path: string): Promise<string | null> {
   try {
-    console.error(`--- reading ${file_path} ---`);
-    return await Deno.readTextFile(file_path);
+    return Deno.readTextFile(file_path);
   } catch (e) {
     return null;
   }
 } // function
 
-export async function render(file_path: string) {
-  const ext = path.extname(file_path);
-  const src_file_path = path.join(CONFIG.public_dir, file_path);
-  const contents = await read_file(src_file_path);
-  switch (ext) {
-    case ".css": {
-      if (contents)
-        return {code: 200, body: contents, type: "css"};
-      const less = path.join(CONFIG.public_dir, file_path).replace(/\.css$/, ".less");
-      const { stdout } = await _run(`npx lessc ${less}`);
-      return {code: 200, body: stdout, type: "css"};
-    }
-    case ".html": {
-      if (contents)
-        return {code: 200, body: contents, type: "html"};
-      const html = NUN.render(
-        path.join(CONFIG.public_dir,file_path).replace(/\.html$/, ".njk"),
-        CONFIG["html"]
-      );
-      return {code: 200, body: html, type: "html"};
-    }
-    case ".js": {
-      if (contents)
-        return {code: 200, body: contents, type: "js"};
-      const ts = path.join(CONFIG.public_dir,file_path).replace(/\.js$/, ".ts");
-      const { stdout } = await _run(`deno bundle ${ts}`);
-      return {code: 200, body: stdout, type: "js"};
-    }
-  } // switch
-  return {code: 418, body: "Unknown type: ${ext}", type: "text"};
+export async function render(file_path: string): Promise<string> {
+  const cmd: string[] = CONFIG.render_cmd.slice();
+  cmd.push(file_path);
+  const result = await throw_on_fail(run(cmd, "piped", "verbose"));
+  return result.stdout;
 } // export async function
 
-export async function start(config: Record<string, any>) {
-  Object.assign(CONFIG, config);
+export async function start(port: number, render_cmd: string[]) {
+  Object.assign(CONFIG, {port, render_cmd});
   console.error(CONFIG);
 
   // =============================================================================
@@ -116,19 +91,16 @@ export async function start(config: Record<string, any>) {
     watches.push(target);
   })
   .get("/:name/:file", async (context) => {
-    const filepath = `${context.params.name}/${context.params.file}`;
+    const filepath = path.join(context.params.name, context.params.file);
     try {
-      const {code, body, type} = await render(filepath);
-      if (code === 200) {
-        context.response.body = body;
-        context.response.type = type;
-      } else {
-        context.response.status = code;
-        context.response.body   = `${body}`;
-        context.response.type   = type;
-      }
+      const body = await read_file(filepath) || await render(filepath);
+      context.response.body = body;
+      context.response.type = content_type(filepath);
     } catch (err) {
       console.error(err.message);
+      context.response.status = 500;
+      context.response.body = Deno.inspect(err.message);
+      context.response.type = content_type("error.txt");
     }
   })
   ;

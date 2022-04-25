@@ -13,10 +13,10 @@ import * as path from "https://deno.land/std/path/mod.ts";
 import { bold, yellow } from "https://deno.land/std/fmt/colors.ts";
 
 const DEFAULT_OPTIONS = {
-  "worker.ts": "./src/worker.ts",
-  "worker.js": "./dist/worker.mjs",
-  "html": {},
-  "public": "./src/Public",
+  "worker.ts":   "./src/worker.ts",
+  "worker.js":   "./dist/worker.mjs",
+  "html":        {},
+  "public":      "./src/Public",
   "public_dist": "./dist/Public"
 };
 
@@ -36,9 +36,9 @@ export async function js(file_path: string) {
   return stdout;
 } // export async function
 
-export function html(file_path: string, site: Record<string, any>) {
+export function html(file_path: string, kv: Record<string, any>) {
   return(
-    nunjucks.render(file_path.replace(/\.html/, ".njk"), site)
+    nunjucks.render(file_path.replace(/\.html/, ".njk"), kv)
   );
 } // export function
 

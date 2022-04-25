@@ -64,10 +64,11 @@ if (match("keep alive these: <...args>")) {
 // # === File Server related:
 // # =============================================================================
 if (match(
-  "file server start <json>",
-  inspect({"port": 5555, "public_dir": "dist/Public", "html":{}})
+  "file server start <PORT> <Render CMD>",
+  `Be sure to 'cd' into the public directory. The render CMD is relative to the public directory.`
 )) {
-  await start(JSON.parse((values()[0] as string).trim()));
+  const [port, raw_cmd] = values() as string[];
+  await start(parseInt(port), split_whitespace(raw_cmd));
 } // if
 
 if (match("file server stop")) {

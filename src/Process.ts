@@ -21,11 +21,11 @@ class Keep_Alive_Process {
   should_keep_alive: boolean;
   process:           Deno.Process<Deno.RunOptions>;
 
-  constructor(raw_cmd: string[]) {
+  constructor(raw_cmd: string | string[]) {
     this.should_keep_alive = true;
     this.is_finished       = false;
-    this.cmd               = raw_cmd;
-    this.cmd_string        = raw_cmd.join(' ');
+    this.cmd               = split_cmd(raw_cmd);
+    this.cmd_string        = this.cmd.join(' ');
     this.process           = Deno.run({cmd: this.cmd});
     print_start(this.cmd, this.process.pid);
   } // constructor
@@ -76,6 +76,16 @@ class Keep_Alive_Process {
     return this;
   } // method
 } // class
+
+export function split_cmd(x: string | string[]): string[] {
+  if (typeof x === "string")
+    return split_whitespace(x);
+  if (x.length === 1)
+    return split_whitespace(x[0]);
+  if (x.length === 0)
+    throw new Error(`Invalid command: ${inspect(x)}`);
+  return x;
+} // export function
 
 export async function exit(pr: Promise<Result>) {
   const result = await pr;
@@ -154,12 +164,9 @@ export function print_status(cmd: string[], pid: number, r: Deno.ProcessStatus) 
   }
 } // export function
 
-export async function keep_alive(...args: Array<string[]>) {
-  const processes: Array<Keep_Alive_Process> = [];
-
-  const promises: Array<Promise<void>> = args.map((cmd: string[]) => {
+export async function keep_alive(...args: Array<string | string[]>) {
+  const promises: Array<Promise<void>> = args.map((cmd) => {
     const ka = new Keep_Alive_Process(cmd);
-    processes.push(ka);
     return ka.keep_alive();
   });
 

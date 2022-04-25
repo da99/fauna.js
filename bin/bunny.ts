@@ -5,7 +5,7 @@ import {meta_url, match, not_found, inspect, IS_VERBOSE} from "../src/CLI.ts";
 import {run} from "../src/Process.ts";
 import { green, red, yellow, bold } from "https://deno.land/std/fmt/colors.ts";
 import {content_type, human_bytes, MB, sort_by_key, count} from "../src/Function.ts";
-import {fd, columns, shell, shell_ignore_errors} from "../src/Shell.ts";
+import {fd, table, shell, shell_ignore_errors} from "../src/Shell.ts";
 import { readableStreamFromReader } from "https://deno.land/std/streams/conversion.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 import {
@@ -266,7 +266,7 @@ export async function local_files(): Promise<Local_File[]> {
     .map(r => Deno.stat(r))
   );
 
-  const file_table = local_sha_filename.push_columns("right", columns(stat));
+  const file_table = local_sha_filename.push_columns("right", table(stat));
 
   return file_table.raw.map(row => ({
     local_path:   row[0],

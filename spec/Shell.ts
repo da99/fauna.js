@@ -1,7 +1,7 @@
 import { describe, it, equals, matches } from "../src/Spec.ts";
 import {
-  lines, columns,
-  Lines, Columns,
+  lines, table,
+  Lines, Table,
   fd, find,
   human_position_to_indexes,
   column_indexes, row_indexes
@@ -100,7 +100,7 @@ describe("Lines#split");
 it("returns Columns", () => {
   const x = "a-1 b-2 c-3 d-4".split(' ');
   const actual = lines(x).split('-');
-  equals(actual.constructor, Columns)
+  equals(actual.constructor, Table)
 });
 
 it("splits each value into another array", function () {
@@ -121,7 +121,7 @@ describe("columns(...)");
 // =============================================================================
 
 it(`allows an Array of non-Arrays: any[]`, function () {
-  const cols = columns([0,1,2]);
+  const cols = table([0,1,2]);
   equals(cols.raw.length, 3);
 });
 
@@ -131,7 +131,7 @@ describe("Columns#filter_rows");
 // =============================================================================
 
 it("keeps rows when callback returns true", function () {
-  const x = columns( [ [1, 2, 3], ["a", "b", "c"], [4,5,6] ]);
+  const x = table( [ [1, 2, 3], ["a", "b", "c"], [4,5,6] ]);
 
   const actual = x.filter_rows(x=> typeof x[0] !== 'string');
 
@@ -144,7 +144,7 @@ describe("Columns#remove_rows");
 // =============================================================================
 
 it("removes rows if callback returns true", function () {
-  const x = columns([
+  const x = table([
     [1, 2, null],
     [3,4,5],
     [5,6,7]
@@ -160,19 +160,19 @@ describe("Columns#row");
 // =============================================================================
 
 it("operates on the values of the specified row", function () {
-  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+  const x = table([[1, 2, 3], [4,5,6], [7,8,9]]);
   const actual = x.row(2, x => x + 10);
   equals(actual.raw, [ [1, 2, 3], [4,5,6], [17,18,19] ]);
 });
 
 it("operates on the values of the 'last' row", function () {
-  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+  const x = table([[1, 2, 3], [4,5,6], [7,8,9]]);
   const actual = x.row('last', x => x * 10);
   equals(actual.raw, [ [1, 2, 3], [4,5,6], [70,80,90] ]);
 });
 
 it("throws an Error if value is less than 0", function () {
-  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+  const x = table([[1, 2, 3], [4,5,6], [7,8,9]]);
   let actual = {message: ""};
   try {
     x.row(-1, x => x + 10);
@@ -183,7 +183,7 @@ it("throws an Error if value is less than 0", function () {
 });
 
 it("throws an Error if value is greater than row count.", function () {
-  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+  const x = table([[1, 2, 3], [4,5,6], [7,8,9]]);
   let actual = {message: ""};
   try {
     x.row(10, x => x + 10);
@@ -198,19 +198,19 @@ describe("Columns#column");
 // =============================================================================
 
 it("operates on the values of the specified column", function () {
-  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+  const x = table([[1, 2, 3], [4,5,6], [7,8,9]]);
   const actual = x.column(2, x => x + 10);
   equals(actual.raw, [ [1, 2, 13], [4,5,16], [7,8,19] ]);
 });
 
 it("operates on the values of the 'last' column", function () {
-  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+  const x = table([[1, 2, 3], [4,5,6], [7,8,9]]);
   const actual = x.column('last', x => x * 10);
   equals(actual.raw, [ [1, 2, 30], [4,5,60], [7,8,90] ]);
 });
 
 it("throws an Error if value is less than 0", function () {
-  const x = columns([[1, 2, 3], [4,5,6], [7,8,9]]);
+  const x = table([[1, 2, 3], [4,5,6], [7,8,9]]);
   let actual = {message: ""};
   try {
     x.column(-1, x => x + 10);
@@ -225,17 +225,17 @@ describe("Columns#map");
 // =============================================================================
 
 it("alters the first value of the first row: map('first cell', ...)", function () {
-  const c2 = columns([["a", 2, 3], ["b",5,6], ["c",8,9]]).map("first cell", UP_CASE);
+  const c2 = table([["a", 2, 3], ["b",5,6], ["c",8,9]]).map("first cell", UP_CASE);
   equals(c2.raw[0][0], "A");
 });
 
 it("alters the last value of the last row: map('last cell', ...)", function () {
-  const c2 = columns([["a", 2, 3], ["b",5,6], ["c",8,"last"]]).map("last cell", UP_CASE);
+  const c2 = table([["a", 2, 3], ["b",5,6], ["c",8,"last"]]).map("last cell", UP_CASE);
   equals(c2.raw[2][2], "LAST");
 });
 
 it("alters the first value of the last row: map('bottom first cell', ...)", function () {
-  const c2 = columns([
+  const c2 = table([
     ["d", 2, "c"],
     ["e",5,6],
     ["f",8,9]
@@ -249,22 +249,22 @@ describe("Columns#push_value");
 // =============================================================================
 
 it("can insert the same value as a top row.", function () {
-  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_value("top", "a");
+  const c2 = table([[1, 2, 3], [4,5,6], [7,8,9]]).push_value("top", "a");
   equals(c2.raw, ["a a a".split(' '), [1, 2, 3], [4,5,6], [7,8,9]]);
 });
 
 it("can insert the same value as a bottom row.", function () {
-  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_value("bottom", "a");
+  const c2 = table([[1, 2, 3], [4,5,6], [7,8,9]]).push_value("bottom", "a");
   equals(c2.raw, [[1, 2, 3], [4,5,6], [7,8,9], "a a a".split(' ') ]);
 });
 
 it("can insert the same value as a column to the right.", function () {
-  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_value("right", "a");
+  const c2 = table([[1, 2, 3], [4,5,6], [7,8,9]]).push_value("right", "a");
   equals(c2.raw, [[1, 2, 3, "a"], [4,5,6, "a"], [7,8,9, "a"] ]);
 });
 
 it("can insert the same value as a column to the left.", function () {
-  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_value("left", 0);
+  const c2 = table([[1, 2, 3], [4,5,6], [7,8,9]]).push_value("left", 0);
   equals(c2.raw, [[0, 1, 2, 3], [0, 4,5,6], [0, 7,8,9] ]);
 });
 
@@ -273,24 +273,24 @@ describe("Columns#push_function");
 // =============================================================================
 
 it("can insert the returned value as a top row.", function () {
-  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]])
+  const c2 = table([[1, 2, 3], [4,5,6], [7,8,9]])
   .push_function("top", (info) => `${info.count} ${info.first} ${info.last}`);
   equals(c2.raw, [["0 true false", "1 false false", "2 false true"], [1, 2, 3], [4,5,6], [7,8,9]]);
 });
 
 it("can insert the same returned value as a bottom row.", function () {
   let vals = "a b c".split(' ');
-  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_function("bottom", () => vals.pop());
+  const c2 = table([[1, 2, 3], [4,5,6], [7,8,9]]).push_function("bottom", () => vals.pop());
   equals(c2.raw, [[1, 2, 3], [4,5,6], [7,8,9], "c b a".split(' ') ]);
 });
 
 it("can insert the same returned value as a column to the right.", function () {
-  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_function("right", () => 0);
+  const c2 = table([[1, 2, 3], [4,5,6], [7,8,9]]).push_function("right", () => 0);
   equals(c2.raw, [[1, 2, 3, 0], [4,5,6, 0], [7,8,9, 0] ]);
 });
 
 it("can insert the same returned value as a column to the left.", function () {
-  const c2 = columns([[1, 2, 3], [4,5,6], [7,8,9]]).push_function("left", () => "start");
+  const c2 = table([[1, 2, 3], [4,5,6], [7,8,9]]).push_function("left", () => "start");
   equals(c2.raw, [["start", 1, 2, 3], ["start", 4,5,6], ["start", 7,8,9] ]);
 });
 
@@ -299,8 +299,8 @@ describe("Columns#push_column");
 // =============================================================================
 
 it("can insert columns: top.", function () {
-  const c1 = columns([[1, 2, 3], [4,5,6]]);
-  const c2 = columns([[7,8,9]]);
+  const c1 = table([[1, 2, 3], [4,5,6]]);
+  const c2 = table([[7,8,9]]);
   const c3 = c2.push_columns("top", c1);
   equals(c3.raw, [
     [1,2,3],
@@ -310,8 +310,8 @@ it("can insert columns: top.", function () {
 });
 
 it("can insert columns: bottom.", function () {
-  const c1 = columns([[1, 2, 3], [4,5,6]]);
-  const c2 = columns([[7,8,9]]);
+  const c1 = table([[1, 2, 3], [4,5,6]]);
+  const c2 = table([[7,8,9]]);
   const c3 = c2.push_columns("bottom", c1);
   equals(c3.raw, [
     [7,8,9],
@@ -321,11 +321,11 @@ it("can insert columns: bottom.", function () {
 });
 
 it("can insert columns: right.", function () {
-  const c1 = columns([
+  const c1 = table([
     [1,2,3],
     [4,5,6]
   ]);
-  const c2 = columns([
+  const c2 = table([
     [7,8,9],
     [10,11,12]
   ]);
@@ -337,11 +337,11 @@ it("can insert columns: right.", function () {
 });
 
 it("can insert columns: left.", function () {
-  const c1 = columns([
+  const c1 = table([
     [1,2,3],
     [4,5,6]
   ]);
-  const c2 = columns([
+  const c2 = table([
     [7,8,9],
     [10,11,12]
   ]);
@@ -353,8 +353,8 @@ it("can insert columns: left.", function () {
 });
 
 it("throws an error if the row counts are unequal.", function () {
-  const c1 = columns([ [1,2,3], [4,5,6] ]);
-  const c2 = columns([ [7,8,9] ]);
+  const c1 = table([ [1,2,3], [4,5,6] ]);
+  const c2 = table([ [7,8,9] ]);
   let msg = "no error thrown";
   try {
     c1.push_columns("left", c2);
@@ -370,7 +370,7 @@ describe("Columns#head")
 // =============================================================================
 
 it("returns the number of specified columns from the left side", function () {
-  const c1 = columns([
+  const c1 = table([
     [1,2,3],
     [4,5,6],
     [7,8,9]
@@ -380,7 +380,7 @@ it("returns the number of specified columns from the left side", function () {
 });
 
 it("returns the number of specified rows from the top side", function () {
-  const c1 = columns([
+  const c1 = table([
     [1,2,3],
     [4,5,6],
     [7,8,9]
@@ -425,7 +425,7 @@ describe("Columns#tail")
 // =============================================================================
 
 it("returns the number of specified columns from the right side", function () {
-  const c1 = columns([
+  const c1 = table([
     [1,2,3],
     [4,5,6],
     [7,8,9]
@@ -435,7 +435,7 @@ it("returns the number of specified columns from the right side", function () {
 });
 
 it("returns the number of specified rows from the bottom side", function () {
-  const c1 = columns([
+  const c1 = table([
     [1,2,3],
     [4,5,6],
     [7,8,9]
@@ -480,7 +480,7 @@ describe("Columns#middle")
 // =============================================================================
 
 it('returns a row without the specified quantity from the top: middle(2,0, "row")', function () {
-  const c1 = columns([
+  const c1 = table([
     [1,2,3],
     [4,5,6],
     [7,8,9],
@@ -494,7 +494,7 @@ it('returns a row without the specified quantity from the top: middle(2,0, "row"
 });
 
 it('returns a row without the specified quantity from the bottom: middle(2,2, "row")', function () {
-  const c1 = columns([
+  const c1 = table([
     [1,2,3],
     [4,5,6],
     [7,8,9],
@@ -508,7 +508,7 @@ it('returns a row without the specified quantity from the bottom: middle(2,2, "r
 });
 
 it('returns Columns without the specified quantity from the left: middle(2,0, "column")', function () {
-  const c1 = columns([
+  const c1 = table([
     [1,2,3],
     [4,5,6],
     [7,8,9],
@@ -524,7 +524,7 @@ it('returns Columns without the specified quantity from the left: middle(2,0, "c
 });
 
 it('returns a row without the specified quantity from the right: middle(0,2, "column")', function () {
-  const c1 = columns([
+  const c1 = table([
     [1,2,3],
     [4,5,6],
     [7,8,9],
@@ -546,7 +546,7 @@ describe("Columns#raw_column")
 // =============================================================================
 
 it('returns an Array with the values of the specified column', function () {
-  const arr = columns(five_x_five("a"));
+  const arr = table(five_x_five("a"));
   equals(
     arr.raw_column(1),
     count(5).map(x => 'b')
@@ -554,7 +554,7 @@ it('returns an Array with the values of the specified column', function () {
 });
 
 it('returns an Array with the values of: raw_column("first")', function () {
-  const arr = columns(five_x_five("a"));
+  const arr = table(five_x_five("a"));
   equals(
     arr.raw_column('first'),
     count(5).map(x => 'a')
@@ -562,7 +562,7 @@ it('returns an Array with the values of: raw_column("first")', function () {
 });
 
 it('returns an Array with the values of: raw_column("last")', function () {
-  const arr = columns(five_x_five("a"));
+  const arr = table(five_x_five("a"));
   equals(
     arr.raw_column('last'),
     count(5).map(x => 'e')

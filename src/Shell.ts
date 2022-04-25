@@ -53,8 +53,8 @@ export function lines(x: string | string[]) {
   return new Lines(x);
 } // export function
 
-export function columns(x: any[] | any[][]): Columns {
-  return new Columns(x);
+export function table(x: any[] | any[][]): Table {
+  return new Table(x);
 } // export function
 
 export class Lines {
@@ -93,8 +93,8 @@ export class Lines {
     return f(trimmed.join('\n'));
   } // method
 
-  split(pattern: string | RegExp): Columns {
-    return columns(
+  split(pattern: string | RegExp): Table {
+    return table(
       this.raw.map(s => s.trim().split(pattern))
     );
   } // method
@@ -112,14 +112,14 @@ export class Lines {
   } // method
 } // class
 
-export class Columns {
+export class Table {
   raw: any[][];
 
   constructor(arr: any[] | any[][]) {
     if ( is_any(not(Array.isArray))(arr) )
       arr = arr.map(x => [x]);
     if (arr.length === 0 || is_any(is_length_0)(arr))
-      throw new Error(`Columns may not be empty: ${Deno.inspect(arr)}`);
+      throw new Error(`Table may not be empty: ${Deno.inspect(arr)}`);
     this.raw = arr;
   } // constructor
 
@@ -136,8 +136,8 @@ export class Columns {
   // Filter:
   // =============================================================================
 
-  filter_rows(f: (x: any[]) => boolean): Columns {
-    return columns(
+  filter_rows(f: (x: any[]) => boolean): Table {
+    return table(
       this.raw.filter(row => f(row))
     );
   } // method
@@ -146,7 +146,7 @@ export class Columns {
   // Remove:
   // =============================================================================
 
-  remove_rows(f: (x: any[]) => boolean): Columns {
+  remove_rows(f: (x: any[]) => boolean): Table {
     return this.filter_rows(x => !f(x));
   } // method
 
@@ -154,7 +154,7 @@ export class Columns {
   // Arrange:
   // =============================================================================
 
-  arrange(...spec: Arrange_Spec): Columns {
+  arrange(...spec: Arrange_Spec): Table {
     return this.rows(row => rearrange(row, spec)) ;
   } // method
 
@@ -170,7 +170,7 @@ export class Columns {
       case "row": {
         if (i < 0)
           i = this.raw.length + i;
-        return columns(this.raw.slice(0, i));
+        return table(this.raw.slice(0, i));
       } // case
 
       case "column": {
@@ -191,7 +191,7 @@ export class Columns {
     switch (t) {
       case "row": {
         const row_count = this.row_count;
-        return columns(this.raw.slice(start, row_count - end));
+        return table(this.raw.slice(start, row_count - end));
       } // case
 
       case "column": {
@@ -201,7 +201,7 @@ export class Columns {
     } // switch
   } // method
 
-  tail(i: number, t: "row" | "column"): Columns {
+  tail(i: number, t: "row" | "column"): Table {
     if (i < 1)
       throw new Error(`Invalid quantity for tail(${i}, ${t})`);
     // switch (`${i} ${t}`) {
@@ -218,7 +218,7 @@ export class Columns {
       case "row": {
         if (i < 0)
           i = this.raw.length + i;
-        return columns(this.raw.reverse().slice(0, i).reverse());
+        return table(this.raw.reverse().slice(0, i).reverse());
       } // case
 
       case "column": {
@@ -236,13 +236,13 @@ export class Columns {
   // Map:
   // =============================================================================
 
-  map(pos: Human_Position | "values", ...funcs: Array<(x: any) => any>): Columns {
+  map(pos: Human_Position | "values", ...funcs: Array<(x: any) => any>): Table {
     if (pos === "values") {
       const f = pipe_function(...funcs);
       const fin: any[][] = [];
       for (const old_row of this.raw)
         fin.push(old_row.map(f));
-      return columns(fin);
+      return table(fin);
     } // if
 
     const indexes = human_position_to_indexes(pos, this.raw);
@@ -256,7 +256,7 @@ export class Columns {
       new_arr[r][c] = f(new_arr[r][c]);
     } // for
 
-    return columns(new_arr);
+    return table(new_arr);
   } // method
 
   raw_column(pos: "first" | "last" | number) {
@@ -281,12 +281,12 @@ export class Columns {
       new_row[i] = f(r[i]);
       return new_row;
     });
-    return columns(new_raw);
+    return table(new_raw);
   } // method
 
-  rows(...funcs: Array<(x: string[]) => string[]>): Columns {
+  rows(...funcs: Array<(x: string[]) => string[]>): Table {
     const f = pipe_function(...funcs);
-    return columns(
+    return table(
       this.raw.map(row => f(row))
     );
   } // method
@@ -305,21 +305,21 @@ export class Columns {
       throw new Error(`Index value exceeds max row index: ${Deno.inspect(i)} > ${this.column_count - 1}`);
     const new_raw = this.raw.slice();
     new_raw[i] = new_raw[i].slice().map(x => f(x));
-    return columns(new_raw);
+    return table(new_raw);
   } // method
 
   // =============================================================================
   // Push:
   // =============================================================================
 
-  push_value(pos: "top" | "bottom" | "left" | "right", new_s: any) : Columns {
+  push_value(pos: "top" | "bottom" | "left" | "right", new_s: any) : Table {
     switch (pos) {
       case "top": {
         const new_raw = this.raw.slice();
         new_raw.unshift(
           count(this.column_count).map(_x => new_s)
         );
-        return columns(new_raw);
+        return table(new_raw);
       } // case
 
       case "bottom": {
@@ -327,7 +327,7 @@ export class Columns {
         new_raw.push(
           count(this.column_count).map(_x => new_s)
         );
-        return columns(new_raw);
+        return table(new_raw);
       } // case
 
       case "left": {
@@ -336,7 +336,7 @@ export class Columns {
           new_row.unshift(new_s);
           return new_row;
         });
-        return columns(new_raw);
+        return table(new_raw);
       } // case
 
       case "right": {
@@ -345,7 +345,7 @@ export class Columns {
           new_row.push(new_s);
           return new_row;
         });
-        return columns(new_raw);
+        return table(new_raw);
       } // case
     } // switch
 
@@ -359,7 +359,7 @@ export class Columns {
         new_raw.unshift( count(this.column_count).map(count => {
           return f({count, first: count === 0, last: count === (col_count - 1) });
         }) );
-        return columns(new_raw);
+        return table(new_raw);
       } // case
 
       case "bottom": {
@@ -370,12 +370,12 @@ export class Columns {
             return f({count, first: count === 0, last: count === (col_count - 1) });
           })
         );
-        return columns(new_raw);
+        return table(new_raw);
       } // case
 
       case "left": {
         const row_count = this.row_count;
-        return columns(
+        return table(
           this.raw.map((row, count) => {
             const new_row = row.slice();
             new_row.unshift(f({count, first: count === 0, last: count === (row_count - 1)}));
@@ -386,7 +386,7 @@ export class Columns {
 
       case "right": {
         const row_count = this.row_count;
-        return columns(
+        return table(
           this.raw.map((row, count) => {
             const new_row = row.slice();
             new_row.push(f({count, first: count === 0, last: count === (row_count - 1)}));
@@ -397,18 +397,18 @@ export class Columns {
     }
   } // method
 
-  push_columns(pos: "top" | "bottom" | "left" | "right", cols: Columns) : Columns {
+  push_columns(pos: "top" | "bottom" | "left" | "right", cols: Table) : Table {
     switch (pos) {
       case "top": {
         if (cols.column_count != this.column_count)
           throw new Error(`Column count mis-match: ${this.column_count} != push_columns(${pos}, ${cols.column_count})`);
-        return columns(cols.raw.concat(this.raw));
+        return table(cols.raw.concat(this.raw));
       } // case
 
       case "bottom": {
         if (cols.column_count != this.column_count)
           throw new Error(`Column count mis-match: ${this.column_count} != push_columns(${pos}, ${cols.column_count})`);
-        return columns(this.raw.concat(cols.raw));
+        return table(this.raw.concat(cols.raw));
       } // case
 
       case "left": {
@@ -422,7 +422,7 @@ export class Columns {
             row.concat(this.raw[index])
           );
         } // for
-        return columns(fin);
+        return table(fin);
       } // case
 
       case "right": {
@@ -436,7 +436,7 @@ export class Columns {
             row.concat(cols.raw[index])
           );
         } // for
-        return columns(fin);
+        return table(fin);
       } // case
     } // switch
   } // method

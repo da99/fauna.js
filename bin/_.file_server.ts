@@ -4,6 +4,7 @@ import nunjucks from "https://deno.land/x/nunjucks/mod.js";
 import {content_type, human_bytes, MB, sort_by_key, count} from "../src/Function.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 import {throw_on_fail, run} from "../../da.ts/src/Process.ts";
+import type {Result} from "../../da.ts/src/Process.ts";
 import {split_whitespace} from "../../da.ts/src/String.ts";
 import {
   Application,
@@ -17,8 +18,8 @@ const NUN = nunjucks.configure({noCache: true});
 
 const watches: Array<ServerSentEventTarget> = [];
 
-const router       = new Router();
-const app          = new Application();
+const router = new Router();
+const app    = new Application();
 
 async function print(s: string) {
   return await Deno.writeAll(Deno.stderr, new TextEncoder().encode(s));
@@ -34,19 +35,23 @@ const CONFIG = {
   "render_cmd": split_whitespace("../bin/__ render")
 };
 
-async function read_file(file_path: string): Promise<string | null> {
+async function file_exists(file_path: string): Promise<boolean> {
   try {
-    return Deno.readTextFile(file_path);
+    await Deno.stat(file_path);
+    return true;
   } catch (e) {
-    return null;
+    return false;
   }
 } // function
 
-export async function render(file_path: string): Promise<string> {
+async function read_file(file_path: string): Promise<string | null> {
+  return await Deno.readTextFile(file_path);
+} // function
+
+export async function render(file_path: string): Promise<Result> {
   const cmd: string[] = CONFIG.render_cmd.slice();
   cmd.push(file_path);
-  const result = await throw_on_fail(run(cmd, "piped", "verbose"));
-  return result.stdout;
+  return await run(cmd, "piped", "verbose-fail");
 } // export async function
 
 export async function start(port: number, render_cmd: string[]) {
@@ -68,7 +73,7 @@ export async function start(port: number, render_cmd: string[]) {
         default: { await print(`${bgRed(white(ctx.response.status.toString()))}`); }
       } // switch
 
-      print(` ${ctx.response.type}\n`);
+      print(` .type: ${ctx.response.type}\n`);
 
       if (ctx.response.status === 418) {
         print(`${String(ctx.response.body)}\n\n`);
@@ -89,21 +94,7 @@ export async function start(port: number, render_cmd: string[]) {
     const target = ctx.sendEvents();
     watches.pop();
     watches.push(target);
-  })
-  .get("/:name/:file", async (context) => {
-    const filepath = path.join(context.params.name, context.params.file);
-    try {
-      const body = await read_file(filepath) || await render(filepath);
-      context.response.body = body;
-      context.response.type = content_type(filepath);
-    } catch (err) {
-      console.error(err.message);
-      context.response.status = 500;
-      context.response.body = Deno.inspect(err.message);
-      context.response.type = content_type("error.txt");
-    }
-  })
-  ;
+  });
 
   app.use( router.routes() );
   app.use( router.allowedMethods() );
@@ -112,13 +103,49 @@ export async function start(port: number, render_cmd: string[]) {
   // === Static Files:
   // =============================================================================
   app.use(async (ctx, next) => {
-    const filename = ctx.request.url.pathname;
-    if (filename.match(/\.(otf|ttf|txt|json|woff2?|ico|png|jpe?g|gif|css|js)$/)) {
-      await send(ctx, filename, { root: CONFIG.public_dir, index: "index.html" });
+    const pathname = ctx.request.url.pathname;
+    if (!pathname.match(/\.(otf|ttf|txt|woff2?|ico|png|jpe?g|gif|html|js|json|mjs|css)$/)) {
+      ctx.response.body = `Not found: ${Deno.inspect(pathname)}`;
+      ctx.response.status = 404;
+      ctx.response.type = "text";
+      return;
+    } // if
+
+    const file_path = path.join('.', ctx.request.url.pathname);
+    if (await file_exists(file_path)) {
+      await send(ctx, file_path, { root: CONFIG.public_dir, index: "index.html" });
       return;
     }
 
-    await next();
+    try {
+      const result = await render(file_path);
+      switch (result.code) {
+        case 0: {
+          ctx.response.body = result.stdout;
+          ctx.response.type = content_type(file_path);
+          return;
+        }
+        case 40: {
+          ctx.response.status = 404;
+          ctx.response.body   = `Not found: ${Deno.inspect(file_path)}`
+          ctx.response.type   = content_type("404.txt");
+          return;
+        }
+        default: {
+          ctx.response.status = 500;
+          ctx.response.body   = `${result.stderr}\n${result.stdout}`;
+          ctx.response.type   = "text";
+          return;
+        }
+      }
+    } catch (err) {
+      ctx.response.status = 500;
+      ctx.response.body   = err.message;
+      ctx.response.type   = "text";
+    }
+
+    return;
+    // await next();
   });
 
 

@@ -12,8 +12,10 @@ import * as path from "https://deno.land/std/path/mod.ts";
 
 meta_url(import.meta.url);
 
-if (match("migrate")) {
-  console.error("migrating");
+if (match("migrate <file.ts>")) {
+  const [file] = values() as string[];
+  const {SCHEMA} = await import(path.join(Deno.cwd(), file));
+  console.error(Deno.inspect(SCHEMA));
 } // if
 
 // =============================================================================

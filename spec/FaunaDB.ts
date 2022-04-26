@@ -1,3 +1,4 @@
+
 import { describe, it, equals } from "https://github.com/da99/da.ts/raw/main/src/Spec.ts";
 import { deepEqual } from "https://deno.land/x/cotton/src/utils/deepequal.ts";
 

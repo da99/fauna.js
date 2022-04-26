@@ -308,7 +308,7 @@ export async function node(...args: string[]) {
 } // export
 
 export async function inherit_node(...args: string[]) {
-  const result = await Deno.run( {
+  const result = Deno.run({
     cmd: [
       "node",
       "src/Node-FaunaDB.mjs",

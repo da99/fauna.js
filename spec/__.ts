@@ -1,5 +1,5 @@
 
-import {finish} from "../src/Spec.ts";
+import {finish} from "https://github.com/da99/da.ts/raw/main/src/Spec.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 import {exists, ensureDir} from "https://deno.land/std/fs/mod.ts";
 
@@ -13,15 +13,6 @@ const cmd = Deno.args[0] || "full";
 
 import "./FaunaDB.ts";
 import {slow} from "./FaunaDB.migrate.ts";
-import "./CLI.ts";
-import "./Array.ts";
-import "./Function.ts";
-import "./Process.ts";
-import "./Spec.ts";
-import "./String.ts";
-import "./Text_File.ts";
-import "./File_Manifest.ts";
-import "./Shell.ts";
 
 if (cmd === "full") {  }
 

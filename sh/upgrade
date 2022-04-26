@@ -2,9 +2,9 @@
 
 set -u -e -o pipefail
 
-find ./bin ./src -type f -name '*.ts' | while IFS= read -r x ; do
-echo "=== deno cache --reload $x"
-deno cache --reload "$x"
+find ./bin ./src ./spec -type f -name '*.ts' | while IFS= read -r x ; do
+  echo "=== deno cache --reload $x"
+  deno cache --reload "$x"
 done # for
 
 if test -d node_modules ; then

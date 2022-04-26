@@ -1,3 +1,0 @@
-#!/usr/bin/env -S deno run --unstable --allow-read="./" --allow-net 
-
-import "https://raw.githubusercontent.com/skymethod/denoflare/master/cli/cli.ts"

@@ -1,7 +1,7 @@
 
-import { run } from "./Process.ts";
-import { inspect, raw_inspect } from "./CLI.ts";
-import { deepEqual } from "https://deno.land/x/cotton@v0.7.3/src/utils/deepequal.ts";
+import { run } from "https://github.com/da99/da.ts/raw/main/src/Process.ts";
+import { inspect, raw_inspect } from "https://github.com/da99/da.ts/raw/main/src/CLI.ts";
+import { deepEqual } from "https://deno.land/x/cotton/src/utils/deepequal.ts";
 
 const DEFAULT_CLIENT_VALUES = {
   secret:    "",

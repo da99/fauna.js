@@ -3,8 +3,8 @@
 // import { ensureDirSync } from "https://deno.land/std/fs/mod.ts";
 // import * as path from "https://deno.land/std/path/mod.ts";
 //
-import {download} from "../src/FS.ts";
-import {run} from "../src/Process.ts";
+import {download} from "https://github.com/da99/da.ts/raw/main/src/FS.ts";
+import {run} from "https://github.com/da99/da.ts/raw/main/src/Process.ts";
 import { yellow, bold } from "https://deno.land/std/fmt/colors.ts";
 
 async function prune() {

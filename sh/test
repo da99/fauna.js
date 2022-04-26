@@ -8,5 +8,5 @@ IS_TEST="yes" deno run \
   --allow-run="find,fd,ls,echo,node" \
   --allow-read="./,./tmp/spec" \
   --allow-write="./tmp/spec" \
-  --allow-env=IS_TEST,NO_COLOR,FAUNA_SECRET_TEST_A,FAUNA_SECRET_TEST_B \
+  --allow-env \
   spec/__.ts "$*"

@@ -4,36 +4,36 @@ import {default as F} from "faunadb";
 
 // start macro: import-node
 const {
-Add, Append,
-Call, Ceil, Collection, Collections, Concat,
-ContainsField, ContainsPath, ContainsStr, ContainsStrRegex, ContainsValue,
-Count, Create,
-CreateCollection, CreateFunction, CreateIndex, CreateRole,
-CurrentIdentity,
-Delete, Difference, Distinct, Divide, Do, Documents, Drop,
-Database,
-EndsWith, Epoch, Exists, Equals,
-Filter, Functions, Function: Fn, Foreach,
-Get, GT, GTE, Identify,
-If, Index, Indexes, Insert, Intersection,
-IsArray, IsBoolean, IsEmpty, IsNonEmpty, IsNull, IsNumber, IsSet, IsString, IsTimestamp, IsToken, IsRole,
-IsCollection, IsFunction, IsIndex,
-Join,
-LT, LTE, LTrim,
-Lambda, Length, Let, Ln, LowerCase,
-Map, Match, Max, Mean, Merge, Min, Minute, Modulo, Month, Multiply,
-Not, Now,
-Or,
-Paginate, Prepend,
-Query,
-RTrim, Range, Reduce, RegexEscape, Role, Ref, Roles, Remove, Repeat,
-Replace, ReplaceStr, ReplaceStrRegex, Reverse, Round, Select,
-Space, StartsWith, SubString, Subtract, Sum,
-Take, Time, TimeAdd, TimeDiff, TimeSubstract, TitleCase,
-ToObject, ToArray, ToDate, ToDouble, ToInteger, ToString, ToTime,
-Trim, Trunc,
-Union, Update, UpperCase,
-Var,
+  Add, Append,
+  Call, Ceil, Collection, Collections, Concat,
+  ContainsField, ContainsPath, ContainsStr, ContainsStrRegex, ContainsValue,
+  Count, Create,
+  CreateCollection, CreateFunction, CreateIndex, CreateRole,
+  CurrentIdentity,
+  Delete, Difference, Distinct, Divide, Do, Documents, Drop,
+  Database,
+  EndsWith, Epoch, Exists, Equals,
+  Filter, Functions, Function: Fn, Foreach,
+  Get, GT, GTE, Identify,
+  If, Index, Indexes, Insert, Intersection,
+  IsArray, IsBoolean, IsEmpty, IsNonEmpty, IsNull, IsNumber, IsSet, IsString, IsTimestamp, IsToken, IsRole,
+  IsCollection, IsFunction, IsIndex,
+  Join,
+  LT, LTE, LTrim,
+  Lambda, Length, Let, Ln, LowerCase,
+  Map, Match, Max, Mean, Merge, Min, Minute, Modulo, Month, Multiply,
+  Not, Now,
+  Or,
+  Paginate, Prepend,
+  Query,
+  RTrim, Range, Reduce, RegexEscape, Role, Ref, Roles, Remove, Repeat,
+  Replace, ReplaceStr, ReplaceStrRegex, Reverse, Round, Select,
+  Space, StartsWith, SubString, Subtract, Sum,
+  Take, Time, TimeAdd, TimeDiff, TimeSubstract, TitleCase,
+  ToObject, ToArray, ToDate, ToDouble, ToInteger, ToString, ToTime,
+  Trim, Trunc,
+  Union, Update, UpperCase,
+  Var,
 } = F.query;
 // end macro
 
@@ -49,21 +49,20 @@ function inspect_fql(x) {
   return CleanFn(util.inspect(x, {depth: Infinity}));
 } // function
 
+
 const DEFAULT_OPTIONS = {
-  secret:    "UNKNOWN",
+  secret:    process.env.FAUNA_KEY || "UNKNOWN",
   port:      443,
   scheme:    "https",
   keepAlive: false,
-  timeout:   8,
-  domain:    "db.us.fauna.com"
+  timeout:   6,
+  domain:    process.env.FAUNA_DOMAIN || "db.us.fauna.com"
 };
 
-async function query(raw_options, raw_body) {
+async function query(raw_body) {
     let v = null;
-    const options = JSON.parse(raw_options);
-
     v = eval(`(${raw_body})`);
-    const fin_o = Object.assign({}, DEFAULT_OPTIONS, options);
+    const fin_o = Object.assign({}, DEFAULT_OPTIONS);
     if (fin_o.secret === "UNKNOWN") {
       throw new Error("A secret key has not been set.");
     }
@@ -72,11 +71,10 @@ async function query(raw_options, raw_body) {
     console.log(inspect_fql(results));
 } // function main
 
-async function schema(raw_options, body) {
+async function schema(body) {
     let v = null;
-    const options = JSON.parse(raw_options);
 
-    const fin_o = Object.assign({}, DEFAULT_OPTIONS, options);
+    const fin_o = Object.assign({}, DEFAULT_OPTIONS);
     if (fin_o.secret === "UNKNOWN") {
       throw new Error("A secret key has not been set.");
     }
@@ -106,9 +104,9 @@ const args = process.argv.slice(3);
 switch (cmd) {
   case "echo": {
     console.log(
-        eval(
-          `(${CleanFn(args[0])})`
-        )
+      eval(
+        `(${CleanFn(args[0])})`
+      )
     );
     break;
   }

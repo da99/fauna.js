@@ -3,14 +3,6 @@ import { run } from "https://github.com/da99/da.ts/raw/main/src/Process.ts";
 import { inspect, raw_inspect } from "https://github.com/da99/da.ts/raw/main/src/CLI.ts";
 import { deepEqual } from "https://deno.land/x/cotton/src/utils/deepequal.ts";
 
-const DEFAULT_CLIENT_VALUES = {
-  secret:    "",
-  port:      443,
-  scheme:    "https",
-  keepAlive: false,
-  timeout:   5
-}; // const
-
 export type ExprArg = Partial<Schema_Doc> |
   string | string[] |
   number | number[] |
@@ -35,11 +27,6 @@ export type Schema_Doc = Collection_Doc | Index_Doc | Fn_Doc | Role_Doc ;
 export type Schema     = Array<Schema_Doc>;
 export type New_Doc    = New_Collection | New_Index | New_Fn | New_Role;
 export type New_Schema = Array<Expr>;
-
-interface Client_Options {
-  secret?: string,
-  domain?: string,
-}
 
 export interface Schema_Ref<T extends keyof typeof Ref_Types, P extends typeof Ref_Types[T]> {
   name: T;
@@ -297,38 +284,10 @@ export function create_expr_with_args(name: string, args: Array<ExprArg>): Expr 
 // # =============================================================================
 // # === Node Process Functions ==================================================
 // # =============================================================================
-export async function node(...args: string[]) {
-  return await run(
-    [
-      "node",
-      "src/Node-FaunaDB.mjs",
-      ...args
-    ]
- );
-} // export
 
-export async function inherit_node(...args: string[]) {
-  const result = Deno.run({
-    cmd: [
-      "node",
-      "src/Node-FaunaDB.mjs",
-      ...args
-    ],
-    stderr: "inherit",
-    stdout: "inherit"
-  });
-
-  const status = await result.status();
-  if (!status.success) {
-    throw Error("Failed.");
-  }
-  return true;
-} // export
-
-export async function query(o: Client_Options, raw_body: Expr | Record<string, any>) {
-  const options = JSON.stringify(o);
+export async function query(raw_body: Expr | Record<string, any>) {
   const body    = raw_inspect(raw_body);
-  const cmd     = ["node", "src/Node-FaunaDB.mjs", "query", options, body ];
+  const cmd     = ["node", "src/Node-FaunaDB.mjs", "query", body ];
   const result  = await run(cmd);
 
 
@@ -496,15 +455,15 @@ function cache_schemas(os: Schema, ns: New_Schema) {
   return `${raw_inspect(os)} ${raw_inspect(ns)}`;
 } // function
 
-export async function migrate(opts: Client_Options, new_schema: New_Schema, cache_file: string): Promise<Expr | false> {
-  const current_schema = await query(opts, schema());
+export async function migrate(new_schema: New_Schema, cache_file: string): Promise<Expr | false> {
+  const current_schema = await query(schema());
   const new_cache = cache_schemas(current_schema, new_schema);
   let old_cache = "";
   try { old_cache = Deno.readTextFileSync(cache_file); } catch (_) { "ignore"; }
 
   if (new_cache !== old_cache) { // run migrate.
-    const results = await query(opts, Do(new_schema));
-    const updated_schema = await query(opts, schema());
+    const results = await query(Do(new_schema));
+    const updated_schema = await query(schema());
     Deno.writeTextFileSync(cache_file, cache_schemas(updated_schema, new_schema));
     return results;
   } else {

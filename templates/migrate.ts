@@ -10,3 +10,5 @@ import {
 
 
 export const SCHEMA = Do(Select(2, "a b c d e f".split(' ')));
+
+await migrate(options, SCHEMA, "tmp/migrate.txt")

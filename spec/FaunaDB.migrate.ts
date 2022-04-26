@@ -32,10 +32,6 @@ function to_new_refs(x: New_Schema) {
   return x.map(d => new_ref(d));
 } // function
 
-const options = {
-  secret: Deno.env.get("FAUNA_SECRET_TEST_A") || ""
-};
-
 function remove(k: string) {
   return function (x: Record<string, any>) {
     const y = Object.assign({}, x);
@@ -60,7 +56,7 @@ export function slow() {
 
   it("executes the query", async function () {
     const expected = "c";
-    const actual   = await query(options, Select(2, "a b c d e f".split(' ')));
+    const actual   = await query(Select(2, "a b c d e f".split(' ')));
     daEquals(actual, expected);
   }); // it async
 
@@ -68,9 +64,9 @@ export function slow() {
   describe("drop_schema()");
 
   it("drops from the database: collections, roles, indexes, functions", async function () {
-    await query(options, CreateCollection({name: random_name("coll")}));
-    await query(options, drop_schema());
-    const actual = await query(options, schema());
+    await query(CreateCollection({name: random_name("coll")}));
+    await query(drop_schema());
+    const actual = await query(schema());
     daEquals(actual, []);
   }); // it async
 
@@ -78,10 +74,9 @@ export function slow() {
   describe("schema(...)");
 
   it("retrieves schema from database", async () => {
-    await query(options, drop_schema());
+    await query(drop_schema());
     const name = random_name("coll");
     const doc  = await query(
-      options,
       CreateCollection({name, history_days: 0})
     );
     const standard_doc = {
@@ -90,13 +85,13 @@ export function slow() {
       history_days: doc.history_days,
     };
     const expected = [ standard_doc ];
-    const actual   = await query(options, schema());
+    const actual   = await query(schema());
 
     daEquals(actual.map(remove("ts")), expected);
   }); // it async
 
   it("converts Function refs to Function(..) format", async function () {
-    await query(options, drop_schema());
+    await query(drop_schema());
     const name = random_name("helloF");
     const doc  = {
       name,
@@ -107,9 +102,9 @@ export function slow() {
         )
       )
     };
-    await query( options, CreateFn(doc));
+    await query( CreateFn(doc));
     const expected = [ {...doc, ref: Fn(name)} ];
-    const actual   = await query(options, schema());
+    const actual   = await query(schema());
 
     daEquals(actual.map(remove("ts")), expected);
   }); // it async
@@ -118,7 +113,7 @@ export function slow() {
   describe("MigrateX(...)");
 
   it("executes new schema", async function () {
-    // await query(options, drop_schema());
+    // await query(drop_schema());
     const dogs = random_name("dogs");
     const kittens = random_name("kittens");
     const gimme1 = random_name("gimme1");
@@ -139,7 +134,6 @@ export function slow() {
       })
     ];
     const actual = await query(
-      options,
       Do(new_schema)
     );
     daEquals(to_refs(actual), [Collection(dogs), Collection(kittens), Fn(gimme1)]);
@@ -153,20 +147,20 @@ export function slow() {
       MigrateCollection({ name: random_name("dogs") }),
       MigrateCollection({ name: random_name("kittens") })
     ];
-    const current = await query(options, schema());
+    const current = await query(schema());
     Deno.writeTextFileSync(MIGRATE_FILE, `${raw_inspect(current)} ${raw_inspect(new_schema)}`);
-    const actual = await migrate(options, new_schema, MIGRATE_FILE);
+    const actual = await migrate(new_schema, MIGRATE_FILE);
     daEquals(actual, false);
 
   }); // it async
 
   it("writes new schema to file", async function () {
-    await query(options, drop_schema());
+    await query(drop_schema());
     const new_schema = [
       MigrateCollection({ name: random_name("unicorn") }),
       MigrateCollection({ name: random_name("rainbow") })
     ];
-    const updated_schema = await migrate(options, new_schema, MIGRATE_FILE);
+    const updated_schema = await migrate(new_schema, MIGRATE_FILE);
     const expected = `${raw_inspect(updated_schema)} ${raw_inspect(new_schema)}`;
     const actual = Deno.readTextFileSync(MIGRATE_FILE);
     daEquals(actual, expected);

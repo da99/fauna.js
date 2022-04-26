@@ -10,6 +10,24 @@ sh/test quick
 sh/test # all tests.
 ```
 
-# Health Propaganda
-NAC + Bromelain + Quercetin + 50 mg of Resveratrol + Vitamin C Foundation guidelines.
-That's a nice little cocktail for various infections.
+# Reference:
+
+```typescript
+  CreateRole({
+    name: "cloudflare_worker_function",
+    privileges: [
+      {
+        resource: Collection("screen_name"),
+        actions: {
+          read: true,
+          write: true,
+          create: true,
+          delete: false,
+          history_read: false,
+          history_write: false,
+          unrestricted_read: false
+        }
+      }
+    ]
+  }) ;
+```

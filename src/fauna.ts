@@ -1,6 +1,7 @@
 
 import { run } from "https://github.com/da99/da.ts/raw/main/src/Process.ts";
 import { inspect, raw_inspect } from "https://github.com/da99/da.ts/raw/main/src/CLI.ts";
+import { default_read_text_file } from "https://github.com/da99/da.ts/raw/main/src/FS.ts";
 import { deepEqual } from "https://deno.land/x/cotton/src/utils/deepequal.ts";
 
 export type ExprArg = Partial<Schema_Doc> |
@@ -457,34 +458,16 @@ function cache_schemas(os: Schema, ns: New_Schema) {
 
 export async function migrate(new_schema: New_Schema, cache_file: string): Promise<Expr | false> {
   const current_schema = await query(schema());
-  const new_cache = cache_schemas(current_schema, new_schema);
-  let old_cache = "";
-  try { old_cache = Deno.readTextFileSync(cache_file); } catch (_) { "ignore"; }
+  const new_cache      = cache_schemas(current_schema, new_schema);
+  let old_cache        = await default_read_text_file("", cache_file);
 
   if (new_cache !== old_cache) { // run migrate.
     const results = await query(Do(new_schema));
     const updated_schema = await query(schema());
-    Deno.writeTextFileSync(cache_file, cache_schemas(updated_schema, new_schema));
+    await Deno.writeTextFile(cache_file, cache_schemas(updated_schema, new_schema));
     return results;
   } else {
     return false;
   }
 } // export async function
 
-// CreateRole({
-//   name: "cloudflare_worker_function",
-//   privileges: [
-//     {
-//       resource: Collection("screen_name"),
-//       actions: {
-//         read: true,
-//         write: true,
-//         create: true,
-//         delete: false,
-//         history_read: false,
-//         history_write: false,
-//         unrestricted_read: false
-//       }
-//     }
-//   ]
-// }) ;

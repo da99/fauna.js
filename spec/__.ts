@@ -11,8 +11,8 @@ await ensureDir("tmp/spec");
 
 const cmd = Deno.args[0] || "full";
 
-import "./FaunaDB.ts";
-import {slow} from "./FaunaDB.migrate.ts";
+import "./fauna.ts";
+import {slow} from "./fauna.migrate.ts";
 
 if (cmd === "full") {  }
 

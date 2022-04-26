@@ -9,11 +9,11 @@ import {
   Create, Update, Delete,
   Role, Do,
   MigrateCollection
-} from "../src/FaunaDB.ts";
+} from "../src/fauna.ts";
 
 import type {
   Collection_Doc, Fn_Doc, Schema, New_Schema
-} from "../src/FaunaDB.ts";
+} from "../src/fauna.ts";
 
 
 function old_collection(s: string): Collection_Doc {

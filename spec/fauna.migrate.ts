@@ -11,9 +11,9 @@ import {
   Do, If, Exists, Query, Fn,
   delete_if_exists, collection_names,
 MigrateCollection, MigrateFn
-} from "../src/FaunaDB.ts";
+} from "../src/fauna.ts";
 
-import type {Schema, Schema_Doc, New_Schema, New_Doc, Expr, Collection_Doc} from "../src/FaunaDB.ts";
+import type {Schema, Schema_Doc, New_Schema, New_Doc, Expr, Collection_Doc} from "../src/fauna.ts";
 
 const MIGRATE_FILE = "tmp/spec/schema.test.txt";
 

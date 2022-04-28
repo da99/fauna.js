@@ -1,6 +1,5 @@
 
-import { describe, it } from "https://github.com/da99/da.ts/raw/main/src/Spec.ts";
-import { daEquals } from "./_.helper.ts";
+import { describe, it, equals } from "https://github.com/da99/da.ts/raw/main/src/Spec.ts";
 import { raw_inspect } from "https://github.com/da99/da.ts/raw/main/src/CLI.ts";
 import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 
@@ -57,7 +56,7 @@ export function slow() {
   it("executes the query", async function () {
     const expected = "c";
     const actual   = await query(Select(2, "a b c d e f".split(' ')));
-    daEquals(actual, expected);
+    equals(actual, expected);
   }); // it async
 
   // # =============================================================================
@@ -67,7 +66,7 @@ export function slow() {
     await query(CreateCollection({name: random_name("coll")}));
     await query(drop_schema());
     const actual = await query(schema());
-    daEquals(actual, []);
+    equals(actual, []);
   }); // it async
 
   // # =============================================================================
@@ -87,7 +86,7 @@ export function slow() {
     const expected = [ standard_doc ];
     const actual   = await query(schema());
 
-    daEquals(actual.map(remove("ts")), expected);
+    equals(actual.map(remove("ts")), expected);
   }); // it async
 
   it("converts Function refs to Function(..) format", async function () {
@@ -106,7 +105,7 @@ export function slow() {
     const expected = [ {...doc, ref: Fn(name)} ];
     const actual   = await query(schema());
 
-    daEquals(actual.map(remove("ts")), expected);
+    equals(actual.map(remove("ts")), expected);
   }); // it async
 
   // # =============================================================================
@@ -136,7 +135,7 @@ export function slow() {
     const actual = await query(
       Do(new_schema)
     );
-    daEquals(to_refs(actual), [Collection(dogs), Collection(kittens), Fn(gimme1)]);
+    equals(to_refs(actual), [Collection(dogs), Collection(kittens), Fn(gimme1)]);
   }); // it async
 
   // # =============================================================================
@@ -150,7 +149,7 @@ export function slow() {
     const current = await query(schema());
     Deno.writeTextFileSync(MIGRATE_FILE, `${raw_inspect(current)} ${raw_inspect(new_schema)}`);
     const actual = await migrate(new_schema, MIGRATE_FILE);
-    daEquals(actual, false);
+    equals(actual, false);
 
   }); // it async
 
@@ -163,7 +162,7 @@ export function slow() {
     const updated_schema = await migrate(new_schema, MIGRATE_FILE);
     const expected = `${raw_inspect(updated_schema)} ${raw_inspect(new_schema)}`;
     const actual = Deno.readTextFileSync(MIGRATE_FILE);
-    daEquals(actual, expected);
+    equals(actual, expected);
   }); // it async
 
 } // export function

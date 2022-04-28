@@ -51,7 +51,7 @@ function inspect_fql(x) {
 
 
 const DEFAULT_OPTIONS = {
-  secret:    process.env.FAUNA_KEY || "UNKNOWN",
+  secret:    process.env.FAUNA_SECRET || process.env.FAUNA_KEY || "UNKNOWN",
   port:      443,
   scheme:    "https",
   keepAlive: false,

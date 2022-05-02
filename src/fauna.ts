@@ -1,7 +1,7 @@
 
 // import { default_read_file } from "https://github.com/da99/da.ts/raw/main/src/Shell.ts";
 import { run } from "https://github.com/da99/da.ts/raw/main/src/Process.ts";
-import { inspect, raw_inspect } from "https://github.com/da99/da.ts/raw/main/src/Shell.ts";
+import { inspect, raw_inspect, default_read_file } from "https://github.com/da99/da.ts/raw/main/src/Shell.ts";
 import { deepEqual } from "https://deno.land/x/cotton/src/utils/deepequal.ts";
 
 export type ExprArg = Partial<Schema_Doc> |

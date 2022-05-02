@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-run --allow-net --allow-read --allow-write=./
 
-import {inspect, template, meta_url, match, values, not_found} from "https://github.com/da99/da.ts/raw/main/src/CLI.ts";
+import {inspect, template, meta_url, match, values, not_found} from "https://github.com/da99/da.ts/raw/main/src/Shell.ts";
 // import {pgrep_f, pstree_p, keep_alive, run, exit} from "https://github.com/da99/da.ts/main/src/Process.ts";
 import { yellow, bold } from "https://deno.land/std/fmt/colors.ts";
 

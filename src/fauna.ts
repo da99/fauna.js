@@ -1,7 +1,7 @@
 
+// import { default_read_file } from "https://github.com/da99/da.ts/raw/main/src/Shell.ts";
 import { run } from "https://github.com/da99/da.ts/raw/main/src/Process.ts";
-import { inspect, raw_inspect } from "https://github.com/da99/da.ts/raw/main/src/CLI.ts";
-import { default_read_text_file } from "https://github.com/da99/da.ts/raw/main/src/FS.ts";
+import { inspect, raw_inspect } from "https://github.com/da99/da.ts/raw/main/src/Shell.ts";
 import { deepEqual } from "https://deno.land/x/cotton/src/utils/deepequal.ts";
 
 export type ExprArg = Partial<Schema_Doc> |
@@ -459,7 +459,7 @@ function cache_schemas(os: Schema, ns: New_Schema) {
 export async function migrate(new_schema: New_Schema, cache_file: string): Promise<Expr | false> {
   const current_schema = await query(schema());
   const new_cache      = cache_schemas(current_schema, new_schema);
-  let old_cache        = await default_read_text_file("", cache_file);
+  let old_cache        = await default_read_file("", cache_file);
 
   if (new_cache !== old_cache) { // run migrate.
     const results = await query(Do(new_schema));

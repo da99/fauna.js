@@ -1,6 +1,6 @@
 
 import { describe, it, equals } from "https://github.com/da99/da.ts/raw/main/src/Spec.ts";
-import { raw_inspect } from "https://github.com/da99/da.ts/raw/main/src/CLI.ts";
+import { raw_inspect } from "https://github.com/da99/da.ts/raw/main/src/Shell.ts";
 import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 
 import {

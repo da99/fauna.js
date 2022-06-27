@@ -1,27 +1,21 @@
 {
-  "name": "da.ts",
+  "name": "fauna.js",
   "version": "0.0.0",
   "description": "This is useless for you.",
-  "main": "src/main.ts",
+  "main": "src/main.js",
   "scripts": {
     "test": "sh/spec"
-  },
-  "dependencies": {
   },
   "devDependencies": {
     "faunadb": "*"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/da99/fauna.ts.git"
+    "url": "git+https://github.com/da99/fauna.js.git"
   },
   "keywords": [
-    "FaunaDB"
   ],
   "author": "da99",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/da99/fauna.ts/issues"
-  },
-  "homepage": "https://github.com/da99/fauna.ts#readme"
+  "homepage": "https://github.com/da99/fauna.js#readme"
 }

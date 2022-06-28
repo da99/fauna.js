@@ -18,7 +18,7 @@ esac
 for x in ${names}
 do
   file_name="spec/${x}.mjs"
-  secrets FAUNA_TEST_A node "${file_name}" \
+  secrets FAUNA_JS node "${file_name}" \
     || ( echo -e "\n !!! \e[31m FAILED:\e[m ${file_name} !!!\n" && exit 1 )
   echo -e "\n ==== \e[32m PASSED:\e[m ${file_name}  ====\n"
 done

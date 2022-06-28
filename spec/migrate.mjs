@@ -1,20 +1,9 @@
 
-import { describe, it, equals } from "https://github.com/da99/da.ts/raw/main/src/Spec.ts";
-import { raw_inspect } from "https://github.com/da99/da.ts/raw/main/src/Shell.ts";
-import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 
 import {
   drop_schema, schema, query, new_ref, migrate,
-  Select, CreateCollection, CreateFn, Collection, Collections,
-  Lambda,
-  Do, If, Exists, Query, Fn,
-  delete_if_exists, collection_names,
-MigrateCollection, MigrateFn
-} from "../src/fauna.ts";
+} from "../src/helper.ts";
 
-import type {Schema, Schema_Doc, New_Schema, New_Doc, Expr, Collection_Doc} from "../src/fauna.ts";
-
-const MIGRATE_FILE = "tmp/spec/schema.test.txt";
 
 // # =============================================================================
 // # === Helpers: ================================================================

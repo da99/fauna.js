@@ -1,8 +1,9 @@
 {
   "name": "fauna.js",
   "version": "0.0.0",
+  "type": "module",
   "description": "This is useless for you.",
-  "main": "src/main.js",
+  "main": "src/main.mjs",
   "scripts": {
     "test": "sh/spec"
   },

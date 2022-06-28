@@ -3,10 +3,5 @@
 #
 set -u -e -o pipefail -x
 
-IS_TEST="yes" deno run \
-  --allow-net=deno.land,raw.githubusercontent.com \
-  --allow-run="find,fd,ls,echo,node" \
-  --allow-read="./,./tmp/spec" \
-  --allow-write="./tmp/spec" \
-  --allow-env \
-  spec/__.ts "$*"
+IS_TEST="yes" secrets FAUNA_TEST_A \
+  node src/main.mjs "$*"

@@ -48,3 +48,18 @@ test("migrate: adds a migrate_id", async (t) => {
   let migrate_id = crypto.createHash('sha512').update(JSON.stringify(doc)).digest('hex');
   assert.equal([migrate_id].toString(), design.map(x => x.data.migrate_id).toString());
 });
+
+test("migrate: does not migrate an existing document", async (t) => {
+  await client.query(drop_schema());
+  let doc = {
+    ref: Collection(random_name()),
+    history: 0
+  };
+  let cname = doc.ref.raw.collection;
+  let migrate_id = crypto.createHash('sha512').update(JSON.stringify(doc)).digest('hex');
+
+  let create = await client.query(migrate(doc));
+  let result = await client.query(migrate(doc));
+
+  assert.equal(`No update necessary for ${JSON.stringify(doc.ref)}`, result);
+});

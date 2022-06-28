@@ -8,7 +8,7 @@ process.on('unhandledRejection', (err) => {
 })
 
 var q = faunadb.query
-const {If, Exists, Update, Create, Collection, CreateCollection} = q;
+const {Let, Equals, Var, Get, Select, If, Exists, Update, Create, Collection, CreateCollection} = q;
 
 var client = new faunadb.Client({
   secret: process.env.FAUNA_SECRET,
@@ -27,14 +27,15 @@ export {q, client};
 
 export function migrate(doc) {
   let raw = doc.ref.raw || {};
+  let fin, ref, create, migrate_id;
 
   if (raw.collection) {
-    let fin = Object.assign({}, doc);
+    fin = Object.assign({}, doc);
     delete fin.ref;
     fin.name = raw.collection;
     fin.data = fin.data || {};
-    fin.data.migrate_id = crypto.createHash('sha512').update(JSON.stringify(doc)).digest('hex');
-    return If(Exists(doc.ref), Update(doc.ref, fin), CreateCollection(fin));
+    fin.data.migrate_id = migrate_id = crypto.createHash('sha512').update(JSON.stringify(doc)).digest('hex');
+    create = CreateCollection(fin);
   } // if collection
 
   // if (raw.collection) {
@@ -47,7 +48,22 @@ export function migrate(doc) {
   // if (raw.collection) {
   //
   // }
-  throw new Error(`Invalid doc: ${JSON.stringify(doc)}`);
+  if (!migrate_id)
+    throw new Error(`migrate_id not set for document: ${JSON.stringify(doc)}`);
+  if (!fin || !create)
+    throw new Error(`Invalid doc: ${JSON.stringify(doc)}`);
+  return If(
+    Exists(doc.ref),
+    Let(
+      {doc: Get(doc.ref), migrate_id: Select(['data', 'migrate_id'], Var('doc'))},
+      If(
+        Equals(migrate_id, Var('migrate_id')),
+        `No update necessary for ${JSON.stringify(doc.ref)}`,
+        Update(doc.ref, fin)
+      )
+    ),
+    create
+  );
 } // migrate
 
 export function schema() {

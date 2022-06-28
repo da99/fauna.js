@@ -118,3 +118,7 @@ export function prune_able(old_schema, ...raw_docs) {
   return old_schema.filter(d => !new_refs.includes(d.ref.toString()));
 } // export
 
+export function force_prune(old_schema, ...raw_docs) {
+  let delete_docs = prune_able(old_schema, ...raw_docs)
+  return Do(...(delete_docs.map(x => q.Delete(x.ref))));
+} // export

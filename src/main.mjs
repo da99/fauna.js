@@ -8,7 +8,7 @@ process.on('unhandledRejection', (err) => {
 })
 
 var q = faunadb.query
-const {Let, Equals, Var, Get, Select, If, Exists, Update, Create, Collection, CreateCollection} = q;
+const {Do, Let, Equals, Var, Get, Select, If, Exists, Update, Create, Collection, CreateCollection} = q;
 
 var client = new faunadb.Client({
   secret: process.env.FAUNA_SECRET,
@@ -25,14 +25,20 @@ var client = new faunadb.Client({
 
 export {q, client};
 
-export function migrate(doc) {
+export function migrate(...raw_docs) {
+  let docs = Array.from(raw_docs).flat();
+  return Do(...docs.map(x => _migrate(x)));
+} // migrate
+
+function _migrate(doc) {
   let raw = doc.ref.raw || {};
   let fin, ref, create, migrate_id;
 
   if (raw.collection) {
     fin = Object.assign({}, doc);
     delete fin.ref;
-    fin.name = raw.collection;
+    if (!fin.name)
+      fin.name = raw.collection;
     fin.data = fin.data || {};
     fin.data.migrate_id = migrate_id = crypto.createHash('sha512').update(JSON.stringify(doc)).digest('hex');
     create = CreateCollection(fin);
@@ -64,7 +70,7 @@ export function migrate(doc) {
     ),
     create
   );
-} // migrate
+} // function _migrate
 
 export function schema() {
   return q.Reduce(

@@ -1,161 +1,78 @@
 
 
-import {
-  drop_schema, schema, query, new_ref, migrate,
-} from "../src/helper.ts";
+import test from 'node:test';
+import crypto from 'node:crypto';
+
+import { strict as assert } from 'node:assert';
+import {q, client, schema, drop_schema, migrate} from "../src/main.mjs";
+
+const {If, Exists, Update, Create, Collection, CreateCollection} = q;
+
 
 
 // # =============================================================================
 // # === Helpers: ================================================================
 // # =============================================================================
-function random_name(s: string) {
+function random_name(s = "random") {
   return `${s}_${Date.now()}`;
 } // function
+// # =============================================================================
 
-function to_refs(x: Schema) {
-  return x.map(x1 => x1.ref);
-} // function
-
-function to_new_refs(x: New_Schema) {
-  return x.map(d => new_ref(d));
-} // function
-
-function remove(k: string) {
-  return function (x: Record<string, any>) {
-    const y = Object.assign({}, x);
-    delete y[k];
-    return y;
+test("client Create Collection: creates a collection", async (t) => {
+  await client.query(drop_schema());
+  let doc = {
+    ref: Collection(random_name()),
+    history: 0
   };
-} // function
+  let cname = doc.ref.raw.collection;
 
-function standardize_schema(x: Schema) {
-  return x.map((s: Schema_Doc) => {
-    if (s.ref && s.ref.name === "Collection") {
-      const doc = s as Collection_Doc;
-      return {"name": doc.name, "history_days": doc.history_days};
-    }
-    return s;
-  });
-} // function
+  let create = await client.query(migrate(doc));
+  let design = await client.query(schema());
+  assert.equal([cname].toString(), design.map(x => x.name).toString());
+});
 
-export function slow() {
-  // # =============================================================================
-  describe("query(...)");
+test("migrate: adds a migrate_id", async (t) => {
+  await client.query(drop_schema());
+  let doc = {
+    ref: Collection(random_name()),
+    history: 0
+  };
+  let cname = doc.ref.raw.collection;
 
-  it("executes the query", async function () {
-    const expected = "c";
-    const actual   = await query(Select(2, "a b c d e f".split(' ')));
-    equals(actual, expected);
-  }); // it async
+  let create = await client.query(migrate(doc));
+  let design = await client.query(schema());
 
-  // # =============================================================================
-  describe("drop_schema()");
+  let migrate_id = crypto.createHash('sha512').update(JSON.stringify(doc)).digest('hex');
+  assert.equal([migrate_id].toString(), design.map(x => x.data.migrate_id).toString());
+});
 
-  it("drops from the database: collections, roles, indexes, functions", async function () {
-    await query(CreateCollection({name: random_name("coll")}));
-    await query(drop_schema());
-    const actual = await query(schema());
-    equals(actual, []);
-  }); // it async
+test("migrate: does not migrate an existing document", async (t) => {
+  await client.query(drop_schema());
+  let doc = {
+    ref: Collection(random_name()),
+    history: 0
+  };
+  let cname = doc.ref.raw.collection;
+  let migrate_id = crypto.createHash('sha512').update(JSON.stringify(doc)).digest('hex');
 
-  // # =============================================================================
-  describe("schema(...)");
+  let create = await client.query(migrate(doc));
+  let result = await client.query(migrate(doc));
 
-  it("retrieves schema from database", async () => {
-    await query(drop_schema());
-    const name = random_name("coll");
-    const doc  = await query(
-      CreateCollection({name, history_days: 0})
-    );
-    const standard_doc = {
-      name,
-      ref: doc.ref,
-      history_days: doc.history_days,
-    };
-    const expected = [ standard_doc ];
-    const actual   = await query(schema());
+  assert.equal(`No update necessary for ${JSON.stringify(doc.ref)}`, result);
+});
 
-    equals(actual.map(remove("ts")), expected);
-  }); // it async
+test("migrate: updates document :name", async (t) => {
+  await client.query(drop_schema());
+  let oname = random_name("old_name");
+  let nname = random_name("new_name");
+  let doc = {
+    ref: Collection(oname),
+    name: nname,
+    history: 0
+  };
 
-  it("converts Function refs to Function(..) format", async function () {
-    await query(drop_schema());
-    const name = random_name("helloF");
-    const doc  = {
-      name,
-      body: Query(
-        Lambda(
-          "_",
-          Select(1, [0,1,2])
-        )
-      )
-    };
-    await query( CreateFn(doc));
-    const expected = [ {...doc, ref: Fn(name)} ];
-    const actual   = await query(schema());
-
-    equals(actual.map(remove("ts")), expected);
-  }); // it async
-
-  // # =============================================================================
-  describe("MigrateX(...)");
-
-  it("executes new schema", async function () {
-    // await query(drop_schema());
-    const dogs = random_name("dogs");
-    const kittens = random_name("kittens");
-    const gimme1 = random_name("gimme1");
-    const new_schema = [
-      MigrateCollection({
-        name: dogs,
-        history_days: 3
-      }),
-      MigrateCollection({
-        name: kittens,
-        history_days: 1
-      }),
-      MigrateFn({
-        name: gimme1,
-        body: Query(
-          Lambda( "_", Select(1, [1,2,3]))
-        )
-      })
-    ];
-    const actual = await query(
-      Do(new_schema)
-    );
-    equals(to_refs(actual), [Collection(dogs), Collection(kittens), Fn(gimme1)]);
-  }); // it async
-
-  // # =============================================================================
-  describe("migrate(...)");
-
-  it("returns false if shema is up-to-date", async function () {
-    const new_schema = [
-      MigrateCollection({ name: random_name("dogs") }),
-      MigrateCollection({ name: random_name("kittens") })
-    ];
-    const current = await query(schema());
-    Deno.writeTextFileSync(MIGRATE_FILE, `${raw_inspect(current)} ${raw_inspect(new_schema)}`);
-    const actual = await migrate(new_schema, MIGRATE_FILE);
-    equals(actual, false);
-
-  }); // it async
-
-  it("writes new schema to file", async function () {
-    await query(drop_schema());
-    const new_schema = [
-      MigrateCollection({ name: random_name("unicorn") }),
-      MigrateCollection({ name: random_name("rainbow") })
-    ];
-    const updated_schema = await migrate(new_schema, MIGRATE_FILE);
-    const expected = `${raw_inspect(updated_schema)} ${raw_inspect(new_schema)}`;
-    const actual = Deno.readTextFileSync(MIGRATE_FILE);
-    equals(actual, expected);
-  }); // it async
-
-} // export function
-
-
-
+  await client.query(migrate(doc));
+  let design = await client.query(schema());
+  assert.equal([nname].toString(), design.map(x => x.name).toString());
+});
 

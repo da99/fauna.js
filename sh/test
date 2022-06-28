@@ -5,5 +5,11 @@ set -u -e -o pipefail
 
 export IS_TEST="yes"
 export FORCE_COLOR=true
-secrets FAUNA_TEST_A \
-  node spec/main.mjs "$*" && echo -e "\n ==== \e[32m PASSED \e[m  ====\n" || echo -e "\n !!! \e[31m FAILED \e[m !!!\n"
+
+for x in migrate main
+do
+  file_name="spec/${x}.mjs"
+  secrets FAUNA_TEST_A node ${file_name} \
+    || ( echo -e "\n !!! \e[31m FAILED:\e[m ${file_name} !!!\n" && exit 1 )
+  echo -e "\n ==== \e[32m PASSED:\e[m ${file_name}  ====\n"
+done

@@ -1,37 +1,4 @@
 
-import { describe, it, equals } from "https://github.com/da99/da.ts/raw/main/src/Spec.ts";
-import { deepEqual } from "https://deno.land/x/cotton/src/utils/deepequal.ts";
-
-import {
-  prune,
-  Collection, Ref, Fn,
-  Query, Lambda, Select,
-  Create, Update, Delete,
-  Role, Do,
-  MigrateCollection
-} from "../src/fauna.ts";
-
-import type {
-  Collection_Doc, Fn_Doc, Schema, New_Schema
-} from "../src/fauna.ts";
-
-
-function old_collection(s: string): Collection_Doc {
-  return {
-    ref: Collection(s),
-    ts: 1644689714440000,
-    name: s,
-    history_days: 0,
-  };
-}
-
-function new_collection(s: string): Collection_Doc {
-  return {
-    ref: Collection(s),
-    name: s,
-    history_days: 0,
-  };
-}
 
 // # =============================================================================
 describe("deepEqual(x, y)");

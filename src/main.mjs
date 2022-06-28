@@ -110,3 +110,11 @@ export function drop_schema() {
     drop(q.Functions())
   );
 } // export
+
+export function prune_able(old_schema, ...raw_docs) {
+  let new_docs = Array.from(raw_docs).flat();
+  let old_refs = old_schema.map(d => d.ref.toString())
+  let new_refs = new_docs.map(x => x.ref.toFQL());
+  return old_schema.filter(d => !new_refs.includes(d.ref.toString()));
+} // export
+

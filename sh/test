@@ -3,5 +3,5 @@
 #
 set -u -e -o pipefail -x
 
-IS_TEST="yes" secrets FAUNA_TEST_A \
-  node src/main.mjs "$*"
+IS_TEST="yes" FORCE_COLOR=true secrets FAUNA_TEST_A \
+  node spec/main.mjs "$*"

@@ -314,26 +314,6 @@ export async function query(raw_body: Expr | Record<string, any>) {
 // # === FQL Composition Functions ===============================================
 // # =============================================================================
 
-export function schema() {
-  return Reduce(
-    Lambda(
-      ["acc", "coll"],
-      Append(
-        Select(
-          "data",
-          Map(
-            Paginate(Var("coll")),
-            Lambda("x", Get(Var("x")))
-          )
-        ), // Map
-        Var("acc")
-      ) // Prepend
-    ), // Lambda
-    [],
-    [Roles(), Collections(), Functions(), Indexes()]
-  ); // Reduce
-} // export
-
 export function concat_data(...args: Expr[]) {
   const new_args = args.map((x) => {
     return Select("data", x);
@@ -341,15 +321,6 @@ export function concat_data(...args: Expr[]) {
   return concat_array(...new_args);
 } // export function
 
-export function drop(x: Expr) {
-  if (!Deno.env.get("IS_TEST")) {
-    throw new Error("drop(...) can only be used in IS_TEST environments.");
-  }
-  return Map(
-    Paginate(x),
-    Lambda("x", Delete(Var("x")))
-  );
-} // export function
 
 export function map_select(x: Expr, k: string) {
   return Map(
@@ -368,14 +339,6 @@ export function concat_array(...args: Expr[]) {
   });
 } // export function
 
-export function drop_schema() {
-  return Do(
-    drop(Collections()),
-    drop(Roles()),
-    drop(Indexes()),
-    drop(Functions())
-  );
-} // export
 
 export function delete_if_exists(x: any): Expr {
   return If(Exists(x), Delete(x), false);

@@ -5,7 +5,7 @@
   "description": "This is useless for you.",
   "main": "src/main.mjs",
   "scripts": {
-    "test": "sh/spec"
+    "test": "jest"
   },
   "devDependencies": {
     "faunadb": "*"
@@ -14,8 +14,7 @@
     "type": "git",
     "url": "git+https://github.com/da99/fauna.js.git"
   },
-  "keywords": [
-  ],
+  "keywords": [],
   "author": "da99",
   "license": "MIT",
   "homepage": "https://github.com/da99/fauna.js#readme"

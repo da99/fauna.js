@@ -14,6 +14,10 @@ const {If, Exists, Update, Create, Collection, CreateCollection} = q;
 function random_name(s = "random") {
   return `${s}_${Date.now()}`;
 } // function
+
+function map_refs(arr) {
+  return arr.map(x => x.ref);
+} // function
 // # =============================================================================
 
 test("client Create Collection: creates a collection", async (t) => {
@@ -56,7 +60,8 @@ test("migrate: does not migrate an existing document", async (t) => {
   let create = await client.query(migrate(doc));
   let result = await client.query(migrate(doc));
 
-  assert.equal(`No update necessary for ${JSON.stringify(doc.ref)}`, result);
+  assert.equal(JSON.stringify(create.map(x => x.toString())), JSON.stringify([doc.ref.toFQL()]));
+  assert.equal(JSON.stringify(result), JSON.stringify([0]));
 });
 
 test("migrate: updates document :name", async (t) => {
@@ -74,3 +79,21 @@ test("migrate: updates document :name", async (t) => {
   assert.equal([nname].toString(), design.map(x => x.name).toString());
 });
 
+test('migrate: repeated migrates do not alter the database', async () => {
+  await client.query(drop_schema());
+  const name = random_name("new_name");
+  const docs = [
+    { ref: Collection(name+'0'), history: 0 },
+    { ref: Collection(name+'1'), history: 0 },
+  ];
+
+  await client.query(migrate(docs));
+  await client.query(migrate(docs));
+  await client.query(migrate(docs));
+
+  let design = await client.query(schema());
+  assert.equal(
+    map_refs(docs).map(x => x.toFQL()).join(', '),
+    map_refs(design).map(x => x.toString()).join(', ')
+  );
+});

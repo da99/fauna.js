@@ -27,7 +27,10 @@ export {q, client};
 
 export function migrate(...raw_docs) {
   let docs = Array.from(raw_docs).flat();
-  return Do(...docs.map(x => _migrate(x)));
+  return q.Map(
+    docs.map(x => _migrate(x)),
+    q.Lambda('migrate', Do(Var('migrate')))
+  );
 } // migrate
 
 function _migrate(doc) {
@@ -63,11 +66,11 @@ function _migrate(doc) {
       {doc: Get(doc.ref), migrate_id: Select(['data', 'migrate_id'], Var('doc'))},
       If(
         Equals(migrate_id, Var('migrate_id')),
-        `No update necessary for ${JSON.stringify(doc.ref)}`,
+        0,
         Update(doc.ref, fin)
       )
     ),
-    create
+    Select('ref', create)
   );
 } // function _migrate
 

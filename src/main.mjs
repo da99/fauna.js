@@ -8,7 +8,7 @@ process.on('unhandledRejection', (err) => {
 })
 
 var q = faunadb.query
-const {Do, Let, Equals, Var, Get, Select, If, Exists, Update, Create, Collection, CreateCollection} = q;
+const {Do, Let, Equals, Var, Get, Select, If, Exists, Update, Create, CreateRole, CreateIndex, CreateFunction, CreateCollection} = q;
 
 var client = new faunadb.Client({
   secret: process.env.FAUNA_SECRET,
@@ -31,33 +31,32 @@ export function migrate(...raw_docs) {
 } // migrate
 
 function _migrate(doc) {
-  let raw = doc.ref.raw || {};
-  let fin, ref, create, migrate_id;
+  const ref = doc.ref;
+  if (!ref)
+    throw new Error(`No ref specified for: ${JSON.stringify(doc)}`)
+  const raw = doc.ref.raw;
+  if (!raw)
+    throw new Error(`No ref.raw specified for: ${JSON.stringify(doc.ref)}`)
+  let create, migrate_id;
+  const fin = Object.assign({data: {}}, doc);
 
-  if (raw.collection) {
-    fin = Object.assign({}, doc);
-    delete fin.ref;
-    if (!fin.name)
-      fin.name = raw.collection;
-    fin.data = fin.data || {};
-    fin.data.migrate_id = migrate_id = crypto.createHash('sha512').update(JSON.stringify(doc)).digest('hex');
-    create = CreateCollection(fin);
-  } // if collection
+  delete fin.ref;
+  fin.data.migrate_id = migrate_id = crypto.createHash('sha512').update(JSON.stringify(doc)).digest('hex');
 
-  // if (raw.collection) {
-  //
-  // }
-  //
-  // if (raw.collection) {
-  //
-  // }
-  // if (raw.collection) {
-  //
-  // }
-  if (!migrate_id)
-    throw new Error(`migrate_id not set for document: ${JSON.stringify(doc)}`);
-  if (!fin || !create)
+  for (const f of [CreateCollection, CreateFunction, CreateRole, CreateIndex]) {
+    let key = f.name.replace('Create', '').toLowerCase();
+    if (!(raw.hasOwnProperty(key)))
+      continue;
+    if (!fin.hasOwnProperty('name')) {
+      fin.name = raw[key];
+    }
+    create = f(fin);
+    break;
+  } // for
+
+  if (!create)
     throw new Error(`Invalid doc: ${JSON.stringify(doc)}`);
+
   return If(
     Exists(doc.ref),
     Let(

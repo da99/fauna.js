@@ -110,14 +110,32 @@ export function drop_schema() {
   );
 } // export
 
-export function prune_able(old_schema, ...raw_docs) {
+export function original_prune_able(old_schema, ...raw_docs) {
   let new_docs = Array.from(raw_docs).flat();
-  let old_refs = old_schema.map(d => d.ref.toString())
+  // let old_refs = old_schema.map(d => d.ref.toString())
   let new_refs = new_docs.map(x => x.ref.toFQL());
   return old_schema.filter(d => !new_refs.includes(d.ref.toString()));
 } // export
 
-export function force_prune(old_schema, ...raw_docs) {
-  let delete_docs = prune_able(old_schema, ...raw_docs)
-  return Do(...(delete_docs.map(x => q.Delete(x.ref))));
+export function prune_able(...raw_docs) {
+  const new_docs = Array.from(raw_docs).flat();
+  const new_refs = new_docs.map(x => x.ref);
+  return q.Filter(
+    schema(),
+    q.Lambda(
+      "doc",
+      q.Not(q.ContainsValue(q.Select('ref', q.Var('doc')), new_refs))
+    )
+  );
 } // export
+
+export function force_prune(...raw_docs) {
+  return q.Map(
+    prune_able(...raw_docs),
+    q.Lambda(
+      "doc",
+      q.Delete(Select('ref', Var('doc')))
+    )
+  );
+} // export
+

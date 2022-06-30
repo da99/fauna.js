@@ -36,7 +36,7 @@ test("prune_able: it returns docs that are delete-able", async () => {
     [c4,c5].map(x => ({ref: Collection(x), history: 0}))
   );
 
-  let delete_able = prune_able(await client.query(schema()), new_docs);
+  let delete_able = await client.query(prune_able(new_docs));
 
   assert.equal(
     JSON.stringify(map_refs([old_design[0], old_design[2]])),
@@ -53,14 +53,15 @@ test("force_prune: it removes old docs", async () => {
   let c3 = random_name('c3');
   let c4 = random_name('c4');
 
-  // Set up the schema:
-  let old_migrate = [c0,c1,c2,c3,c4].map(x => ({ ref: Collection(x), history: 0}));
-  let new_migrate = [old_migrate[1], old_migrate[3]];
+  // Set up the old schema:
+  const old_migrate = [c0,c1,c2,c3,c4].map(x => ({ ref: Collection(x), history: 0}));
   await client.query(migrate(old_migrate));
 
-  // Remove old docs:
-  let old_design = await client.query(schema());
-  await client.query(force_prune(old_design, new_migrate));
+  // Set up the new schema:
+  const new_migrate = [old_migrate[1], old_migrate[3]];
+  await client.query(force_prune(new_migrate));
+
+  // Get the current schema:
   let design = await client.query(schema());
 
   assert.equal(

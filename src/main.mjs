@@ -7,7 +7,7 @@ process.on('unhandledRejection', (err) => {
   process.exit(1);
 })
 
-var q = faunadb.query
+var q = faunadb.query;
 const {Do, Let, Equals, Var, Get, Select, If, Exists, Update, Create, CreateRole, CreateIndex, CreateFunction, CreateCollection} = q;
 
 var client = new faunadb.Client({
@@ -18,12 +18,15 @@ var client = new faunadb.Client({
 });
 
 
-// async function main () {
-// } // async function
-//
-// main();
-
 export {q, client};
+
+function get_env(x) {
+  const val = process.env[x];
+  if (!val) {
+    throw new Error(`${x} is not set in the ENVIRONMENT.`);
+  }
+  return val;
+}
 
 export function fauna_migrate(...raw_docs) {
   let docs = Array.from(raw_docs).flat();
@@ -142,3 +145,42 @@ export function force_prune(...raw_docs) {
   );
 } // export
 
+
+// =============================================================================
+// GraphQL:
+// =============================================================================
+
+export async function graphql_migrate(body) {
+  const domain = get_env('FAUNA_GRAPHQL');
+  const secret = get_env('FAUNA_SECRET');
+  const path = "/import?mode=merge";
+  const resp = await fetch(`https://${domain}${path}`, {
+    method: 'POST',
+    body,
+    'Authorization': `Bearer ${secret}`
+  });
+
+  if (!resp.ok) {
+    throw new Error(`fetch failed: ${path} ${resp.status} ${resp.statusText}`);
+  }
+
+  return await resp.json();
+} // export graphql_migrate
+
+export async function graphql(body) {
+  const domain = get_env('FAUNA_GRAPHQL');
+  const secret = get_env('FAUNA_SECRET');
+  const resp = await fetch(`https://${domain}/graphql`, {
+    method: 'POST',
+    body: JSON.stringify({
+      query: body
+    }),
+    'Authorization': `Bearer ${secret}`
+  });
+
+  if (!resp.ok) {
+    throw new Error(`fetch failed: /graphql ${resp.status} ${resp.statusText}`);
+  }
+
+  return await resp.json();
+} // export graphql_migrate

@@ -20,7 +20,7 @@ function map_refs(arr) {
 } // function
 // # =============================================================================
 
-test("client Create Collection: creates a collection", async (t) => {
+test("migrate: creates a collection", async (t) => {
   await client.query(drop_schema());
   let doc = {
     ref: Collection(random_name()),
@@ -28,7 +28,7 @@ test("client Create Collection: creates a collection", async (t) => {
   };
   let cname = doc.ref.raw.collection;
 
-  let create = await client.query(fauna_migrate(doc));
+  await client.query(fauna_migrate(doc));
   let design = await client.query(schema());
   assert.equal([cname].toString(), design.map(x => x.name).toString());
 });

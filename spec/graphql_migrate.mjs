@@ -14,6 +14,23 @@ function map_refs(arr) {
 } // function
 // # =============================================================================
 
+test("graphql_migrate: it returns 'Schema imported successfully'", async () => {
+  await client.query(drop_schema());
+  const cname = random_name("one_one");
+  let doc = {
+    ref: q.Function(cname),
+    body: q.Query( q.Lambda( [], q.Select(1, [0,1,2,3])))
+  };
+
+  const resp = await graphql_migrate(`
+    type Query {
+      ${cname}: Int! @resolver(name: "${cname}")
+    }
+  `);
+
+  assert.equal('Schema imported successfully', resp.match('Schema imported successfully')[0]);
+});
+
 test("graphql_migrate: it updates the schema", async () => {
   await client.query(drop_schema());
   const cname = random_name("one_one");
@@ -21,7 +38,7 @@ test("graphql_migrate: it updates the schema", async () => {
     ref: q.Function(cname),
     body: q.Query(
       q.Lambda(
-        ["_"],
+        [],
         q.Select(1, [0,1,2,3])
       )
     )
@@ -35,6 +52,8 @@ test("graphql_migrate: it updates the schema", async () => {
     }
   `);
 
-  const result = await graphql(`{ sayHello(name: "Jane") }`);
-  assert.equal(1, result);
+  const result = await graphql(`{
+    one: ${cname}
+  }`);
+  assert.deepEqual({ data: {one: 1} }, result);
 });

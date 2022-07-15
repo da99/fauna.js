@@ -157,14 +157,16 @@ export async function graphql_migrate(body) {
   const resp = await fetch(`https://${domain}${path}`, {
     method: 'POST',
     body,
+    headers: {
     'Authorization': `Bearer ${secret}`
+    }
   });
 
   if (!resp.ok) {
     throw new Error(`fetch failed: ${path} ${resp.status} ${resp.statusText}`);
   }
 
-  return await resp.json();
+  return await resp.text();
 } // export graphql_migrate
 
 export async function graphql(body) {
@@ -175,7 +177,9 @@ export async function graphql(body) {
     body: JSON.stringify({
       query: body
     }),
+    headers: {
     'Authorization': `Bearer ${secret}`
+    }
   });
 
   if (!resp.ok) {

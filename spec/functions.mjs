@@ -22,7 +22,7 @@ test("migrate: creates a function", async (t) => {
   };
   let fname = doc.ref.raw.function;
 
-  await client.query(fauna_migrate(doc));
+  await fauna_migrate(doc);
   let design = await client.query(schema());
   assert.equal([fname].toString(), design.map(x => x.name).toString());
 });

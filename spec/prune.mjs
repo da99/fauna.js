@@ -27,7 +27,7 @@ test("prune_able: it returns docs that are delete-able", async () => {
   let c3 = random_name('c3');
 
   let old_docs = [c1,c2,c3].map(x => ({ ref: Collection(x), history: 0}));
-  await client.query(fauna_migrate(old_docs));
+  await fauna_migrate(old_docs);
   let old_design = await client.query(schema());
 
   let c4 = random_name('c4');
@@ -55,7 +55,7 @@ test("force_prune: it removes old docs", async () => {
 
   // Set up the old schema:
   const old_migrate = [c0,c1,c2,c3,c4].map(x => ({ ref: Collection(x), history: 0}));
-  await client.query(fauna_migrate(old_migrate));
+  await fauna_migrate(old_migrate);
 
   // Set up the new schema:
   const new_migrate = [old_migrate[1], old_migrate[3]];

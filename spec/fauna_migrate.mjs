@@ -28,7 +28,7 @@ test("migrate: creates a collection", async (t) => {
   };
   let cname = doc.ref.raw.collection;
 
-  await client.query(fauna_migrate(doc));
+  await fauna_migrate(doc);
   let design = await client.query(schema());
   assert.equal([cname].toString(), design.map(x => x.name).toString());
 });
@@ -41,7 +41,7 @@ test("migrate: adds a migrate_id", async (t) => {
   };
   let cname = doc.ref.raw.collection;
 
-  let create = await client.query(fauna_migrate(doc));
+  let create = await fauna_migrate(doc);
   let design = await client.query(schema());
 
   let migrate_id = crypto.createHash('sha512').update(JSON.stringify(doc)).digest('hex');
@@ -57,8 +57,8 @@ test("migrate: does not migrate an existing document", async (t) => {
   let cname = doc.ref.raw.collection;
   let migrate_id = crypto.createHash('sha512').update(JSON.stringify(doc)).digest('hex');
 
-  let create = await client.query(fauna_migrate(doc));
-  let result = await client.query(fauna_migrate(doc));
+  let create = await fauna_migrate(doc);
+  let result = await fauna_migrate(doc);
 
   assert.equal(JSON.stringify(create.map(x => x.toString())), JSON.stringify([doc.ref.toFQL()]));
   assert.equal(JSON.stringify(result), JSON.stringify([0]));
@@ -74,7 +74,7 @@ test("migrate: updates document :name", async (t) => {
     history: 0
   };
 
-  await client.query(fauna_migrate(doc));
+  await fauna_migrate(doc);
   let design = await client.query(schema());
   assert.equal([nname].toString(), design.map(x => x.name).toString());
 });
@@ -87,9 +87,9 @@ test('migrate: repeated migrates do not alter the database', async () => {
     { ref: Collection(name+'1'), history: 0 },
   ];
 
-  await client.query(fauna_migrate(docs));
-  await client.query(fauna_migrate(docs));
-  await client.query(fauna_migrate(docs));
+  await fauna_migrate(docs);
+  await fauna_migrate(docs);
+  await fauna_migrate(docs);
 
   let design = await client.query(schema());
   assert.equal(

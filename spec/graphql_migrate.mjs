@@ -44,7 +44,7 @@ test("graphql_migrate: it updates the schema", async () => {
     )
   };
 
-  await client.query(fauna_migrate(doc));
+  await fauna_migrate(doc);
 
   await graphql_migrate(`
     type Query {

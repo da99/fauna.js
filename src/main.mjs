@@ -28,12 +28,12 @@ function get_env(x) {
   return val;
 }
 
-export function fauna_migrate(...raw_docs) {
+export async function fauna_migrate(...raw_docs) {
   let docs = Array.from(raw_docs).flat();
-  return q.Map(
+  return client.query(q.Map(
     docs.map(x => _fauna_migrate(x)),
     q.Lambda('migrate', Do(Var('migrate')))
-  );
+  ));
 } // migrate
 
 function _fauna_migrate(doc) {

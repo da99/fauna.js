@@ -3,7 +3,7 @@ import test from 'node:test';
 import crypto from 'node:crypto';
 
 import { strict as assert } from 'node:assert';
-import {q, client, schema, drop_schema, migrate} from "../src/main.mjs";
+import {q, client, schema, drop_schema, fauna_migrate} from "../src/main.mjs";
 
 const {Lambda, Query, Add, Var} = q;
 
@@ -22,7 +22,7 @@ test("migrate: creates a function", async (t) => {
   };
   let fname = doc.ref.raw.function;
 
-  await client.query(migrate(doc));
+  await client.query(fauna_migrate(doc));
   let design = await client.query(schema());
   assert.equal([fname].toString(), design.map(x => x.name).toString());
 });

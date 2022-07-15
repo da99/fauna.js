@@ -8,7 +8,7 @@ export FORCE_COLOR=true
 
 case "$@" in
   "")
-    names="main migrate prune functions"
+    names="main fauna_migrate prune functions"
     ;;
   *)
     names=$*

@@ -29,12 +29,23 @@ function get_env(x) {
   return val;
 }
 
+export async function fql_schema() {
+  return await client.query(schema());
+} // export function
+
 export async function fql_migrate(...raw_docs) {
   let docs = Array.from(raw_docs).flat();
-  return client.query(q.Map(
+  const cache_file = "fql.migrate.txt";
+  const contents = read_tmp_file(cache_file);
+  const new_contents = JSON.stringify(docs);
+  if (contents === new_contents)
+    return false;
+  const query_results = client.query(q.Map(
     docs.map(x => _fql_migrate(x)),
     q.Lambda('migrate', Do(Var('migrate')))
   ));
+  write_tmp_file(cache_file, new_contents);
+  return query_results;
 } // migrate
 
 function _fql_migrate(doc) {
@@ -77,10 +88,6 @@ function _fql_migrate(doc) {
     Select('ref', create)
   );
 } // function _migrate
-
-export async function fql_schema() {
-  return await client.query(schema());
-} // export function
 
 export function schema() {
   return q.Reduce(
@@ -155,26 +162,37 @@ export function force_prune(...raw_docs) {
 // GraphQL:
 // =============================================================================
 
-export async function graphql_migrate(body) {
-  const domain = get_env('FAUNA_GRAPHQL');
-  const secret = get_env('FAUNA_SECRET');
-  const path = "/import?mode=merge";
+function standard_gql(content) {
+  return content.replace(/\s+/g, ' ').trim();
+} // function
+
+export async function gql_migrate(gql) {
+  const domain      = get_env('FAUNA_GRAPHQL');
+  const secret      = get_env('FAUNA_SECRET');
+  const path        = "/import?mode=merge";
+  const cache_file  = "gql.migrate.txt";
+  const old_content = read_tmp_file(cache_file);
+  const standard_content = standard_gql(gql);
+
+  if (old_content === standard_content)
+    return false;
+
   const resp = await fetch(`https://${domain}${path}`, {
     method: 'POST',
-    body,
+    body: gql,
     headers: {
-    'Authorization': `Bearer ${secret}`
+      'Authorization': `Bearer ${secret}`
     }
   });
 
-  if (!resp.ok) {
-    throw new Error(`fetch failed: ${path} ${resp.status} ${resp.statusText}`);
-  }
+  if (!resp.ok)
+    throw new Error(`gql_migrate: fetch failed: ${path} ${resp.status} ${resp.statusText}`);
 
+  write_tmp_file(cache_file, standard_content)
   return await resp.text();
-} // export graphql_migrate
+} // export gql_migrate
 
-export async function graphql(body) {
+export async function gql_query(body) {
   const domain = get_env('FAUNA_GRAPHQL');
   const secret = get_env('FAUNA_SECRET');
   const resp = await fetch(`https://${domain}/graphql`, {
@@ -188,139 +206,35 @@ export async function graphql(body) {
   });
 
   if (!resp.ok) {
-    throw new Error(`fetch failed: /graphql ${resp.status} ${resp.statusText}`);
+    throw new Error(`gql_query fetch failed: /graphql ${resp.status} ${resp.statusText}`);
   }
 
   return await resp.json();
-} // export graphql_migrate
-
-export async function graphql_schema() {
-  const domain = get_env('FAUNA_GRAPHQL');
-  const secret = get_env('FAUNA_SECRET');
-  const resp = await fetch(`https://${domain}/graphql`, {
-    method: 'POST',
-    body: JSON.stringify({ query: GQL_SCHEMA }),
-    headers: { 'Authorization': `Bearer ${secret}` }
-  });
-
-  if (!resp.ok) {
-    throw new Error(`fetch failed: /graphql ${resp.status} ${resp.statusText}`);
-  }
-
-  return await resp.json();
-} // export graphql_schema
-
-export async function migrate(fql, gql) {
-  const old_fql = await fql_schema();
-  const old_gql = await graphql_schema();
-  const file_name = 'tmp/fauna.migrate.txt';
-  let old_file = '';
-  fs.mkdirSync("tmp", {recursive: true});
-  try {
-    old_file = fs.readFileSync(file_name, 'utf8');
-  } catch (e) {
-    fs.writeFileSync(file_name, '');
-  }
-  if (old_file === schema_to_string(fql, old_fql))
-    return false;
-  await fql_migrate(fql);
-  await graphql_migrate(gql);
-  const new_schema = await fql_schema();
-  fs.writeFileSync(file_name, schema_to_string(fql, new_schema))
-} // export migrate
+} // export gql_migrate
 
 export function schema_to_string(doc, old_schema) {
   return JSON.stringify([doc,old_schema]);
 } // export function
 
-const GQL_SCHEMA = `
-fragment FullType on __Type {
-  kind
-  name
-  fields(includeDeprecated: true) {
-    name
-    args {
-      ...InputValue
-    }
-    type {
-      ...TypeRef
-    }
-    isDeprecated
-    deprecationReason
+function mkdir_p_tmp() {
+  return fs.mkdirSync("tmp", {recursive: true});
+} // export function
+
+function read_tmp_file(raw_file_name) {
+  const file_name = `tmp/${raw_file_name}`;
+  mkdir_p_tmp();
+  let contents = '';
+  try {
+    contents = fs.readFileSync(file_name, 'utf8');
+  } catch (e) {
+    fs.writeFileSync(file_name, '');
   }
-  inputFields {
-    ...InputValue
-  }
-  interfaces {
-    ...TypeRef
-  }
-  enumValues(includeDeprecated: true) {
-    name
-    isDeprecated
-    deprecationReason
-  }
-  possibleTypes {
-    ...TypeRef
-  }
-}
-fragment InputValue on __InputValue {
-  name
-  type {
-    ...TypeRef
-  }
-  defaultValue
-}
-fragment TypeRef on __Type {
-  kind
-  name
-  ofType {
-    kind
-    name
-    ofType {
-      kind
-      name
-      ofType {
-        kind
-        name
-        ofType {
-          kind
-          name
-          ofType {
-            kind
-            name
-            ofType {
-              kind
-              name
-              ofType {
-                kind
-                name
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-query IntrospectionQuery {
-  __schema {
-    queryType {
-      name
-    }
-    mutationType {
-      name
-    }
-    types {
-      ...FullType
-    }
-    directives {
-      name
-      locations
-      args {
-        ...InputValue
-      }
-    }
-  }
-}
-`;
+  return contents;
+} // export function
+
+function write_tmp_file(raw_file_name, contents) {
+  const file_name = `tmp/${raw_file_name}`;
+  return fs.writeFileSync(file_name, contents);
+} // export function
+
 

@@ -4,16 +4,13 @@ import crypto from 'node:crypto';
 
 import { strict as assert } from 'node:assert';
 import {force_prune, prune_able, q, client, schema, drop_schema, fql_migrate} from "../src/main.mjs";
+import { random_name } from "./_helper.mjs";
 
 const {If, Exists, Update, Create, Collection, CreateCollection} = q;
 
 // # =============================================================================
 // # === Helpers: ================================================================
 // # =============================================================================
-function random_name(s = "random") {
-  return `${s}_${Date.now()}`;
-} // function
-
 function map_refs(arr) {
   return arr.map(x => x.ref);
 } // function

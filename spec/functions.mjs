@@ -4,15 +4,10 @@ import crypto from 'node:crypto';
 
 import { strict as assert } from 'node:assert';
 import {q, client, schema, drop_schema, fql_migrate} from "../src/main.mjs";
+import { random_name } from "./_helper.mjs";
 
 const {Lambda, Query, Add, Var} = q;
 
-// # =============================================================================
-// # === Helpers: ================================================================
-function random_name(s = "random") {
-  return `${s}_${Date.now()}`;
-} // function
-// # =============================================================================
 
 test("migrate: creates a function", async (t) => {
   await client.query(drop_schema());

@@ -162,8 +162,8 @@ export function force_prune(...raw_docs) {
 // GraphQL:
 // =============================================================================
 
-function standard_gql(content) {
-  return content.replace(/\s+/g, ' ').trim();
+export function gql_standard(content) {
+  return content.replace(/\s+/g, ' ').trim() + '\n';
 } // function
 
 export async function gql_migrate(gql) {
@@ -172,7 +172,7 @@ export async function gql_migrate(gql) {
   const path        = "/import?mode=merge";
   const cache_file  = "gql.migrate.txt";
   const old_content = read_tmp_file(cache_file);
-  const standard_content = standard_gql(gql);
+  const standard_content = gql_standard(gql);
 
   if (old_content === standard_content)
     return false;

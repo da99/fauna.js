@@ -1,6 +1,7 @@
 
 import faunadb from 'faunadb';
 import crypto from 'node:crypto';
+import * as fs from 'node:fs';
 
 process.on('unhandledRejection', (err) => {
   console.error(err);
@@ -28,15 +29,15 @@ function get_env(x) {
   return val;
 }
 
-export async function fauna_migrate(...raw_docs) {
+export async function fql_migrate(...raw_docs) {
   let docs = Array.from(raw_docs).flat();
   return client.query(q.Map(
-    docs.map(x => _fauna_migrate(x)),
+    docs.map(x => _fql_migrate(x)),
     q.Lambda('migrate', Do(Var('migrate')))
   ));
 } // migrate
 
-function _fauna_migrate(doc) {
+function _fql_migrate(doc) {
   const ref = doc.ref;
   if (!ref)
     throw new Error(`No ref specified for: ${JSON.stringify(doc)}`)
@@ -76,6 +77,10 @@ function _fauna_migrate(doc) {
     Select('ref', create)
   );
 } // function _migrate
+
+export async function fql_schema() {
+  return await client.query(schema());
+} // export function
 
 export function schema() {
   return q.Reduce(
@@ -188,3 +193,134 @@ export async function graphql(body) {
 
   return await resp.json();
 } // export graphql_migrate
+
+export async function graphql_schema() {
+  const domain = get_env('FAUNA_GRAPHQL');
+  const secret = get_env('FAUNA_SECRET');
+  const resp = await fetch(`https://${domain}/graphql`, {
+    method: 'POST',
+    body: JSON.stringify({ query: GQL_SCHEMA }),
+    headers: { 'Authorization': `Bearer ${secret}` }
+  });
+
+  if (!resp.ok) {
+    throw new Error(`fetch failed: /graphql ${resp.status} ${resp.statusText}`);
+  }
+
+  return await resp.json();
+} // export graphql_schema
+
+export async function migrate(fql, gql) {
+  const old_fql = await fql_schema();
+  const old_gql = await graphql_schema();
+  const file_name = 'tmp/fauna.migrate.txt';
+  let old_file = '';
+  fs.mkdirSync("tmp", {recursive: true});
+  try {
+    old_file = fs.readFileSync(file_name, 'utf8');
+  } catch (e) {
+    fs.writeFileSync(file_name, '');
+  }
+  if (old_file === schema_to_string(fql, old_fql))
+    return false;
+  await fql_migrate(fql);
+  await graphql_migrate(gql);
+  const new_schema = await fql_schema();
+  fs.writeFileSync(file_name, schema_to_string(fql, new_schema))
+} // export migrate
+
+export function schema_to_string(doc, old_schema) {
+  return JSON.stringify([doc,old_schema]);
+} // export function
+
+const GQL_SCHEMA = `
+fragment FullType on __Type {
+  kind
+  name
+  fields(includeDeprecated: true) {
+    name
+    args {
+      ...InputValue
+    }
+    type {
+      ...TypeRef
+    }
+    isDeprecated
+    deprecationReason
+  }
+  inputFields {
+    ...InputValue
+  }
+  interfaces {
+    ...TypeRef
+  }
+  enumValues(includeDeprecated: true) {
+    name
+    isDeprecated
+    deprecationReason
+  }
+  possibleTypes {
+    ...TypeRef
+  }
+}
+fragment InputValue on __InputValue {
+  name
+  type {
+    ...TypeRef
+  }
+  defaultValue
+}
+fragment TypeRef on __Type {
+  kind
+  name
+  ofType {
+    kind
+    name
+    ofType {
+      kind
+      name
+      ofType {
+        kind
+        name
+        ofType {
+          kind
+          name
+          ofType {
+            kind
+            name
+            ofType {
+              kind
+              name
+              ofType {
+                kind
+                name
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+query IntrospectionQuery {
+  __schema {
+    queryType {
+      name
+    }
+    mutationType {
+      name
+    }
+    types {
+      ...FullType
+    }
+    directives {
+      name
+      locations
+      args {
+        ...InputValue
+      }
+    }
+  }
+}
+`;
+

@@ -7,8 +7,10 @@
   "scripts": {
     "test": "jest"
   },
-  "devDependencies": {
+  "dependencies": {
     "faunadb": "*"
+  },
+  "devDependencies": {
   },
   "repository": {
     "type": "git",

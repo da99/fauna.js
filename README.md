@@ -18,9 +18,11 @@ sh/test main|migrate|prune|...
   import {force_prune, prune_able, q, client, schema, drop_schema, migrate} from "../src/main.mjs";
   const {If, Exists, ....} = q;
 
+  const doc1 = {ref: Collection('name1'), history: 0};
+  await client.query(fql_migrate(doc1, [docs], doc2, ...));
+
   await client.query(drop_schema());
   await client.query(schema());
-  await client.query(migrate(doc1, [docs], doc2, ...));
   await client.query(prune_able(old_schema, schema));
   await client.query(force_prune(old_schema, schema));
 
